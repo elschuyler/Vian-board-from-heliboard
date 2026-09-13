@@ -21,7 +21,7 @@ class ClipboardHistoryEntry(
     val id: Long,
     var timeStamp: Long,
     var isPinned: Boolean,
-    val text: String?,
+    var text: String?,
     val filename: String?,
     val mimeTypes: List<String>?
 ) : Comparable<ClipboardHistoryEntry> {

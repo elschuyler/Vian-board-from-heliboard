@@ -48,7 +48,7 @@ private class CrashReportExceptionHandler(val appContext: Context) : Thread.Unca
         val stackTrace = StringWriter()
 
         e.printStackTrace(PrintWriter(stackTrace))
-        writeCrashReportToFile("""
+        val reportText = """
 Thread: ${t.name}
 App version: ${BuildConfig.VERSION_NAME}
 Device: ${Build.BRAND} ${Build.DEVICE}, Android ${Build.VERSION.RELEASE}
@@ -57,8 +57,10 @@ Stack trace:
 $stackTrace
 Last log:
 ${Log.getLog(100).joinToString("\n")}
-""")
-        defaultUncaughtExceptionHandler!!.uncaughtException(t, e)
+"""
+        writeCrashReportToFile(reportText)
+        helium314.keyboard.latin.utils.LogCatcher.log('F', "CrashReport", "HeliBoard uncaught exception on thread ${t.name}: ${e.message}", e)
+        defaultUncaughtExceptionHandler?.uncaughtException(t, e)
     }
 
     private fun writeCrashReportToFile(text: String) {

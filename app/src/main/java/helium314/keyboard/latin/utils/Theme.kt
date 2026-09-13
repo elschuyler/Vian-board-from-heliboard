@@ -16,7 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import helium314.keyboard.latin.R
 
 @Composable
-fun Theme(dark: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
+fun Theme(dark: Boolean = false, content: @Composable () -> Unit) {
     val material3 = Typography()
     val colorScheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         if (dark) dynamicDarkColorScheme(LocalContext.current)

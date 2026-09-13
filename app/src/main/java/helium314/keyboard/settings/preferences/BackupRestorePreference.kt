@@ -106,7 +106,6 @@ fun backupLauncher(onError: (String) -> Unit): ManagedActivityResultLauncher<Int
         val files = mutableListOf<File>()
         filesDir.walk().forEach { file ->
             val path = file.path.replace(filesPath, "")
-            if (path.contains("voice_models") || path.endsWith(".bin")) return@forEach
             if (file.isFile && backupFilePatterns.any { path.matches(it) })
                 files.add(file)
         }
@@ -115,7 +114,6 @@ fun backupLauncher(onError: (String) -> Unit): ManagedActivityResultLauncher<Int
         val protectedFiles = mutableListOf<File>()
         protectedFilesDir.walk().forEach { file ->
             val path = file.path.replace(protectedFilesPath, "")
-            if (path.contains("voice_models") || path.endsWith(".bin")) return@forEach
             if (file.isFile && backupFilePatterns.any { path.matches(it) })
                 protectedFiles.add(file)
         }
@@ -272,6 +270,7 @@ fun restoreLauncher(onError: (String) -> Unit): ManagedActivityResultLauncher<In
         wait.await()
         checkVersionUpgrade(ctx)
         transferOldPinnedClips(ctx)
+        helium314.keyboard.latin.database.PromptDao.getInstance(ctx).reload()
         Settings.getInstance().startListener()
         SubtypeSettings.reloadEnabledSubtypes(ctx)
         val newDictBroadcast = Intent(DictionaryPackConstants.NEW_DICTIONARY_INTENT_ACTION)

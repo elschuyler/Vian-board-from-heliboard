@@ -188,17 +188,24 @@ object LogCatcher {
         }
     }
 
-    fun d(tag: String, message: String) = log('D', tag, message)
-    fun i(tag: String, message: String) = log('I', tag, message)
-    fun w(tag: String, message: String, throwable: Throwable? = null) = log('W', tag, message, throwable)
-    fun e(tag: String, message: String, throwable: Throwable? = null) = log('E', tag, message, throwable)
-
     /** Reads the persisted crash report file from the file system, if present. */
     fun readLastCrashReport(): String? {
         val context = appContext ?: return null
         return try {
             val file = File(context.filesDir, CRASH_LOG_FILE)
-            if (file.exists()) file.readText() else null
+            if (file.exists() && file.length() > 0) {
+                file.readText()
+            } else {
+                // Bridge HeliBoard OG crash reports
+                val externalDir = context.getExternalFilesDir(null)
+                val protectedDir = DeviceProtectedUtils.getFilesDir(context)
+                val legacyFiles = (externalDir?.listFiles()?.toList().orEmpty() + protectedDir?.listFiles()?.toList().orEmpty())
+                    .filter { it.name.startsWith("crash_report") }
+                    .sortedByDescending { it.lastModified() }
+                if (legacyFiles.isNotEmpty()) {
+                    legacyFiles.first().readText()
+                } else null
+            }
         } catch (_: Exception) {
             null
         }
@@ -209,6 +216,11 @@ object LogCatcher {
         try {
             val file = File(context.filesDir, CRASH_LOG_FILE)
             if (file.exists()) file.delete()
+            val externalDir = context.getExternalFilesDir(null)
+            val protectedDir = DeviceProtectedUtils.getFilesDir(context)
+            val legacyFiles = (externalDir?.listFiles()?.toList().orEmpty() + protectedDir?.listFiles()?.toList().orEmpty())
+                .filter { it.name.startsWith("crash_report") }
+            legacyFiles.forEach { it.delete() }
         } catch (_: Exception) {}
     }
 

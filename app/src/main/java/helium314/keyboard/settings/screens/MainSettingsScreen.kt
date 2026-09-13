@@ -28,7 +28,7 @@ import helium314.keyboard.settings.preferences.Preference
 fun MainSettingsScreen(
     onClickAppearance: () -> Unit,
     onClickWordEngine: () -> Unit,
-    onClickVoiceInput: () -> Unit,
+    onClickSecurity: () -> Unit,
     onClickAdvanced: () -> Unit,
     onClickBack: () -> Unit,
 ) {
@@ -56,10 +56,10 @@ fun MainSettingsScreen(
                     icon = R.drawable.ic_settings_correction
                 ) { NextScreenIcon() }
                 Preference(
-                    name = stringResource(R.string.voice_input),
-                    description = "Offline Whisper voice typing, model import & word improvement",
-                    onClick = onClickVoiceInput,
-                    icon = R.drawable.sym_keyboard_voice_rounded
+                    name = "Security",
+                    description = "Pattern lock, privacy vault & security vault",
+                    onClick = onClickSecurity,
+                    icon = R.drawable.ic_settings_security
                 ) { NextScreenIcon() }
                 Preference(
                     name = stringResource(R.string.settings_screen_advanced),

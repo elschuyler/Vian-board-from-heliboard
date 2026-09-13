@@ -13,7 +13,6 @@ SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WRITE_USER_DICTIONARY" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <application android:label="@string/english_ime_name"
             android:name="helium314.keyboard.latin.App"
@@ -91,12 +90,6 @@ SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
             android:theme="@style/TransparentActivityTheme" android:excludeFromRecents="true" android:noHistory="true"
             android:windowSoftInputMode="adjustResize|stateAlwaysVisible" android:configChanges="orientation|screenSize"/>
 
-        <activity android:name="helium314.keyboard.latin.voice.VoicePermissionActivity"
-            android:exported="false"
-            android:theme="@style/TransparentActivityTheme"
-            android:excludeFromRecents="true"
-            android:noHistory="true" />
-
         <activity android:name="helium314.keyboard.settings.LogKeeperActivity"
             android:theme="@style/platformActivityTheme"
             android:label="@string/log_keeper"
@@ -145,12 +138,6 @@ SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/gesture_data_path"/>
         </provider>
-
-        <!-- Isolated multi-process voice input service -->
-        <service
-            android:name=".latin.voice.VoiceInputService"
-            android:process=":voice"
-            android:exported="false" />
     </application>
 
     <queries>

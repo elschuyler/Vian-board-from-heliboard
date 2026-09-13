@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SPDX-License-Identifier: GPL-3.0-only
+-->
+<helium314.keyboard.keyboard.desktop.DesktopShortcutsView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_gravity="bottom"
+    android:orientation="vertical"
+    android:visibility="gone"
+    android:background="@android:color/transparent"
+    style="?attr/clipboardHistoryViewStyle">
+
+    <LinearLayout
+        android:id="@+id/desktop_shortcuts_deck"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:baselineAligned="false"
+        android:orientation="horizontal"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="2dp">
+
+        <!-- Left side: 7 Fat Buttons in 3 rows (3, 2, 2) -->
+        <LinearLayout
+            android:id="@+id/fat_buttons_container"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="62"
+            android:orientation="vertical">
+
+            <!-- Row 1: 3 Buttons -->
+            <LinearLayout
+                android:id="@+id/fat_row_1"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal" />
+
+            <!-- Row 2: 2 Buttons -->
+            <LinearLayout
+                android:id="@+id/fat_row_2"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal" />
+
+            <!-- Row 3: 2 Buttons -->
+            <LinearLayout
+                android:id="@+id/fat_row_3"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal" />
+
+        </LinearLayout>
+
+        <!-- Right side: Fixed Arrow and Navigation Cluster -->
+        <LinearLayout
+            android:id="@+id/arrow_cluster_container"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="38"
+            android:orientation="vertical"
+            android:paddingStart="4dp"
+            android:paddingEnd="2dp">
+
+            <!-- Arrow Row 1: Home / Up / End -->
+            <LinearLayout
+                android:id="@+id/arrow_row_1"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal" />
+
+            <!-- Arrow Row 2: Left / Down / Right -->
+            <LinearLayout
+                android:id="@+id/arrow_row_2"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <helium314.keyboard.keyboard.MainKeyboardView
+        android:id="@+id/bottom_row_keyboard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+</helium314.keyboard.keyboard.desktop.DesktopShortcutsView>

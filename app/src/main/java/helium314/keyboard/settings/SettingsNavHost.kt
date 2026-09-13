@@ -29,11 +29,14 @@ import helium314.keyboard.settings.screens.MainSettingsScreen
 import helium314.keyboard.settings.screens.PersonalDictionariesScreen
 import helium314.keyboard.settings.screens.PersonalDictionaryScreen
 import helium314.keyboard.settings.screens.PreferencesScreen
+import helium314.keyboard.settings.screens.PatternLockSettingsScreen
+import helium314.keyboard.settings.screens.PrivacyVaultPlaceholderScreen
 import helium314.keyboard.settings.screens.SecondaryLayoutScreen
+import helium314.keyboard.settings.screens.SecurityScreen
+import helium314.keyboard.settings.screens.SecurityVaultPlaceholderScreen
 import helium314.keyboard.settings.screens.SubtypeScreen
 import helium314.keyboard.settings.screens.TextCorrectionScreen
 import helium314.keyboard.settings.screens.ToolbarScreen
-import helium314.keyboard.settings.screens.VoiceInputScreen
 import helium314.keyboard.settings.screens.WordEngineScreen
 import helium314.keyboard.settings.screens.gesturedata.GestureDataScreen
 import helium314.keyboard.settings.screens.gesturedata.ReviewScreen
@@ -72,19 +75,32 @@ fun SettingsNavHost(
             MainSettingsScreen(
                 onClickAppearance = { navController.navigate(SettingsDestination.Appearance) },
                 onClickWordEngine = { navController.navigate(SettingsDestination.WordEngine) },
-                onClickVoiceInput = { navController.navigate(SettingsDestination.VoiceInput) },
+                onClickSecurity = { navController.navigate(SettingsDestination.Security) },
                 onClickAdvanced = { navController.navigate(SettingsDestination.Advanced) },
                 onClickBack = ::goBack,
             )
         }
-        composable(SettingsDestination.VoiceInput) {
-            VoiceInputScreen(onClickBack = ::goBack)
+        composable(SettingsDestination.Security) {
+            SecurityScreen(
+                onClickPatternLock = { navController.navigate(SettingsDestination.PatternLock) },
+                onClickPrivacyVault = { navController.navigate(SettingsDestination.PrivacyVault) },
+                onClickSecurityVault = { navController.navigate(SettingsDestination.SecurityVault) },
+                onClickBack = ::goBack
+            )
+        }
+        composable(SettingsDestination.PatternLock) {
+            PatternLockSettingsScreen(onClickBack = ::goBack)
+        }
+        composable(SettingsDestination.PrivacyVault) {
+            PrivacyVaultPlaceholderScreen(onClickBack = ::goBack)
+        }
+        composable(SettingsDestination.SecurityVault) {
+            SecurityVaultPlaceholderScreen(onClickBack = ::goBack)
         }
         composable(SettingsDestination.WordEngine) {
             WordEngineScreen(
                 onClickTextCorrection = { navController.navigate(SettingsDestination.TextCorrection) },
                 onClickDictionaries = { navController.navigate(SettingsDestination.Dictionaries) },
-                onClickGestureTyping = { navController.navigate(SettingsDestination.GestureTyping) },
                 onClickBack = ::goBack,
             )
         }
@@ -166,7 +182,6 @@ object SettingsDestination {
     const val About = "about"
     const val TextCorrection = "text_correction"
     const val WordEngine = "word_engine"
-    const val VoiceInput = "voice_input"
     const val BackupRestore = "backup_restore"
     const val Preferences = "preferences"
     const val Toolbar = "toolbar"
@@ -175,6 +190,10 @@ object SettingsDestination {
     const val DataReview = "data_review" // remove when data gathering phase is done (end of 2026 latest)
     const val Advanced = "advanced"
     const val Debug = "debug"
+    const val Security = "security"
+    const val PatternLock = "pattern_lock"
+    const val PrivacyVault = "privacy_vault"
+    const val SecurityVault = "security_vault"
     const val Appearance = "appearance"
     const val Colors = "colors/"
     const val ColorsNight = "colors_night/"

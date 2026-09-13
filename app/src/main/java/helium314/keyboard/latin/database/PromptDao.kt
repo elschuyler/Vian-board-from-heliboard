@@ -5,6 +5,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import androidx.core.database.getStringOrNull
+import helium314.keyboard.latin.utils.LogCatcher
 
 data class PromptEntry(
     val id: Long,
@@ -146,12 +147,35 @@ class PromptDao private constructor(private val db: Database) {
         }
     }
 
-    fun clear() {
-        synchronized(this) {
-            val size = cache.size
-            db.writableDatabase.delete(TABLE, null, null)
+    fun reload() = synchronized(this) {
+        try {
             cache.clear()
-            listener?.onPromptsRemoved(0, size)
+            ensureTableExists(db.writableDatabase)
+            db.readableDatabase.query(
+                TABLE,
+                arrayOf(COLUMN_ID, COLUMN_TIMESTAMP, COLUMN_PINNED, COLUMN_TITLE, COLUMN_TEXT),
+                null,
+                null,
+                null,
+                null,
+                "$COLUMN_PINNED DESC, $COLUMN_TIMESTAMP DESC"
+            ).use {
+                while (it.moveToNext()) {
+                    cache.add(
+                        PromptEntry(
+                            id = it.getLong(0),
+                            timestamp = it.getLong(1),
+                            isPinned = it.getInt(2) != 0,
+                            title = it.getStringOrNull(3) ?: "",
+                            text = it.getStringOrNull(4) ?: ""
+                        )
+                    )
+                }
+            }
+            LogCatcher.log('I', "PromptDao", "reload: reloaded ${cache.size} entries")
+            listener?.onPromptUpdated()
+        } catch (t: Throwable) {
+            LogCatcher.log('E', "PromptDao", "reload error: ${t.message}", t)
         }
     }
 

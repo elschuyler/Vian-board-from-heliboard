@@ -881,15 +881,22 @@ public final class InputLogic {
                 mLatinIME.showInputPickerDialog();
                 break;
             case KeyCode.VOICE_INPUT:
-                // Voice input event is dispatched to LatinIME.onVoiceInputTriggered()
-                break;
+                // switching to shortcut IME, shift state, keyboard,... is handled by LatinIME,
+                // {@link KeyboardSwitcher#onEvent(Event)}, or {@link #onPressKey(int,int,boolean)} and {@link #onReleaseKey(int,boolean)}.
+                // We need to switch to the shortcut IME. This is handled by LatinIME since the
+                // input logic has no business with IME switching.
             case KeyCode.LOG_KEEPER:
                 mLatinIME.startActivity(
                     new android.content.Intent(mLatinIME, helium314.keyboard.settings.LogKeeperActivity.class)
                         .setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                 );
                 break;
-            case KeyCode.PROMPT_LIST, KeyCode.EMOJI, KeyCode.TOGGLE_ONE_HANDED_MODE, KeyCode.SWITCH_ONE_HANDED_MODE, KeyCode.TOGGLE_FLOATING_WINDOW,
+            case KeyCode.PRIVACY_VAULT:
+                android.widget.Toast.makeText(mLatinIME, "Privacy Vault (Placeholder)", android.widget.Toast.LENGTH_SHORT).show();
+                break;
+            case KeyCode.PROMPT_LIST, KeyCode.DESKTOP_SHORTCUTS, KeyCode.INCOGNITO_TEMP_2MIN,
+                 KeyCode.DPAD, KeyCode.NUMPAD, KeyCode.SYMBOL, KeyCode.ALPHA, KeyCode.SYMBOL_ALPHA,
+                 KeyCode.EMOJI, KeyCode.TOGGLE_ONE_HANDED_MODE, KeyCode.SWITCH_ONE_HANDED_MODE, KeyCode.TOGGLE_FLOATING_WINDOW,
                  KeyCode.KEY_REPEAT: // can be configured on main layout using !code/-11000, and we shouldn't crash on this in debug mode
                 break;
             default:

@@ -175,6 +175,15 @@ class ClipboardDao private constructor(private val db: Database) {
         db.writableDatabase.update(TABLE, cv, "$COLUMN_ID = ${entry.id}", null)
     }
 
+    fun updateClipText(id: Long, newText: String) = synchronized(this) {
+        val entry = cache.firstOrNull { it.id == id } ?: return@synchronized
+        entry.text = newText
+        val cv = ContentValues(1).apply {
+            put(COLUMN_TEXT, newText)
+        }
+        db.writableDatabase.update(TABLE, cv, "$COLUMN_ID = ?", arrayOf(id.toString()))
+    }
+
     // RecyclerView initiates this, so we don't call listener (or we'll get an IndexOutOfRangeException from RecyclerView)
     fun deleteClipAt(index: Int) {
         delete(listOf(cache[index]))

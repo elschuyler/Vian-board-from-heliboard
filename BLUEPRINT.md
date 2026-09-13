@@ -108,58 +108,63 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
     - Replaced framework `PopupMenu` with a compact, theme-colored floating `PopupWindow` featuring HeliBoard vector drawables (`ic_clipboard_pin_rounded`, `ic_edit`, `ic_bin_rounded`) with active theme tints (`ColorType.KEY_BACKGROUND`, `ColorType.CLIPBOARD_PIN`, `ColorType.TOOL_BAR_KEY`), 44dp accessible touch targets, and instant touch-outside dismissal.
     - Verified compilation cleanly via `compile_applet`.
 
-- **Phase 20: Offline Voice Input Engine**:
-  - **Mini-Phase 1: Foundations, Model Storage & Word Improvement Dictionary [COMPLETED]**:
-    - Declared `RECORD_AUDIO` permission in `AndroidManifest.xml`.
-    - Decoupled legacy `mRichImm.switchToShortcutIme` in `LatinIME.java` and isolated `KeyCode.VOICE_INPUT` handling in `InputLogic.java`.
-    - Upgraded `Database.kt` to version 4 with `VOICE_REPLACEMENTS` schema and migration.
-    - Implemented `VoiceReplacementDao.kt` with thread-safe cached word replacements.
-    - Created `VoiceModelManager.kt` managing Whisper `.bin` models in `no_backup/voice_models/` with GGML header validation.
-    - Added dedicated Voice Input settings screen (`VoiceInputScreen.kt`) with 3-stage gain multiplier, model import/delete UI, and word replacement CRUD editor.
-    - Excluded model binaries from backup ZIP archives in `BackupRestorePreference.kt`.
-  - **Mini-Phase 2: Compact Modal UI, 4-Button Bottom Control Bar, & Streaming Preview Interface [COMPLETED]**:
-    - Implemented `VoiceInputView.kt` and `voice_input_view.xml` using native Android Views without heavy Compose runtime overhead.
-    - Constrained layout in `onMeasure` to exactly 150dp compact height with theme-adaptive styling.
-    - Built unified 4-button bottom control bar (`[ABC] [SPACE] [⌫] [↵]`) dispatching directly to keyboard action listener.
-    - Built custom `VoicePulseView.kt` Canvas animation reacting to speech RMS amplitude across dynamic states (Listening, Paused, Error, Idle).
-    - Added streaming text preview, error status indicating missing models, and cycling gain pill (1x -> 2x -> 4x).
-    - Implemented `VoicePermissionActivity.kt` and `VoicePermissionBridge.kt` for seamless runtime audio permission requests.
-    - Integrated `KeyboardSwitcher.java` and `LatinIME.java` lifecycle hooks for instant dismissal and zero background resource usage when closed.
-  - **Mini-Phase 3: Multi-Process Audio Pipeline & IPC Service [COMPLETED]**:
-    - Registered `VoiceInputService` in `AndroidManifest.xml` under dedicated process `android:process=":voice"`, isolating microphone capture and native threads from the main IME process.
-    - Implemented `VoiceIpcProtocol.kt` defining lightweight, low-overhead Messenger IPC commands (`START`, `PAUSE`, `RESUME`, `STOP`, `SET_GAIN`) and events (`RMS_UPDATE`, `STATE_CHANGED`, `SPEECH_ACTIVITY`, `ERROR`).
-    - Implemented `AudioRecordPipeline.kt` running on a dedicated priority thread capturing 16kHz 16-bit mono PCM with 3-stage digital gain (`1x`, `2x`, `4x`) and hard clipping limiter, calculating smoothed RMS levels dispatched at 40ms intervals.
-    - Created `EnergyVad.kt` implementing lightweight energy-based Voice Activity Detection with adaptive noise-floor calibration.
-    - Implemented `VoiceInputService.kt` with IPC message dispatch, client registration, and a 60-second idle auto-shutdown timer releasing audio hardware and process memory when inactive.
-    - Built `VoiceInputConnection.kt` in `:root` managing service binding and IPC message handling with `IBinder.DeathRecipient` protection preventing `DeadObjectException`.
-    - Integrated `VoiceInputConnection` into `VoiceInputView.kt` linking start/pause/resume/gain actions to the audio service and driving live pulse animations from real microphone RMS amplitude.
-  - **Mini-Phase 4: FUTO Whisper Engine JNI Integration & CMake CI Pipeline [COMPLETED]**:
-    - Extended `VoiceIpcProtocol.kt` with `EVENT_FINAL_TRANSCRIPTION`.
-    - Implemented `WhisperEngine.kt` with safe JNI bindings, token artifact cleanup (`cleanWhisperOutput`), and `LogCatcher` component lifecycle tracking without logging text or PII.
-    - Created C/C++ native bridge in `app/src/main/jni/whisper/` (`whisper.h`, `jni_whisper.cpp`, `CMakeLists.txt` with NEON intrinsics and `-O3`).
-    - Updated `.github/workflows/build-apk.yml` with automated CMake CI compilation of `libwhisper.so` for `armeabi-v7a`, `arm64-v8a`, and `x86_64`.
-    - Connected speech audio accumulation, VAD pause triggering, background Whisper inference, word improvement replacement mapping (`VoiceReplacementDao`), and text commit dispatching.
-  - **Mini-Phase 5: Full Operational Parity: Dynamic Audio Context, Upstream whisper.cpp Vendoring, & Streaming Preview Loop [COMPLETED]**:
-    - Audited licensing: rejected `futo-org/voice-input` non-commercial license; selected 100% clean-room MIT upstream `whisper.cpp` + Apache-2.0 ACFT model weights.
-    - Vendored core upstream `whisper.cpp` (v1.5.4) and `ggml` source tree into `app/src/main/jni/whisper/src/` (`whisper.h`, `whisper.cpp`, `ggml.h`, `ggml.c`, `ggml-alloc.h`, `ggml-alloc.c`, `ggml-backend.h`, `ggml-backend.c`, `ggml-backend-impl.h`, `ggml-impl.h`, `ggml-quants.h`, `ggml-quants.c`).
-    - Updated `app/src/main/jni/whisper/whisper.h` with complete official header including `audio_ctx` context control in `struct whisper_full_params`.
-    - Updated `app/src/main/jni/whisper/CMakeLists.txt` to compile all vendored engine sources into `libwhisper.so`.
-    - Injected dynamic `audio_ctx` calculation (`(n_samples / 160) + 32`, clamped 128..1500) into `jni_whisper.cpp`, delivering sub-300ms mobile inference speed by eliminating 30-second silence padding compute.
-    - Enhanced `VoiceInputService.kt` with an interim streaming preview worker (evaluating speech every 800ms on 2 threads) that dispatches live `EVENT_TRANSCRIPTION_PREVIEW` to the modal preview row while speaking.
-    - Preserved full `LogCatcher` privacy and audit standards (zero PII, zero text content logged).
+- **Phase 20: Desktop Shortcuts Modal (The 4th Modal) & Customizer [COMPLETED]**:
+  - **Component 1: KeyCodes & Navigation Triggers [COMPLETED]**:
+    - Added `KeyCode.DESKTOP_SHORTCUTS` (-10010) in `KeyCode.kt`.
+    - Added `ToolbarKey.DESKTOP_SHORTCUTS` in `ToolbarUtils.kt` mapped to `KeyCode.DESKTOP_SHORTCUTS`.
+    - Mapped icon in `KeyboardIconsSet.kt` (`ic_desktop_mac`) and added shortcut entry to comma key popup grid in `TextKeyData.kt`.
+  - **Component 2: State Machine & Switching Lifecycle [COMPLETED]**:
+    - Added `DESKTOP_SHORTCUTS` to `LayoutDirective.Utility`, `KeyboardState.Mode`, and `KeyboardSwitchState`.
+    - Implemented `setDesktopShortcutsKeyboard()`, `isShowingDesktopShortcuts()`, and lazy view inflation in `KeyboardSwitcher.java`.
+    - Guaranteed non-ghosting visibility isolation across `setEmojiKeyboard()`, `setClipboardKeyboard()`, `setPromptKeyboard()`, and `setSecondaryStripVisibility()`.
+  - **Component 3: View & Split-Deck Layout [COMPLETED]**:
+    - Added `desktop_shortcuts_strip_scroll_view` and `desktop_shortcuts_strip` in `strip_container.xml`.
+    - Created `desktop_shortcuts_view.xml` and included in `main_keyboard_frame.xml`.
+    - Built `DesktopShortcutsView.kt`: Left side 7 Fat Buttons arranged in 3 staggered rows (`3, 2, 2`) with two-tier typography (Action title + shortcut combination subtitle); Right side fixed arrow & navigation cluster (`↑`, `←`, `↓`, `→`, `Home`, `End`); Bottom dock 4 buttons (`ABC`, `Space`, `Desktop Del`, `Desktop Enter`).
+    - Populated top strip: `Undo`, `Redo`, `Top`, `Bottom`, `Search/Line`, `Select Word/All`, `Copy/Notes`, `Paste/Clip`, `Close (X)`.
+  - **Component 4: Dual-Dispatch Engine & Telemetry [COMPLETED]**:
+    - Implemented hardware synthetic `KeyEvent` with `META_CTRL_ON` / `META_SHIFT_ON` / `META_ALT_ON` and fallback to `InputConnection` context actions (`android.R.id.selectAll`, `copy`, `paste`, `cut`, `undo`, `redo`).
+    - Connected execution events and exceptions to `LogCatcher` (sanitized, zero PII).
+  - **Component 5: Settings Appearance Customizer [COMPLETED]**:
+    - Built `DesktopShortcutsCustomizer.kt` with live search, drag-and-drop reordering with drag handles, active count tracker (`X/7`), toggle switches for enabling/disabling shortcuts, and Reset to Default support.
+    - Integrated customizer into `AppearanceScreen.kt` under "Desktop Shortcuts".
+    - Verified compilation cleanly via `compile_applet`.
 
-- **Phase 21: Native Suggestion & Gesture Engine**:
-  - **Phase A: Library UI Restoration & Dynamic JNI Integration [IN PROGRESS]**:
-    - Restore native gesture & suggestion library loader UI (`LoadGestureLibPreference.kt`) without committing proprietary binary blobs to the workspace.
-    - Implement document picker launcher, temporary cache staging, SHA-256 calculation via `ChecksumCalculator`, and validation against architecture default checksums (`JniUtils.expectedDefaultChecksum()`).
-    - Implement confirmation and checksum mismatch warning dialogs (`R.string.checksum_mismatch_message`) displaying calculated vs expected hashes for the active CPU ABI (`Build.SUPPORTED_ABIS[0]`).
-    - Wire dynamic library installation into `files/libjni_latinime.so`, persist `PREF_LIBRARY_CHECKSUM` across protected and standard preferences, and invoke live dynamic linking via `JniUtils.loadUserSuppliedLibrary()`.
-    - Add native library management, delete/reset capability, and live `LatinIME` dictionary reload broadcast (`NEW_DICTIONARY_INTENT_ACTION`).
-    - Integrate `LoadGestureLibPreference` and conditional `GestureTypingScreen` routing into `WordEngineScreen.kt`.
-  - **Phase B: Accidental Number Typo Engine [PLANNED]**:
-    - Update `StringUtils.kt` word boundary detection to allow numbers surrounded by script letters.
-    - Map digits to physical top-row proximity and leetspeak substitution candidates in `Suggest.kt`.
-    - Relax single-digit `hasDigits()` autocorrect veto in `Suggest.kt`.
+- **Phase 21: Cross-System Integration & UI Parity Overhaul [COMPLETE]**:
+  - **Component 1: Backup & Restore Engine Integration**:
+    - Synchronized Prompt Notes with `Database.copyFromDb` (schema version 4) and `BackupRestorePreference.kt` by transferring `PROMPTS` table on restore and invoking `PromptDao.getInstance(ctx).reload()`.
+    - Verified `pref_desktop_shortcuts_config` serialization into `preferences.json` and resilient deserialization.
+  - **Component 2: OG HeliBoard Logger & Crash Record Bridge to LogCatcher**:
+    - Bridged legacy `CrashReportExceptionHandler` in `DebugFlags.kt` and `SettingsActivity.kt` to feed into `LogCatcher` (`LogCatcher.log('F', ...)`).
+    - Enhanced `LogCatcher.readLastCrashReport()` and `clearCrashReport()` to detect, display, and clean legacy `crash_report_*.txt` files alongside `last_crash.txt`.
+    - Wired sanitized telemetry from `PromptDao` and `DesktopShortcut` execution into `LogCatcher`.
+  - **Component 3: Log Keeper UI Overhaul (Tab-Aware Copy & Time Pills Filter)**:
+    - Implemented tab-aware clipboard copy in `LogKeeperActivity.kt`: copying from Tab 0 ("All Logs") copies filtered logs; copying from Tab 1 ("Errors") copies filtered error logs and crash report.
+    - Implemented horizontal time filter chips (`All`, `1h`, `6h`, `12h`, `24h`) dynamically filtering log items by timestamp.
+  - **Component 4: Clipboard Long-Press Themed Popup Window (Parity with Prompt List)**:
+    - Replaced framework `PopupMenu` in `ClipboardAdapter.kt` with the floating, theme-colored `PopupWindow` matching `PromptHistoryView.kt`.
+    - Featured themed action buttons for Pin/Unpin (`ic_clipboard_pin_rounded`), Add to Quick Notes (`ic_plus`), Edit Clip (`ic_edit`), and Delete Clip (`ic_bin_rounded`) with outside-touch dismissal and custom edit dialog.
+
+- **Phase 22: Security Infrastructure & Pattern Unlock Engine [COMPLETE]**:
+  - **Component 1: Vault Session Engine (`VaultSessionManager.kt`)**:
+    - Implemented hardware-backed salted SHA-256 pattern hash storage (`pref_vault_pattern_salt`, `pref_vault_pattern_hash`) via Android `SecureRandom` and `MessageDigest`.
+    - Built independent in-memory session timers: 5-minute window for Privacy Vault and 3-minute window for Security Vault.
+    - Ensured zero disk persistence for active sessions (RAM-only expiration); all sessions immediately purged on clear/lock or process death.
+    - Sanitized telemetry integration with `LogCatcher` logging only lifecycle states and error codes with zero credentials, zero coordinates, and zero PII.
+  - **Component 2: Interactive 3x3 Pattern Matrix (`PatternGridView.kt`)**:
+    - Custom Android view implementing a tactile 3x3 touch grid matching active keyboard theme colors (`ColorType.KEY_TEXT`, `ColorType.GESTURE_TRAIL`, `ColorType.ACTION_KEY_BACKGROUND`).
+    - Real-time drag line rendering, selected node halos, tactile haptic feedback, and error state red flash animations.
+  - **Component 3: In-Keyboard Unlock Overlay (`PatternUnlockView.kt` & `pattern_unlock_view.xml`)**:
+    - Layout contained strictly within keyboard bounds in `main_keyboard_frame.xml`.
+    - Integrated into `KeyboardSwitcher.java` with lifecycle management (`showPatternUnlockView()`, `isShowingPatternUnlock()`, `deallocateMemory()`).
+    - Connected `?123` long-press trigger in `PointerTracker.java` -> `KeyboardSwitcher.onLongPressAlphaSymbolForNumpad()`: prompts configuration if unconfigured, unlocks security session if locked, or displays security vault placeholder if valid.
+  - **Component 4: Settings Security Screen & Sub-Pages**:
+    - Added "Security" preference category and entry to `MainSettingsScreen.kt` using `ic_settings_security.xml`.
+    - Built `SecurityScreen.kt`: dedicated page hosting Pattern Lock, Privacy Vault placeholder, Security Vault placeholder, and a gatekeeper switch placeholder.
+    - Built `PatternLockSettingsScreen.kt`: full interactive pattern setup flow (draw pattern -> confirm pattern -> save salted hash), interactive unlock testing, change pattern, and remove pattern, along with session timeout documentation.
+    - Built `PrivacyVaultPlaceholderScreen.kt` and `SecurityVaultPlaceholderScreen.kt` previewing Phase 23 (Private Phrases / Dictionary Twin) and Phase 24 (KeePass KDBX / TOTP).
+    - Registered all 4 destinations in `SettingsNavHost.kt`.
+  - **Verification**: Clean build verified via `compile_applet`.
 
 ## 4. Change Ledger
 - **2026-08-27**: Cloned and imported complete source tree from `schuylervianilewis-hash/Vianboardtryagain`.
@@ -183,13 +188,9 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
 - **2026-09-10**: Completed Phase 19 Mini-Phase B (ABC Key & State Machine Integration): added `PROMPT` to `LayoutDirective.Utility`, `KeyboardState.Mode`, and `KeyboardSwitchState`; added `setPromptKeyboard()` to `SwitchActions`; routed `KeyCode.PROMPT_LIST` through `KeyboardState.onEvent` via `toggleLayout(Utility.PROMPT)`; configured bottom row via `buildEmojiClipBottomRow(context, editorInfo)` and `PointerTracker.switchTo()`; verified ABC key exit back to alphabet typing; verified compilation via `compile_applet`.
 - **2026-09-10**: Completed Phase 19 Mini-Phase C (Visual Parity with Clipboard): extracted `KeyDrawParams` (typeface, label color, text size); styled prompt note cards with `ColorType.KEY_BACKGROUND`, pin icon with `ColorType.CLIPBOARD_PIN`, and empty placeholder with `KeyboardTypeface` and theme text color; added keyboard width constraints and side padding; updated `PromptDao.togglePinned()` to refresh timestamp bringing pinned items to the top; added animated `notifyItemMoved()`, `notifyItemChanged()`, and auto-scroll on pin/unpin; verified compilation via `compile_applet`.
 - **2026-09-10**: Completed Phase 19 Mini-Phase D (Suggestion Strip Toolbar & Compact Popup Menu): added `prompt_strip_scroll_view` in `strip_container.xml` and `KeyboardSwitcher.java`, populated with full editing toolbar keys (`UP`, `DOWN`, `LEFT`, `RIGHT`, `UNDO`, `CUT`, `COPY`, `PASTE`, `SELECT_WORD`, `CLOSE_HISTORY`) styled to keyboard theme; routed `CLOSE_HISTORY` to `KeyCode.PROMPT_LIST` to restore alphabet keyboard; replaced standard framework `PopupMenu` with compact themed `PopupWindow` using HeliBoard vector icons (`ic_clipboard_pin_rounded`, `ic_edit`, `ic_bin_rounded`); verified compilation via `compile_applet`.
-- **2026-09-10**: Enhanced Prompt List Item Tap Behavior: removed auto-revert to alphabet layout on note snippet tap in `PromptHistoryView.kt`, allowing consecutive snippet insertions without leaving the Prompt view; exit remains controlled via bottom bar `[ABC]` or top toolbar `[X]`.
-- **2026-09-10**: Completed Phase 20 Mini-Phase 1 (Foundations, Model Storage & Word Improvement Dictionary): declared `RECORD_AUDIO` permission, decoupled legacy voice IME switcher in `LatinIME.java`, isolated `KeyCode.VOICE_INPUT` in `InputLogic.java`, upgraded database schema to version 4 with SQLite tables for `VOICE_REPLACEMENTS`, created `VoiceReplacementDao.kt` for phonetic replacements, built `VoiceModelManager.kt` managing Whisper `.bin` models in `no_backup/voice_models/` with GGML header validation, added dedicated Voice Input settings screen (`VoiceInputScreen.kt`) with 3-stage microphone sensitivity toggle, Whisper model import/delete card, and Word Improvement dictionary editor, excluded model binaries from backup ZIP archives, verified clean build with `compile_applet` and `:app:assembleDebug`.
-- **2026-09-11**: Completed Phase 20 Mini-Phase 2 (Compact Modal UI, 4-Button Bottom Control Bar & Streaming Preview Interface): built lightweight non-Compose `VoiceInputView` (150dp compact height) with theme-adaptive styling, unified 4-button bottom bar (`[ABC] [SPACE] [⌫] [↵]`), custom RMS animated `VoicePulseView` (Listening, Paused, Error, Idle states), streaming text preview, cycle gain pill, zero-flicker `VoicePermissionActivity` audio permission acquisition, state machine integration in `KeyboardSwitcher.java`, and strict IME lifecycle cleanup in `LatinIME.java` (hardware back key interception and window dismissal); verified clean compilation via `compile_applet`.
-- **2026-09-11**: Completed Phase 20 Mini-Phase 3 (Multi-Process Audio Pipeline & IPC Service): registered `VoiceInputService` in `AndroidManifest.xml` under dedicated process `android:process=":voice"`; defined `VoiceIpcProtocol.kt` Messenger interface with `DeathRecipient` crash resilience; implemented `AudioRecordPipeline.kt` (16kHz 16-bit mono PCM capture, 3-stage gain multiplier `1x/2x/4x` with clipping protection, throttled 40ms RMS calculation); built `EnergyVad.kt` for energy-based speech segmentation; implemented `VoiceInputService.kt` with 60s idle auto-shutdown; created `VoiceInputConnection.kt` client bridge; wired real-time audio pipeline and live RMS visualizer into `VoiceInputView.kt`; verified compilation via `compile_applet`.
-- **2026-09-11**: Completed Phase 20 Mini-Phase 4 (FUTO Whisper Engine JNI Integration & CMake CI Pipeline): extended `VoiceIpcProtocol.kt` with `EVENT_FINAL_TRANSCRIPTION`; implemented `WhisperEngine.kt` with safe JNI bindings, token cleanup, and LogCatcher component tracking; created C/C++ native bridge in `app/src/main/jni/whisper/` (`whisper.h`, `jni_whisper.cpp`, `CMakeLists.txt` with NEON intrinsics and `-O3`); updated `.github/workflows/build-apk.yml` with automated CMake CI compilation of `libwhisper.so` for `armeabi-v7a`, `arm64-v8a`, and `x86_64`; connected speech audio accumulation, VAD pause triggering, background Whisper inference, word improvement replacement mapping (`VoiceReplacementDao`), and text commit dispatching in `VoiceInputService.kt` and `VoiceInputConnection.kt`; verified clean build via `compile_applet`.
-- **2026-09-11**: Completed Phase 20 Mini-Phase 5 (Full Operational Parity: Dynamic Audio Context, Upstream whisper.cpp Vendoring, & Streaming Preview Loop): audited FUTO licensing vs GPLv3 and rejected proprietary source; vendored official upstream MIT `whisper.cpp` (v1.5.4) and `ggml` source tree in `app/src/main/jni/whisper/src/`; replaced stub header with complete official `whisper.h`; updated `CMakeLists.txt` to compile all C/C++ source into `libwhisper.so`; injected dynamic `audio_ctx` calculation (`(n_samples / 160) + 32`, clamped 128..1500) into `jni_whisper.cpp` to eliminate 30-second silence padding compute; added interim streaming preview worker to `VoiceInputService.kt` emitting real-time transcriptions every 800ms on 2 threads; verified build cleanly via `compile_applet`.
-
-
-
+- **2026-09-11**: Completed Phase 20 (Desktop Shortcuts Modal & Settings Customizer): registered `KeyCode.DESKTOP_SHORTCUTS`, `ToolbarKey.DESKTOP_SHORTCUTS`, `LayoutDirective.Utility.DESKTOP_SHORTCUTS`, `KeyboardState.Mode.DESKTOP_SHORTCUTS`, and `KeyboardSwitchState.DESKTOP_SHORTCUTS`; created `DesktopShortcut.kt` catalog with dual-dispatch synthetic hardware key combinations and context actions; created `DesktopShortcutsView.kt` implementing split-deck (7 fat buttons in 3,2,2 arrangement on left + fixed arrow/navigation cluster on right + 4-button bottom dock ABC/Space/Del/Enter); integrated into `KeyboardSwitcher.java` with lifecycle isolation and on-demand loading; created `DesktopShortcutsCustomizer.kt` with live search, reorder drag handles, and enable toggles; verified complete compilation via `compile_applet`.
+- **2026-09-11**: Completed Phase 21 (Cross-System Integration & UI Parity Overhaul): integrated `PROMPTS` table into `Database.kt` (schema v4) and `BackupRestorePreference.kt` with automatic cache reload on restore; verified shortcuts configuration backup/restore; bridged legacy `CrashReportExceptionHandler` in `DebugFlags.kt` to `LogCatcher`; enhanced `LogCatcher` to read/clear legacy crash logs and connected sanitized telemetry from prompts and desktop shortcuts; overhauled `LogKeeperActivity` with tab-aware clipboard copy (active tab selection) and dynamic horizontal time pill filters (`All`, `1h`, `6h`, `12h`, `24h`); replaced legacy framework `PopupMenu` in `ClipboardAdapter.kt` with floating themed `PopupWindow` and edit dialog matching `PromptHistoryView`; added `updateClipText` to `ClipboardDao` and `ClipboardHistoryManager`; verified complete compilation via `compile_applet`.
+- **2026-09-12**: Implemented Phase 22 (Security Infrastructure & Pattern Unlock Engine): created `VaultSessionManager.kt` with salted SHA-256 pattern hash storage, in-memory session timers (5 min Privacy, 3 min Security), memory-only session expiry, and sanitized telemetry to `LogCatcher`; created `PatternGridView.kt` custom Android View with a 3x3 touch matrix and theme color resolution; created `PatternUnlockView.kt` and `pattern_unlock_view.xml` within keyboard bounds; integrated `PatternUnlockView` into `KeyboardSwitcher.java`; wired `?123` long-press trigger; added "Security" category to `MainSettingsScreen.kt` with `ic_settings_security.xml`; built `SecurityScreen.kt`, `PatternLockSettingsScreen.kt`, `PrivacyVaultPlaceholderScreen.kt`, and `SecurityVaultPlaceholderScreen.kt`; registered routes in `SettingsNavHost.kt`.
+- **2026-09-12**: Fixed fatal `RuntimeException: Unknown event` on keycode `-10058` (`KeyCode.DESKTOP_SHORTCUTS`) by adding missing functional/layout keycodes (`DESKTOP_SHORTCUTS`, `INCOGNITO_TEMP_2MIN`, `DPAD`, `NUMPAD`, `SYMBOL`, `ALPHA`, `SYMBOL_ALPHA`) to `InputLogic.java` `handleFunctionalEvent()` switch statement; verified compilation via `compile_applet`.
+- **2026-09-13**: Resolved pattern grid touch interception in `PatternGridView.kt`; wired pattern lock user actions to `LogCatcher`; added Log Keeper entry to `AdvancedScreen.kt`; enforced default light theme in `Theme.kt`; set default pinned toolbar keys (Select Word, Copy, Paste); set default expanded toolbar keys (Incognito, Voice, Undo, Redo, Settings, Page Start, Page End, Log Keeper); restricted `?123` long-press unlock strictly to main alphabet layout with layout switch on tap; created `KeyCode.PRIVACY_VAULT` (-10059) and hardcoded default comma popups (Settings [unremovable], Log Keeper, Mic, One-Handed, Privacy Vault, Emoji, Desktop Shortcuts); verified compilation via `compile_applet`.
 

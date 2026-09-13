@@ -8,7 +8,6 @@ package helium314.keyboard.latin.utils;
 
 import android.annotation.SuppressLint;
 import android.app.Application;
-import android.content.Context;
 import android.os.Build;
 import android.text.TextUtils;
 
@@ -125,44 +124,5 @@ public final class JniUtils {
 
     public static void loadNativeLibrary() {
         // Ensures the static initializer is called
-    }
-
-    public static File getUserSuppliedLibrary(Context context) {
-        File filesDir = context.getFilesDir();
-        if (filesDir == null) {
-            filesDir = new File("/data/data/" + BuildConfig.APPLICATION_ID + "/files");
-        }
-        return new File(filesDir, JNI_LIB_IMPORT_FILE_NAME);
-    }
-
-    public static boolean isUserSuppliedLibraryInstalled(Context context) {
-        File file = getUserSuppliedLibrary(context);
-        return file != null && file.isFile() && file.length() > 0;
-    }
-
-    public static boolean loadUserSuppliedLibrary(Context context, String checksum) {
-        File userSuppliedLibrary = getUserSuppliedLibrary(context);
-        if (userSuppliedLibrary == null || !userSuppliedLibrary.isFile()) {
-            return false;
-        }
-        try {
-            System.load(userSuppliedLibrary.getAbsolutePath());
-            sHaveGestureLib = true;
-            sNativeLibraryLoaded = true;
-            return true;
-        } catch (Throwable t) {
-            Log.w(TAG, "Could not load user-supplied library: " + userSuppliedLibrary.getAbsolutePath(), t);
-            return false;
-        }
-    }
-
-    public static boolean deleteUserSuppliedLibrary(Context context) {
-        File userSuppliedLibrary = getUserSuppliedLibrary(context);
-        boolean deleted = false;
-        if (userSuppliedLibrary != null && userSuppliedLibrary.exists()) {
-            deleted = userSuppliedLibrary.delete();
-        }
-        sHaveGestureLib = false;
-        return deleted;
     }
 }

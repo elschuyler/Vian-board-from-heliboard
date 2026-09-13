@@ -36,6 +36,7 @@ class KeyboardState(private val switchActions: SwitchActions) {
         fun setEmojiKeyboard()
         fun setClipboardKeyboard()
         fun setPromptKeyboard()
+        fun setDesktopShortcutsKeyboard()
         fun setNumpadKeyboard()
         fun setDpadKeyboard()
         fun setSymbolsKeyboard()
@@ -177,6 +178,7 @@ class KeyboardState(private val switchActions: SwitchActions) {
             Utility.EMOJI -> switchActions.setEmojiKeyboard()
             Utility.CLIPBOARD -> switchActions.setClipboardKeyboard()
             Utility.PROMPT -> switchActions.setPromptKeyboard()
+            Utility.DESKTOP_SHORTCUTS -> switchActions.setDesktopShortcutsKeyboard()
             Utility.NUMPAD -> switchActions.setNumpadKeyboard()
             Utility.DPAD -> switchActions.setDpadKeyboard()
         }
@@ -481,6 +483,7 @@ class KeyboardState(private val switchActions: SwitchActions) {
                 toggleLayout(Utility.CLIPBOARD, autoCapsFlags, recapitalizeMode)
             }
             KeyCode.PROMPT_LIST -> toggleLayout(Utility.PROMPT, autoCapsFlags, recapitalizeMode)
+            KeyCode.DESKTOP_SHORTCUTS -> toggleLayout(Utility.DESKTOP_SHORTCUTS, autoCapsFlags, recapitalizeMode)
             KeyCode.NUMPAD -> toggleLayout(Utility.NUMPAD, autoCapsFlags, recapitalizeMode)
             KeyCode.DPAD -> toggleLayout(Utility.DPAD, autoCapsFlags, recapitalizeMode)
             KeyCode.SYMBOL -> toggleLayout(Utility.SYMBOLS, autoCapsFlags, recapitalizeMode)
@@ -511,6 +514,7 @@ class KeyboardState(private val switchActions: SwitchActions) {
         EMOJI,
         CLIPBOARD,
         PROMPT,
+        DESKTOP_SHORTCUTS,
         NUMPAD,
         DPAD,
     ;
@@ -522,6 +526,7 @@ class KeyboardState(private val switchActions: SwitchActions) {
                 EMOJI -> Utility.EMOJI
                 CLIPBOARD -> Utility.CLIPBOARD
                 PROMPT -> Utility.PROMPT
+                DESKTOP_SHORTCUTS -> Utility.DESKTOP_SHORTCUTS
                 NUMPAD -> Utility.NUMPAD
                 DPAD -> Utility.DPAD
             }

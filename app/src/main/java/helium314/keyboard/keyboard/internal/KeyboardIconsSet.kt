@@ -80,6 +80,7 @@ class KeyboardIconsSet private constructor() {
         const val NAME_TOOLBAR_KEY = "toolbar_key"
         const val NAME_BIN = "bin"
         const val NAME_LOG_KEEPER_KEY = "log_keeper_key"
+        const val NAME_PRIVACY_VAULT_KEY = "privacy_vault_key"
 
         // names used in the past, and we can't just delete them because they might still be in use in some layouts
         // (also some of them are in use for internal layouts, but there we could just remove them...)
@@ -95,6 +96,8 @@ class KeyboardIconsSet private constructor() {
             "settings_key" to ToolbarKey.SETTINGS.name.lowercase(Locale.US),
             "start_onehanded_mode_key" to ToolbarKey.ONE_HANDED.name.lowercase(Locale.US),
             "prompt_list_key" to ToolbarKey.COPY.name.lowercase(Locale.US),
+            "desktop_shortcuts_key" to ToolbarKey.DESKTOP_SHORTCUTS.name.lowercase(Locale.US),
+            "log_keeper_key" to ToolbarKey.LOG_KEEPER.name.lowercase(Locale.US),
         )
 
         private val keyboardIconsHolo get() = keyboardIconsMaterial
@@ -124,6 +127,7 @@ class KeyboardIconsSet private constructor() {
             NAME_TOOLBAR_KEY to                 R.drawable.ic_arrow_right,
             NAME_BIN to                         R.drawable.ic_bin,
             NAME_LOG_KEEPER_KEY to              R.drawable.ic_settings_about_log,
+            NAME_PRIVACY_VAULT_KEY to           R.drawable.ic_settings_security,
         ).apply {
             ToolbarKey.entries.forEach {
                 put(it.name.lowercase(Locale.US), when (it) {
@@ -160,6 +164,8 @@ class KeyboardIconsSet private constructor() {
                     ToolbarKey.PAGE_END -> R.drawable.ic_page_end
                     ToolbarKey.SPLIT -> R.drawable.ic_ime_switcher
                     ToolbarKey.BACKGROUND_GATHERING -> R.drawable.ic_settings_gesture
+                    ToolbarKey.DESKTOP_SHORTCUTS -> R.drawable.ic_setup_key
+                    ToolbarKey.LOG_KEEPER -> R.drawable.ic_settings_about_log
                 })
             }
         } }
@@ -189,6 +195,7 @@ class KeyboardIconsSet private constructor() {
             NAME_TOOLBAR_KEY to                 R.drawable.ic_arrow_right_rounded,
             NAME_BIN to                         R.drawable.ic_bin_rounded,
             NAME_LOG_KEEPER_KEY to              R.drawable.ic_settings_about_log,
+            NAME_PRIVACY_VAULT_KEY to           R.drawable.ic_settings_security,
         ).apply {
             ToolbarKey.entries.forEach {
                 put(it.name.lowercase(Locale.US), when (it) {
@@ -225,6 +232,8 @@ class KeyboardIconsSet private constructor() {
                     ToolbarKey.PAGE_END -> R.drawable.ic_page_end_rounded
                     ToolbarKey.SPLIT -> R.drawable.ic_ime_switcher
                     ToolbarKey.BACKGROUND_GATHERING -> R.drawable.ic_settings_gesture
+                    ToolbarKey.DESKTOP_SHORTCUTS -> R.drawable.ic_setup_key
+                    ToolbarKey.LOG_KEEPER -> R.drawable.ic_settings_about_log
                 })
             }
         } }

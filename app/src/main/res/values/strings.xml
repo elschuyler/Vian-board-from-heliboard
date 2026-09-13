@@ -374,6 +374,9 @@
     <string name="close_history" tools:keep="@string/close_history">Close clipboard history</string>
     <string name="emoji" tools:keep="@string/emoji">Emoji</string>
     <string name="floating" tools:keep="@string/floating">Floating Keyboard</string>
+    <string name="desktop_shortcuts" tools:keep="@string/desktop_shortcuts">Desktop shortcuts</string>
+    <string name="log_keeper" tools:keep="@string/log_keeper">Log Keeper</string>
+    <string name="privacy_vault" tools:keep="@string/privacy_vault">Privacy Vault</string>
     <!-- Title of the setting to set clipboard toolbar keys -->
     <string name="clipboard_toolbar_keys">Select clipboard toolbar keys</string>
     <!-- Title of the setting to set pinned toolbar keys -->
@@ -1307,46 +1310,8 @@ New dictionary:
     <string name="gesture_data_swipe_o_scope">Tool for visualizing gesture data: &lt;a href=%s&gt;Swipe-O-Scope&lt;/a&gt;</string>
 
     <string name="prompt_list">Prompt List</string>
-    <string name="log_keeper">Log Keeper</string>
     <string name="voice_input">Voice Input</string>
     <string name="security_vault">Security Vault</string>
-
-    <!-- Voice Input & Speech Recognition Strings -->
-    <string name="voice_input_enabled">Enable Voice Input</string>
-    <string name="voice_input_enabled_summary">Offline Whisper speech-to-text recognition</string>
-    <string name="voice_input_model_section">Whisper Speech Model</string>
-    <string name="voice_input_model_summary">GGML model file (.bin) for on-device voice processing</string>
-    <string name="voice_input_no_model">No model installed</string>
-    <string name="voice_input_no_model_desc">Import a Whisper GGML .bin model file to activate voice input.</string>
-    <string name="voice_input_import_model">Import Model (.bin)</string>
-    <string name="voice_input_delete_model">Delete Model</string>
-    <string name="voice_input_confirm_delete_model">Are you sure you want to delete the active speech model?</string>
-    <string name="voice_input_gain_title">Microphone Sensitivity</string>
-    <string name="voice_input_gain_summary">Software digital gain applied to raw 16kHz audio</string>
-    <string name="voice_input_gain_1x">1x (Standard)</string>
-    <string name="voice_input_gain_2x">2x (Enhanced)</string>
-    <string name="voice_input_gain_4x">4x (High Boost)</string>
-    <string name="voice_input_word_improvement_title">Word Improvement</string>
-    <string name="voice_input_word_improvement_summary">Phonetic personal dictionary to correct misheard words</string>
-    <string name="voice_input_add_replacement">Add Word Replacement</string>
-    <string name="voice_input_edit_replacement">Edit Replacement</string>
-    <string name="voice_input_original_word">Original Word (Heard)</string>
-    <string name="voice_input_replacement_word">Replacement Word (Desired)</string>
-    <string name="voice_input_whole_word_match">Match whole word only</string>
-    <string name="voice_input_no_replacements">No word improvements added yet. Tap + to add phonetic corrections (e.g. \"knit\" → \"need\").</string>
-    <string name="voice_input_model_imported">Model imported: %1$s (%2$s)</string>
-    <string name="voice_input_import_error">Failed to import model: %1$s</string>
-    <string name="voice_input_model_deleted">Model deleted</string>
-    <string name="voice_input_delete_replacement_confirm">Delete replacement rule for \"%1$s\"?</string>
-    <string name="voice_status_listening">Listening…</string>
-    <string name="voice_status_paused">Paused (tap to resume)</string>
-    <string name="voice_status_no_model">No model installed. Tap to import.</string>
-    <string name="voice_status_mic_permission">Microphone permission required.</string>
-    <string name="voice_status_initializing">Initializing engine…</string>
-    <string name="voice_key_abc">ABC</string>
-    <string name="voice_key_space">Space</string>
-    <string name="voice_key_backspace">Backspace</string>
-    <string name="voice_key_enter">Enter</string>
 
     <!-- new strings should go above the section for gesture data gathering -->
 </resources>

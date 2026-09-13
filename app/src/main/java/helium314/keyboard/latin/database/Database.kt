@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.latin.database
 
+import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
@@ -8,13 +9,13 @@ import androidx.core.database.getStringOrNull
 import androidx.core.database.sqlite.transaction
 import helium314.keyboard.latin.utils.GestureDataDao
 import helium314.keyboard.latin.utils.Log
+import helium314.keyboard.latin.utils.LogCatcher
 import java.io.File
 
 class Database private constructor(context: Context, name: String = NAME) : SQLiteOpenHelper(context, name, null, VERSION) {
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(ClipboardDao.CREATE_TABLE)
-        PromptDao.ensureTableExists(db)
-        VoiceReplacementDao.ensureTableExists(db)
+        db.execSQL(PromptDao.CREATE_TABLE)
         onUpgrade(db, 0, VERSION)
     }
 
@@ -27,8 +28,7 @@ class Database private constructor(context: Context, name: String = NAME) : SQLi
             db.execSQL(ClipboardDao.ADD_MIME_TYPE_COLUMN)
         }
         if (oldVersion <= 3) {
-            PromptDao.ensureTableExists(db)
-            VoiceReplacementDao.ensureTableExists(db)
+            db.execSQL(PromptDao.CREATE_TABLE)
         }
     }
 
@@ -49,8 +49,6 @@ class Database private constructor(context: Context, name: String = NAME) : SQLi
                 return
             val otherDb = Database(context, file.name) // this upgrades the DB if necessary
             val clipDao = ClipboardDao.getInstance(context) // insert to dao because of cache
-            val voiceDao = VoiceReplacementDao.getInstance(context)
-            val promptDao = PromptDao.getInstance(context)
             val db = getInstance(context)
 
             try {
@@ -82,38 +80,34 @@ class Database private constructor(context: Context, name: String = NAME) : SQLi
                             }
                         }
 
+                    // Restore Prompts table if present in otherDb
                     try {
-                        otherDb.readableDatabase.rawQuery("SELECT _id, ORIGINAL_WORD, REPLACEMENT_WORD, IS_WHOLE_WORD, TIMESTAMP FROM VOICE_REPLACEMENTS", null)
-                            .use { c ->
-                                voiceDao.clear()
+                        PromptDao.ensureTableExists(db.writableDatabase)
+                        val hasPrompts = otherDb.readableDatabase.rawQuery(
+                            "SELECT name FROM sqlite_master WHERE type='table' AND name='${PromptDao.TABLE}'", null
+                        ).use { it.moveToFirst() }
+                        if (hasPrompts) {
+                            otherDb.readableDatabase.rawQuery(
+                                "SELECT TIMESTAMP, PINNED, TITLE, TEXT FROM ${PromptDao.TABLE}", null
+                            ).use { c ->
+                                db.writableDatabase.execSQL("DELETE FROM ${PromptDao.TABLE}")
                                 while (c.moveToNext()) {
-                                    voiceDao.addOrUpdate(
-                                        originalWord = c.getString(1),
-                                        replacementWord = c.getString(2),
-                                        isWholeWord = c.getInt(3) != 0
-                                    )
+                                    val cv = ContentValues().apply {
+                                        put(PromptDao.COLUMN_TIMESTAMP, c.getLong(0))
+                                        put(PromptDao.COLUMN_PINNED, c.getInt(1))
+                                        put(PromptDao.COLUMN_TITLE, c.getStringOrNull(2))
+                                        put(PromptDao.COLUMN_TEXT, c.getStringOrNull(3))
+                                    }
+                                    db.writableDatabase.insert(PromptDao.TABLE, null, cv)
                                 }
                             }
-                    } catch (e: Throwable) {
-                        Log.w(TAG, "Could not transfer VOICE_REPLACEMENTS: ${e.message}")
-                    }
-
-                    try {
-                        otherDb.readableDatabase.rawQuery("SELECT TIMESTAMP, PINNED, TITLE, TEXT FROM PROMPTS", null)
-                            .use { c ->
-                                promptDao.clear()
-                                while (c.moveToNext()) {
-                                    promptDao.addPrompt(
-                                        text = c.getString(3),
-                                        title = c.getString(2) ?: "",
-                                        pinned = c.getInt(1) != 0
-                                    )
-                                }
-                            }
-                    } catch (e: Throwable) {
-                        Log.w(TAG, "Could not transfer PROMPTS: ${e.message}")
+                        }
+                    } catch (t: Throwable) {
+                        LogCatcher.log('W', TAG, "Restore prompts skipped: ${t.message}")
                     }
                 }
+                // Reload in-memory PromptDao cache
+                PromptDao.getInstance(context).reload()
             } finally {
                 otherDb.close()
                 file.delete()

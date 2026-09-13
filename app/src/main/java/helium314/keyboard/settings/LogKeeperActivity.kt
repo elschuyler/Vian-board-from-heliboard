@@ -14,6 +14,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -90,6 +91,14 @@ class LogKeeperActivity : ComponentActivity() {
     }
 }
 
+enum class TimeFilter(val label: String, val durationMs: Long?) {
+    ALL("All", null),
+    ONE_HOUR("1h", 1 * 60 * 60 * 1000L),
+    SIX_HOURS("6h", 6 * 60 * 60 * 1000L),
+    TWELVE_HOURS("12h", 12 * 60 * 60 * 1000L),
+    TWENTY_FOUR_HOURS("24h", 24 * 60 * 60 * 1000L)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LogKeeperScreen(onBack: () -> Unit) {
@@ -98,6 +107,7 @@ fun LogKeeperScreen(onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
 
     var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var selectedTimeFilter by remember { mutableStateOf(TimeFilter.ALL) }
     var isEnabled by remember {
         mutableStateOf(prefs.getBoolean("pref_log_keeper_enabled", true))
     }
@@ -112,6 +122,20 @@ fun LogKeeperScreen(onBack: () -> Unit) {
         mutableStateOf(LogCatcher.getActiveComponents())
     }
 
+    val now = System.currentTimeMillis()
+    val timeFilteredLogs = remember(logEntries, selectedTimeFilter) {
+        val dur = selectedTimeFilter.durationMs
+        if (dur == null) logEntries
+        else {
+            val cutoff = now - dur
+            logEntries.filter { it.timestamp >= cutoff }
+        }
+    }
+
+    val timeFilteredErrors = remember(timeFilteredLogs) {
+        timeFilteredLogs.filter { it.level in listOf('E', 'W', 'F') || it.tag.contains("CRASH", ignoreCase = true) }
+    }
+
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode != Activity.RESULT_OK) return@rememberLauncherForActivityResult
         val uri = result.data?.data ?: return@rememberLauncherForActivityResult
@@ -120,16 +144,19 @@ fun LogKeeperScreen(onBack: () -> Unit) {
                 os.writer().use { writer ->
                     writer.write("=== LOG KEEPER AUDIT EXPORT ===\n")
                     writer.write("Export Timestamp: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Calendar.getInstance().time)}\n")
+                    writer.write("Active Tab: ${if (selectedTabIndex == 0) "All Logs" else "Errors"}\n")
+                    writer.write("Time Filter: ${selectedTimeFilter.label}\n")
                     writer.write("Privacy Filter: NO content, NO credentials, NO PII\n\n")
 
-                    if (!crashReportText.isNullOrBlank()) {
+                    if (selectedTabIndex == 1 && !crashReportText.isNullOrBlank()) {
                         writer.write("--- PERSISTED CRASH REPORT ---\n")
                         writer.write(crashReportText)
                         writer.write("\n\n")
                     }
 
-                    writer.write("--- LOG ENTRIES (${logEntries.size}) ---\n")
-                    logEntries.forEach { entry ->
+                    val entriesToExport = if (selectedTabIndex == 0) timeFilteredLogs else timeFilteredErrors
+                    writer.write("--- LOG ENTRIES (${entriesToExport.size}) ---\n")
+                    entriesToExport.forEach { entry ->
                         writer.write("${entry.toExportString()}\n")
                     }
                 }
@@ -168,35 +195,63 @@ fun LogKeeperScreen(onBack: () -> Unit) {
                     )
                     IconButton(
                         onClick = {
-                            val fullLog = buildString {
-                                if (!crashReportText.isNullOrBlank()) {
-                                    appendLine("=== PERSISTED CRASH REPORT ===")
-                                    appendLine(crashReportText)
-                                    appendLine()
-                                }
-                                appendLine("=== RECENT SYSTEM LOGS (${logEntries.size}) ===")
-                                logEntries.forEach { appendLine(it.toExportString()) }
-                            }
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            clipboard.setPrimaryClip(ClipData.newPlainText("LogKeeper", fullLog))
-                            Toast.makeText(context, "Logs copied to clipboard", Toast.LENGTH_SHORT).show()
+                            if (selectedTabIndex == 0) {
+                                val fullLog = buildString {
+                                    appendLine("=== VIANBOARD ALL SYSTEM LOGS (${timeFilteredLogs.size}) [Filter: ${selectedTimeFilter.label}] ===")
+                                    timeFilteredLogs.forEach { appendLine(it.toExportString()) }
+                                }
+                                clipboard.setPrimaryClip(ClipData.newPlainText("LogKeeper_AllLogs", fullLog))
+                                Toast.makeText(context, "All logs copied to clipboard", Toast.LENGTH_SHORT).show()
+                            } else {
+                                val errorLog = buildString {
+                                    if (!crashReportText.isNullOrBlank()) {
+                                        appendLine("=== PERSISTED CRASH REPORT ===")
+                                        appendLine(crashReportText)
+                                        appendLine()
+                                    }
+                                    appendLine("=== ERROR & WARNING LOGS (${timeFilteredErrors.size}) [Filter: ${selectedTimeFilter.label}] ===")
+                                    timeFilteredErrors.forEach { appendLine(it.toExportString()) }
+                                }
+                                clipboard.setPrimaryClip(ClipData.newPlainText("LogKeeper_Errors", errorLog))
+                                Toast.makeText(context, "Error logs copied to clipboard", Toast.LENGTH_SHORT).show()
+                            }
                         }
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.sym_keyboard_copy_rounded),
-                            contentDescription = "Copy logs"
+                            contentDescription = "Copy active tab logs"
                         )
                     }
                     IconButton(
                         onClick = {
-                            val success = LogCatcher.exportLogsToDownloads(context)
+                            val contentToExport = buildString {
+                                appendLine("=== LOG KEEPER AUDIT EXPORT ===")
+                                appendLine("Export Timestamp: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Calendar.getInstance().time)}")
+                                appendLine("Active Tab: ${if (selectedTabIndex == 0) "All Logs" else "Errors"}")
+                                appendLine("Time Filter: ${selectedTimeFilter.label}")
+                                appendLine("Privacy Filter: NO content, NO credentials, NO PII\n")
+
+                                if (selectedTabIndex == 1 && !crashReportText.isNullOrBlank()) {
+                                    appendLine("--- PERSISTED CRASH REPORT ---")
+                                    appendLine(crashReportText)
+                                    appendLine()
+                                }
+
+                                val entriesToExport = if (selectedTabIndex == 0) timeFilteredLogs else timeFilteredErrors
+                                appendLine("--- LOG ENTRIES (${entriesToExport.size}) ---")
+                                entriesToExport.forEach { appendLine(it.toExportString()) }
+                            }
+                            val date = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Calendar.getInstance().time)
+                            val tabName = if (selectedTabIndex == 0) "all_logs" else "errors"
+                            val fileName = "VianBoard_${tabName}_${selectedTimeFilter.label}_$date.txt"
+                            val success = LogCatcher.saveToDownloads(context, fileName, contentToExport)
                             if (success) {
-                                Toast.makeText(context, "Saved to Downloads folder", Toast.LENGTH_LONG).show()
+                                Toast.makeText(context, "Saved to Downloads folder ($fileName)", Toast.LENGTH_LONG).show()
                             } else {
-                                val date = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(Calendar.getInstance().time)
                                 val intent = Intent(Intent.ACTION_CREATE_DOCUMENT)
                                     .addCategory(Intent.CATEGORY_OPENABLE)
-                                    .putExtra(Intent.EXTRA_TITLE, "log_keeper_$date.txt")
+                                    .putExtra(Intent.EXTRA_TITLE, fileName)
                                     .setType("text/plain")
                                 exportLauncher.launch(intent)
                             }
@@ -251,21 +306,54 @@ fun LogKeeperScreen(onBack: () -> Unit) {
                 )
             }
 
+            // Time Pills Filter
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TimeFilter.values().forEach { filter ->
+                    val isSelected = selectedTimeFilter == filter
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                        tonalElevation = if (isSelected) 4.dp else 0.dp,
+                        modifier = Modifier
+                            .clickable {
+                                selectedTimeFilter = filter
+                                logEntries = LogCatcher.getLogs()
+                                crashReportText = LogCatcher.readLastCrashReport()
+                            }
+                    ) {
+                        Text(
+                            text = filter.label,
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                        )
+                    }
+                }
+            }
+
             // Tab Content
             if (selectedTabIndex == 0) {
                 LogListContent(
-                    entries = logEntries,
+                    entries = timeFilteredLogs,
                     crashReport = null,
-                    emptyMessage = "No logs recorded.\nSystem is running cleanly."
+                    emptyMessage = if (selectedTimeFilter == TimeFilter.ALL)
+                        "No logs recorded.\nSystem is running cleanly."
+                    else "No logs in the last ${selectedTimeFilter.label}."
                 )
             } else {
-                val errorEntries = remember(logEntries) {
-                    logEntries.filter { it.level in listOf('E', 'W', 'F') || it.tag.contains("CRASH", ignoreCase = true) }
-                }
                 LogListContent(
-                    entries = errorEntries,
+                    entries = timeFilteredErrors,
                     crashReport = crashReportText,
-                    emptyMessage = "No errors or warnings recorded.\nAll subsystems operating normally."
+                    emptyMessage = if (selectedTimeFilter == TimeFilter.ALL)
+                        "No errors or warnings recorded.\nAll subsystems operating normally."
+                    else "No errors in the last ${selectedTimeFilter.label}."
                 )
             }
         }

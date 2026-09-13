@@ -39,8 +39,11 @@
             android:id="@+id/prompt_history_view"
             layout="@layout/prompt_history_view" />
         <include
-            android:id="@+id/voice_input_view"
-            layout="@layout/voice_input_view" />
+            android:id="@+id/desktop_shortcuts_view"
+            layout="@layout/desktop_shortcuts_view" />
+        <include
+            android:id="@+id/pattern_unlock_view"
+            layout="@layout/pattern_unlock_view" />
 
         <ImageButton
             android:id="@+id/btn_stop_one_handed_mode"

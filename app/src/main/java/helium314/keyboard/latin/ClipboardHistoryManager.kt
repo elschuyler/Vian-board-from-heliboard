@@ -132,6 +132,10 @@ class ClipboardHistoryManager(
         clipboardDao?.togglePinned(id)
     }
 
+    fun updateClipText(id: Long, newText: String) {
+        clipboardDao?.updateClipText(id, newText)
+    }
+
     fun clearHistory() {
         clipboardDao?.clearNonPinned()
         ClipboardManagerCompat.clearPrimaryClip(clipboardManager)

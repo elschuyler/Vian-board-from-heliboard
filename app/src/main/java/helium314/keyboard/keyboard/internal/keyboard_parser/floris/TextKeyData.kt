@@ -97,26 +97,15 @@ sealed interface KeyData : AbstractKeyData {
         //  keys could be replaced with toolbar keys, but parsing needs to be adjusted (should happen anyway...)
         private fun getCommaPopupKeys(params: KeyboardParams): List<String> {
             val keys = mutableListOf<String>()
-            if (!params.mId.deviceLocked)
-                keys.add("!icon/clipboard_normal_key|!code/key_clipboard")
-            if (!params.mId.deviceLocked)
-                keys.add("!icon/prompt_list_key|!code/key_prompt_list")
-            if (!params.mId.emojiKeyEnabled && !params.mId.element.isNumberLayout)
-                keys.add("!icon/emoji_normal_key|!code/key_emoji")
-            if (!params.mId.languageSwitchKeyEnabled && !params.mId.element.isNumberLayout && RichInputMethodManager.canSwitchLanguage())
-                keys.add("!icon/language_switch_key|!code/key_language_switch")
-            if (!params.mId.oneHandedModeEnabled && !Settings.getValues().mIsFloatingKeyboard)
-                keys.add("!icon/start_onehanded_mode_key|!code/key_toggle_onehanded")
-            if (!params.mId.deviceLocked)
-                keys.add(ToolbarKey.FLOATING.name.lowercase())
-            if (!params.mId.deviceLocked)
-                keys.add("!icon/shortcut_key|!code/key_voice_input")
-            if (!params.mId.deviceLocked)
+            keys.add("!icon/settings_key|!code/key_settings")
+            if (!params.mId.deviceLocked) {
                 keys.add("!icon/log_keeper_key|!code/key_log_keeper")
-            if (!params.mId.deviceLocked)
-                keys.add("!icon/incognito_key|!code/key_unspecified") // security vault placeholder
-            if (!params.mId.deviceLocked)
-                keys.add("!icon/settings_key|!code/key_settings")
+                keys.add("!icon/shortcut_key|!code/key_voice_input")
+                keys.add("!icon/start_onehanded_mode_key|!code/key_toggle_onehanded")
+                keys.add("!icon/privacy_vault_key|!code/key_privacy_vault")
+                keys.add("!icon/emoji_normal_key|!code/key_emoji")
+                keys.add("!icon/desktop_shortcuts_key|!code/key_desktop_shortcuts")
+            }
             if (shouldShowTldPopups(params)) {
                 keys.add(",")
             }

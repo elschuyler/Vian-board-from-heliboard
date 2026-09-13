@@ -57,6 +57,8 @@ import helium314.keyboard.latin.utils.previewDark
 import androidx.core.content.edit
 import helium314.keyboard.keyboard.internal.keyboard_parser.LocaleKeyboardInfos
 import helium314.keyboard.latin.utils.Log
+import android.content.Intent
+import helium314.keyboard.settings.LogKeeperActivity
 import helium314.keyboard.latin.utils.getActivity
 
 @Composable
@@ -65,6 +67,7 @@ fun AdvancedSettingsScreen(
     onClickAbout: () -> Unit,
     onClickBack: () -> Unit,
 ) {
+    val context = LocalContext.current
     SearchSettingsScreen(
         onClickBack = onClickBack,
         title = stringResource(R.string.settings_screen_advanced),
@@ -76,6 +79,15 @@ fun AdvancedSettingsScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(innerPadding)
             ) {
+                Preference(
+                    name = stringResource(R.string.log_keeper),
+                    description = "System & crash logs, telemetry filter, diagnostic export",
+                    icon = R.drawable.ic_settings_about_log,
+                    onClick = {
+                        val intent = Intent(context, LogKeeperActivity::class.java)
+                        context.startActivity(intent)
+                    }
+                ) { NextScreenIcon() }
                 Preference(
                     name = stringResource(R.string.backup_restore_title),
                     description = "Backup all, restore all, and import HeliBoard backups",

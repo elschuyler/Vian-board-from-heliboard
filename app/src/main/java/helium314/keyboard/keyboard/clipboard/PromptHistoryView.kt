@@ -419,6 +419,9 @@ class PromptHistoryView @JvmOverloads constructor(
 
         promptAdapter = PromptAdapter(clipboardLayoutParams) { selectedPrompt ->
             onCommitText(selectedPrompt)
+            if (Settings.getValues().mAlphaAfterClipHistoryEntry) {
+                keyboardActionListener.onCodeInput(KeyCode.ALPHA, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
+            }
         }.apply {
             promptDao = this@PromptHistoryView.promptDao
             pinnedIconResId = pinIconId

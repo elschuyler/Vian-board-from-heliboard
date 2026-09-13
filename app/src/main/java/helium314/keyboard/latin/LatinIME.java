@@ -55,9 +55,7 @@ import helium314.keyboard.keyboard.KeyboardId;
 import helium314.keyboard.keyboard.KeyboardLayoutSet;
 import helium314.keyboard.keyboard.KeyboardSwitcher;
 import helium314.keyboard.keyboard.MainKeyboardView;
-import helium314.keyboard.keyboard.internal.ShiftMode;
 import helium314.keyboard.latin.SuggestedWords.SuggestedWordInfo;
-import helium314.keyboard.latin.voice.VoicePermissionBridge;
 import helium314.keyboard.latin.common.ColorType;
 import helium314.keyboard.latin.common.Constants;
 import helium314.keyboard.latin.common.CoordinateUtils;
@@ -796,9 +794,6 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onFinishInputView(final boolean finishingInput) {
-        if (mKeyboardSwitcher.isShowingVoiceInput()) {
-            mKeyboardSwitcher.setAlphabetKeyboard(ShiftMode.UNSHIFT);
-        }
         StatsUtils.onFinishInputView();
         mHandler.onFinishInputView(finishingInput);
         mStatsUtilsManager.onFinishInputView();
@@ -808,9 +803,6 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onFinishInput() {
-        if (mKeyboardSwitcher.isShowingVoiceInput()) {
-            mKeyboardSwitcher.setAlphabetKeyboard(ShiftMode.UNSHIFT);
-        }
         mHandler.onFinishInput();
         BackgroundGatheringCache.saveOrClear(this);
     }
@@ -1425,7 +1417,7 @@ public class LatinIME extends InputMethodService implements
     // completely replace #onCodeInput.
     public void onEvent(@NonNull final Event event) {
         if (KeyCode.VOICE_INPUT == event.getKeyCode()) {
-            onVoiceInputTriggered();
+            mRichImm.switchToShortcutIme(this);
         }
         final InputTransaction completeInputTransaction =
                 mInputLogic.onCodeInput(mSettings.getCurrent(), event,
@@ -1433,23 +1425,6 @@ public class LatinIME extends InputMethodService implements
                         mKeyboardSwitcher.getCurrentKeyboardScript(), mHandler);
         updateStateAfterInputTransaction(completeInputTransaction);
         mKeyboardSwitcher.onEvent(event, getCurrentAutoCapsState(), getCurrentRecapitalizeState());
-    }
-
-    public void onVoiceInputTriggered() {
-        if (mKeyboardSwitcher.isShowingVoiceInput()) {
-            mKeyboardSwitcher.setAlphabetKeyboard(ShiftMode.UNSHIFT);
-            return;
-        }
-        if (!VoicePermissionBridge.INSTANCE.hasRecordAudioPermission(this)) {
-            VoicePermissionBridge.INSTANCE.requestRecordAudioPermission(this, granted -> {
-                if (granted) {
-                    mHandler.post(() -> mKeyboardSwitcher.setVoiceInputKeyboard());
-                }
-                return kotlin.Unit.INSTANCE;
-            });
-            return;
-        }
-        mKeyboardSwitcher.setVoiceInputKeyboard();
     }
 
     public void onTextInput(@Nullable String rawText) {
@@ -1706,12 +1681,6 @@ public class LatinIME extends InputMethodService implements
     // Hooks for hardware keyboard
     @Override
     public boolean onKeyDown(final int keyCode, final KeyEvent keyEvent) {
-        if (keyCode == KeyEvent.KEYCODE_BACK) {
-            if (mKeyboardSwitcher.isShowingVoiceInput()) {
-                mKeyboardSwitcher.setAlphabetKeyboard(ShiftMode.UNSHIFT);
-                return true;
-            }
-        }
         if (mKeyboardActionListener.onKeyDown(keyCode, keyEvent))
             return true;
         return super.onKeyDown(keyCode, keyEvent);
@@ -1719,11 +1688,6 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public boolean onKeyUp(final int keyCode, final KeyEvent keyEvent) {
-        if (keyCode == KeyEvent.KEYCODE_BACK) {
-            if (mKeyboardSwitcher.isShowingVoiceInput()) {
-                return true;
-            }
-        }
         if (mKeyboardActionListener.onKeyUp(keyCode, keyEvent))
             return true;
         return super.onKeyUp(keyCode, keyEvent);

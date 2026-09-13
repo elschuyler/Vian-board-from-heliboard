@@ -59,6 +59,8 @@ public final class KeyboardCodesSet {
         "key_emoji_search",
         "key_prompt_list",
         "key_log_keeper",
+        "key_desktop_shortcuts",
+        "key_privacy_vault",
     };
 
     private static final int[] DEFAULT = {
@@ -88,6 +90,8 @@ public final class KeyboardCodesSet {
         KeyCode.EMOJI_SEARCH,
         KeyCode.PROMPT_LIST,
         KeyCode.LOG_KEEPER,
+        KeyCode.DESKTOP_SHORTCUTS,
+        KeyCode.PRIVACY_VAULT,
     };
 
     static {

@@ -43,6 +43,7 @@ import helium314.keyboard.latin.utils.NextScreenIcon
 import helium314.keyboard.latin.utils.prefs
 import helium314.keyboard.settings.SearchSettingsScreen
 import helium314.keyboard.settings.Setting
+import helium314.keyboard.settings.dialogs.DesktopShortcutsCustomizer
 import helium314.keyboard.settings.dialogs.LayoutEditDialog
 import helium314.keyboard.settings.dialogs.LayoutPickerDialog
 import helium314.keyboard.settings.preferences.Preference
@@ -180,21 +181,8 @@ fun AppearanceScreen(
     }
 
     if (showDesktopShortcutsModal) {
-        AlertDialog(
-            onDismissRequest = { showDesktopShortcutsModal = false },
-            title = { Text("Desktop Shortcuts") },
-            text = {
-                Column {
-                    Text("Desktop shortcuts mode is configured for fast physical keyboard navigation and shortcuts.")
-                    Spacer(Modifier.height(8.dp))
-                    Text("• Ctrl + Space: Switch language\n• Alt + Backspace: Delete previous word\n• Shift + Space: Numpad mode\n• Tab: Navigate focus")
-                }
-            },
-            confirmButton = {
-                Button(onClick = { showDesktopShortcutsModal = false }) {
-                    Text("OK")
-                }
-            }
+        DesktopShortcutsCustomizer(
+            onDismissRequest = { showDesktopShortcutsModal = false }
         )
     }
 }
