@@ -1181,8 +1181,6 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
             }
         }
         if (code == KeyCode.SYMBOL_ALPHA) {
-            cancelKeyTracking();
-            sListener.onReleaseKey(code, false);
             sListener.onLongPressAlphaSymbolForNumpad();
             return;
         }
@@ -1279,14 +1277,12 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
             sIsShiftLongPressSuppressed = false;
             return;
         }
-        if (code == KeyCode.SYMBOL_ALPHA) {
-            final boolean isAlphabet = mKeyboard != null && mKeyboard.mId.getElement().isAlphabet();
-            final boolean isSymbolsForNumpad = mKeyboard != null
-                    && mKeyboard.mId.getElement() == KeyboardElement.SYMBOLS
-                    && Settings.getValues().mLongPressSymbolsForNumpad;
-            if (!isAlphabet && !isSymbolsForNumpad) {
-                return;
-            }
+        if (code == KeyCode.SYMBOL_ALPHA
+            && (!Settings.getValues().mLongPressSymbolsForNumpad
+                || mKeyboard.mId.getElement() != KeyboardElement.SYMBOLS
+            )
+        ) {
+            return;
         }
 
         int delay = getLongPressTimeout(code);

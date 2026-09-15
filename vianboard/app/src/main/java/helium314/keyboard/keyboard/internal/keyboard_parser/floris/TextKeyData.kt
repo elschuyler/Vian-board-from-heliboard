@@ -20,8 +20,6 @@ import helium314.keyboard.keyboard.internal.KeyboardParams
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode.checkAndConvertCode
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyLabel.convertFlorisLabel
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyLabel.rtlLabel
-import helium314.keyboard.keyboard.popup.CommaPopupsCatalog
-import helium314.keyboard.latin.App
 import helium314.keyboard.latin.RichInputMethodManager
 import helium314.keyboard.latin.common.Constants
 import helium314.keyboard.latin.common.LocaleUtils.constructLocale
@@ -31,7 +29,6 @@ import helium314.keyboard.latin.spellcheck.AndroidSpellCheckerService
 import helium314.keyboard.latin.utils.LayoutType
 import helium314.keyboard.latin.utils.Log
 import helium314.keyboard.latin.utils.ToolbarKey
-import helium314.keyboard.latin.utils.prefs
 import helium314.keyboard.latin.utils.toolbarKeyStrings
 
 // taken from FlorisBoard, modified (see also KeyData)
@@ -100,17 +97,26 @@ sealed interface KeyData : AbstractKeyData {
         //  keys could be replaced with toolbar keys, but parsing needs to be adjusted (should happen anyway...)
         private fun getCommaPopupKeys(params: KeyboardParams): List<String> {
             val keys = mutableListOf<String>()
-            val prefs = App.getInstance()?.prefs()
-            val customItems = CommaPopupsCatalog.getEnabledItems(prefs)
-            for (item in customItems) {
-                if (params.mId.deviceLocked && item.id != CommaPopupsCatalog.ID_SETTINGS) {
-                    continue
-                }
-                keys.add(item.florisSpec)
-            }
-            if (keys.isEmpty()) {
+            if (!params.mId.deviceLocked)
+                keys.add("!icon/clipboard_normal_key|!code/key_clipboard")
+            if (!params.mId.deviceLocked)
+                keys.add("!icon/prompt_list_key|!code/key_prompt_list")
+            if (!params.mId.emojiKeyEnabled && !params.mId.element.isNumberLayout)
+                keys.add("!icon/emoji_normal_key|!code/key_emoji")
+            if (!params.mId.languageSwitchKeyEnabled && !params.mId.element.isNumberLayout && RichInputMethodManager.canSwitchLanguage())
+                keys.add("!icon/language_switch_key|!code/key_language_switch")
+            if (!params.mId.oneHandedModeEnabled && !Settings.getValues().mIsFloatingKeyboard)
+                keys.add("!icon/start_onehanded_mode_key|!code/key_toggle_onehanded")
+            if (!params.mId.deviceLocked)
+                keys.add(ToolbarKey.FLOATING.name.lowercase())
+            if (!params.mId.deviceLocked)
+                keys.add("!icon/shortcut_key|!code/key_voice_input")
+            if (!params.mId.deviceLocked)
+                keys.add("!icon/log_keeper_key|!code/key_log_keeper")
+            if (!params.mId.deviceLocked)
+                keys.add("!icon/incognito_key|!code/key_unspecified") // security vault placeholder
+            if (!params.mId.deviceLocked)
                 keys.add("!icon/settings_key|!code/key_settings")
-            }
             if (shouldShowTldPopups(params)) {
                 keys.add(",")
             }

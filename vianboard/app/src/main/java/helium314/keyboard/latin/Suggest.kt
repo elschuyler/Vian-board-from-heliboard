@@ -23,7 +23,6 @@ import helium314.keyboard.latin.settings.SettingsValuesForSuggestion
 import helium314.keyboard.latin.suggestions.SuggestionStripView
 import helium314.keyboard.latin.utils.AutoCorrectionUtils
 import helium314.keyboard.latin.utils.Log
-import helium314.keyboard.latin.utils.LogCatcher
 import helium314.keyboard.latin.utils.BackgroundGatheringCache
 import helium314.keyboard.latin.utils.SuggestionResults
 import helium314.keyboard.latin.utils.WordData
@@ -84,7 +83,6 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         if (wordComposer.isAccidentalDigitWord) {
             val candidates = wordComposer.getNearbyLetterCandidatesForDigit(keyboard)
             var scoreOffset = 100
-            var candidateCount = 0
             for (candidate in candidates) {
                 if (mDictionaryFacilitator.isValidSpellingWord(candidate) || mDictionaryFacilitator.isValidSpellingWord(candidate.lowercase(mDictionaryFacilitator.mainLocale))) {
                     val candidateInfo = SuggestedWordInfo(
@@ -98,11 +96,7 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
                     )
                     suggestionResults.add(candidateInfo)
                     scoreOffset += 10
-                    candidateCount++
                 }
-            }
-            if (candidateCount > 0) {
-                LogCatcher.markComponentActive("TypoEngine", "Autocorrect", "Substituted accidental number typo: $candidateCount candidates matched")
             }
         }
         val trailingSingleQuotesCount = StringUtils.getTrailingSingleQuotesCount(typedWordString)

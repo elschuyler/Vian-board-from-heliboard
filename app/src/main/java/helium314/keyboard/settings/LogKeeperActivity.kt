@@ -63,6 +63,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import helium314.keyboard.latin.R
@@ -120,6 +121,9 @@ fun LogKeeperScreen(onBack: () -> Unit) {
     }
     var activeComponents by remember {
         mutableStateOf(LogCatcher.getActiveComponents())
+    }
+    var showActiveSubsystems by remember {
+        mutableStateOf(false)
     }
 
     val now = System.currentTimeMillis()
@@ -199,19 +203,33 @@ fun LogKeeperScreen(onBack: () -> Unit) {
                             if (selectedTabIndex == 0) {
                                 val fullLog = buildString {
                                     appendLine("=== VIANBOARD ALL SYSTEM LOGS (${timeFilteredLogs.size}) [Filter: ${selectedTimeFilter.label}] ===")
+                                    if (activeComponents.isNotEmpty()) {
+                                        appendLine("--- ACTIVE SUBSYSTEMS ---")
+                                        activeComponents.forEach {
+                                            appendLine("[${it.category}] ${it.name}: ${it.status}")
+                                        }
+                                        appendLine()
+                                    }
                                     timeFilteredLogs.forEach { appendLine(it.toExportString()) }
                                 }
                                 clipboard.setPrimaryClip(ClipData.newPlainText("LogKeeper_AllLogs", fullLog))
-                                Toast.makeText(context, "All logs copied to clipboard", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "All logs & subsystem states copied", Toast.LENGTH_SHORT).show()
                             } else {
+                                val cleanCrashTrace = crashReportText?.trim()
+                                if (cleanCrashTrace.isNullOrBlank() && timeFilteredErrors.isEmpty()) {
+                                    Toast.makeText(context, "No error logs to copy", Toast.LENGTH_SHORT).show()
+                                    return@IconButton
+                                }
                                 val errorLog = buildString {
-                                    if (!crashReportText.isNullOrBlank()) {
-                                        appendLine("=== PERSISTED CRASH REPORT ===")
-                                        appendLine(crashReportText)
+                                    if (!cleanCrashTrace.isNullOrBlank()) {
+                                        appendLine("=== FATAL CRASH INTERCEPTED ===")
+                                        appendLine(cleanCrashTrace)
                                         appendLine()
                                     }
-                                    appendLine("=== ERROR & WARNING LOGS (${timeFilteredErrors.size}) [Filter: ${selectedTimeFilter.label}] ===")
-                                    timeFilteredErrors.forEach { appendLine(it.toExportString()) }
+                                    if (timeFilteredErrors.isNotEmpty()) {
+                                        appendLine("=== ERROR & WARNING LOGS (${timeFilteredErrors.size}) [Filter: ${selectedTimeFilter.label}] ===")
+                                        timeFilteredErrors.forEach { appendLine(it.toExportString()) }
+                                    }
                                 }
                                 clipboard.setPrimaryClip(ClipData.newPlainText("LogKeeper_Errors", errorLog))
                                 Toast.makeText(context, "Error logs copied to clipboard", Toast.LENGTH_SHORT).show()
@@ -239,6 +257,13 @@ fun LogKeeperScreen(onBack: () -> Unit) {
                                 }
 
                                 val entriesToExport = if (selectedTabIndex == 0) timeFilteredLogs else timeFilteredErrors
+                                if (selectedTabIndex == 0 && activeComponents.isNotEmpty()) {
+                                    appendLine("--- ACTIVE SUBSYSTEMS (${activeComponents.size}) ---")
+                                    activeComponents.forEach {
+                                        appendLine("- [${it.category}] ${it.name}: ${it.status} (lastSeen=${it.lastSeenAt})")
+                                    }
+                                    appendLine()
+                                }
                                 appendLine("--- LOG ENTRIES (${entriesToExport.size}) ---")
                                 entriesToExport.forEach { appendLine(it.toExportString()) }
                             }
@@ -340,6 +365,13 @@ fun LogKeeperScreen(onBack: () -> Unit) {
 
             // Tab Content
             if (selectedTabIndex == 0) {
+                if (activeComponents.isNotEmpty()) {
+                    ActiveSubsystemsCard(
+                        components = activeComponents,
+                        isExpanded = showActiveSubsystems,
+                        onToggle = { showActiveSubsystems = !showActiveSubsystems }
+                    )
+                }
                 LogListContent(
                     entries = timeFilteredLogs,
                     crashReport = null,
@@ -398,13 +430,33 @@ fun LogListContent(
                         )
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            val context = LocalContext.current
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Text(
                                     text = "FATAL CRASH INTERCEPTED",
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 13.sp,
                                     color = MaterialTheme.colorScheme.onErrorContainer
                                 )
+                                IconButton(
+                                    onClick = {
+                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                        clipboard.setPrimaryClip(ClipData.newPlainText("FatalCrashTrace", crashReport))
+                                        Toast.makeText(context, "Crash report copied to clipboard", Toast.LENGTH_SHORT).show()
+                                    },
+                                    modifier = Modifier.size(28.dp)
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.sym_keyboard_copy_rounded),
+                                        contentDescription = "Copy Crash Trace",
+                                        tint = MaterialTheme.colorScheme.onErrorContainer,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
                             }
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
@@ -428,7 +480,13 @@ fun LogListContent(
 
 @Composable
 fun LogCardItem(entry: LogCatcher.LogEntry) {
+    val context = LocalContext.current
     Card(
+        onClick = {
+            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            clipboard.setPrimaryClip(ClipData.newPlainText("LogItem", entry.toExportString()))
+            Toast.makeText(context, "Log entry copied", Toast.LENGTH_SHORT).show()
+        },
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 3.dp),
@@ -500,3 +558,112 @@ fun LogCardItem(entry: LogCatcher.LogEntry) {
         }
     }
 }
+
+@Composable
+fun ActiveSubsystemsCard(
+    components: List<LogCatcher.ComponentInfo>,
+    isExpanded: Boolean,
+    onToggle: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onToggle() },
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(Color(0xFF4CAF50), CircleShape)
+                    )
+                    Text(
+                        text = "Active Subsystems (${components.size})",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Text(
+                    text = if (isExpanded) "Hide ▲" else "Show ▼",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            if (isExpanded) {
+                Spacer(modifier = Modifier.height(8.dp))
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    components.forEach { comp ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier.weight(1f, fill = false)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+                                    modifier = Modifier.padding(vertical = 1.dp)
+                                ) {
+                                    Text(
+                                        text = comp.category,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        fontSize = 10.sp,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                                Text(
+                                    text = comp.name,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            Text(
+                                text = comp.status,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 11.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
