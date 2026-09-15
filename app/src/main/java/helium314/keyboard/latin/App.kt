@@ -45,12 +45,15 @@ class App : Application() {
             upgradeToolbarPrefs(prefs())
         transferOldPinnedClips(this) // todo: remove in a few months, maybe end 2026
         app = this
+        appInstance = this
         Defaults.initDynamicDefaults(this)
     }
 
     companion object {
         // used so JniUtils can access application once
         private var app: App? = null
+        private var appInstance: App? = null
+        fun getInstance(): App? = appInstance
         fun getApp(): App? {
             val application = app
             app = null
