@@ -12,10 +12,11 @@ import helium314.keyboard.latin.utils.Log
 import helium314.keyboard.latin.utils.LogCatcher
 import java.io.File
 
-class Database private constructor(context: Context, name: String = NAME) : SQLiteOpenHelper(context, name, null, VERSION) {
+class Database internal constructor(context: Context, name: String = NAME) : SQLiteOpenHelper(context, name, null, VERSION) {
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(ClipboardDao.CREATE_TABLE)
-        db.execSQL(PromptDao.CREATE_TABLE)
+        PromptDao.ensureTableExists(db)
+        VoiceReplacementDao.ensureTableExists(db)
         onUpgrade(db, 0, VERSION)
     }
 
@@ -28,13 +29,16 @@ class Database private constructor(context: Context, name: String = NAME) : SQLi
             db.execSQL(ClipboardDao.ADD_MIME_TYPE_COLUMN)
         }
         if (oldVersion <= 3) {
-            db.execSQL(PromptDao.CREATE_TABLE)
+            PromptDao.ensureTableExists(db)
+        }
+        if (oldVersion <= 4) {
+            VoiceReplacementDao.ensureTableExists(db)
         }
     }
 
     companion object {
         private val TAG = Database::class.java.simpleName
-        private const val VERSION = 4
+        private const val VERSION = 5
         const val NAME = "heliboard.db"
         private var instance: Database? = null
         fun getInstance(context: Context): Database {
@@ -104,6 +108,32 @@ class Database private constructor(context: Context, name: String = NAME) : SQLi
                         }
                     } catch (t: Throwable) {
                         LogCatcher.log('W', TAG, "Restore prompts skipped: ${t.message}")
+                    }
+
+                    // Restore Voice Replacements table if present in otherDb
+                    try {
+                        VoiceReplacementDao.ensureTableExists(db.writableDatabase)
+                        val hasVoiceTable = otherDb.readableDatabase.rawQuery(
+                            "SELECT name FROM sqlite_master WHERE type='table' AND name='${VoiceReplacementDao.TABLE}'", null
+                        ).use { it.moveToFirst() }
+                        if (hasVoiceTable) {
+                            val voiceDao = VoiceReplacementDao.getInstance(context)
+                            otherDb.readableDatabase.rawQuery(
+                                "SELECT _id, ORIGINAL_WORD, REPLACEMENT_WORD, IS_WHOLE_WORD, TIMESTAMP FROM ${VoiceReplacementDao.TABLE}", null
+                            ).use { c ->
+                                voiceDao.clear()
+                                while (c.moveToNext()) {
+                                    voiceDao.addOrUpdate(
+                                        originalWord = c.getString(1) ?: "",
+                                        replacementWord = c.getString(2) ?: "",
+                                        isWholeWord = c.getInt(3) != 0
+                                    )
+                                }
+                            }
+                            LogCatcher.i(TAG, "Restored ${voiceDao.count} voice replacement rules")
+                        }
+                    } catch (t: Throwable) {
+                        LogCatcher.log('W', TAG, "Restore voice replacements skipped: ${t.message}")
                     }
                 }
                 // Reload in-memory PromptDao cache

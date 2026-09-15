@@ -43,6 +43,7 @@ import helium314.keyboard.latin.utils.NextScreenIcon
 import helium314.keyboard.latin.utils.prefs
 import helium314.keyboard.settings.SearchSettingsScreen
 import helium314.keyboard.settings.Setting
+import helium314.keyboard.settings.dialogs.CommaPopupsCustomizer
 import helium314.keyboard.settings.dialogs.DesktopShortcutsCustomizer
 import helium314.keyboard.settings.dialogs.LayoutEditDialog
 import helium314.keyboard.settings.dialogs.LayoutPickerDialog
@@ -60,6 +61,7 @@ fun AppearanceScreen(
     var showLayoutPickerDialog by rememberSaveable { mutableStateOf(false) }
     var showCurrencyDialog by rememberSaveable { mutableStateOf(false) }
     var showDesktopShortcutsModal by rememberSaveable { mutableStateOf(false) }
+    var showCommaPopupsModal by rememberSaveable { mutableStateOf(false) }
 
     SearchSettingsScreen(
         onClickBack = onClickBack,
@@ -97,6 +99,12 @@ fun AppearanceScreen(
                     icon = R.drawable.ic_settings_toolbar,
                     onClick = onClickToolbar
                 ) { NextScreenIcon() }
+                Preference(
+                    name = "Comma Key Popups",
+                    description = "Customize popup actions and order on the comma key",
+                    icon = R.drawable.ic_settings_preferences,
+                    onClick = { showCommaPopupsModal = true }
+                )
                 Preference(
                     name = "Desktop Shortcuts",
                     description = "Keyboard shortcuts and physical keyboard navigation",
@@ -183,6 +191,12 @@ fun AppearanceScreen(
     if (showDesktopShortcutsModal) {
         DesktopShortcutsCustomizer(
             onDismissRequest = { showDesktopShortcutsModal = false }
+        )
+    }
+
+    if (showCommaPopupsModal) {
+        CommaPopupsCustomizer(
+            onDismissRequest = { showCommaPopupsModal = false }
         )
     }
 }

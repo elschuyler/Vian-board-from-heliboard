@@ -29,6 +29,7 @@ fun MainSettingsScreen(
     onClickAppearance: () -> Unit,
     onClickWordEngine: () -> Unit,
     onClickSecurity: () -> Unit,
+    onClickVoiceInput: () -> Unit,
     onClickAdvanced: () -> Unit,
     onClickBack: () -> Unit,
 ) {
@@ -62,6 +63,12 @@ fun MainSettingsScreen(
                     icon = R.drawable.ic_settings_security
                 ) { NextScreenIcon() }
                 Preference(
+                    name = stringResource(R.string.voice_input),
+                    description = "Offline Whisper voice typing, model import & word improvement",
+                    onClick = onClickVoiceInput,
+                    icon = R.drawable.sym_keyboard_voice_rounded
+                ) { NextScreenIcon() }
+                Preference(
                     name = stringResource(R.string.settings_screen_advanced),
                     description = "Backup & restore, about",
                     onClick = onClickAdvanced,
@@ -78,7 +85,7 @@ private fun PreviewScreen() {
     initPreview(LocalContext.current)
     Theme(previewDark) {
         Surface {
-            MainSettingsScreen({}, {}, {}, {}, {})
+            MainSettingsScreen({}, {}, {}, {}, {}, {})
         }
     }
 }

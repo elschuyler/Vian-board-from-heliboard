@@ -44,6 +44,9 @@
         <include
             android:id="@+id/pattern_unlock_view"
             layout="@layout/pattern_unlock_view" />
+        <include
+            android:id="@+id/voice_input_view"
+            layout="@layout/voice_input_view" />
 
         <ImageButton
             android:id="@+id/btn_stop_one_handed_mode"

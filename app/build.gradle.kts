@@ -25,8 +25,9 @@ android {
   }
 
   val keystorePath = System.getenv("DEBUG_KEYSTORE_PATH")
-  if (!keystorePath.isNullOrEmpty() && file(keystorePath).exists()) {
-    signingConfigs {
+  val releaseKeystorePath = System.getenv("KEYSTORE_PATH")
+  signingConfigs {
+    if (!keystorePath.isNullOrEmpty() && file(keystorePath).exists()) {
       create("customDebug") {
         storeFile = file(keystorePath)
         storePassword = System.getenv("DEBUG_STORE_PASSWORD") ?: "android"
@@ -34,10 +35,22 @@ android {
         keyPassword = System.getenv("DEBUG_KEY_PASSWORD") ?: "android"
       }
     }
+    if (!releaseKeystorePath.isNullOrEmpty() && file(releaseKeystorePath).exists()) {
+      create("release") {
+        storeFile = file(releaseKeystorePath)
+        storePassword = System.getenv("STORE_PASSWORD") ?: ""
+        keyAlias = System.getenv("KEY_ALIAS") ?: "upload"
+        keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+      }
+    }
   }
 
   buildTypes {
     release {
+      val customRelease = signingConfigs.findByName("release")
+      if (customRelease != null) {
+        signingConfig = customRelease
+      }
       isCrunchPngs = false
       isMinifyEnabled = false
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

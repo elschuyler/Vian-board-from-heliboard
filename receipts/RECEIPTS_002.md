@@ -102,3 +102,50 @@
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: Ready for on-device verification.
 
+### Receipt: 2026-09-13 13:40:00
+- **Requested**: Implement: Fix `?123` long-press opening pattern unlock in keyboard without tap fallthrough; eliminate desktop shortcuts modal bottom gap; fix Log Keeper copying logs instead of error on Errors tab; add customizable and reorderable comma key popup in Settings > Appearance.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/keyboard/PointerTracker.java`
+  - `app/src/main/java/helium314/keyboard/keyboard/desktop/DesktopShortcutsView.kt`
+  - `app/src/main/java/helium314/keyboard/latin/utils/LogCatcher.kt`
+  - `app/src/main/java/helium314/keyboard/settings/LogKeeperActivity.kt`
+  - `app/src/main/java/helium314/keyboard/latin/App.kt`
+  - `app/src/main/java/helium314/keyboard/keyboard/popup/CommaPopupItem.kt`
+  - `app/src/main/java/helium314/keyboard/keyboard/internal/keyboard_parser/floris/TextKeyData.kt`
+  - `app/src/main/java/helium314/keyboard/settings/dialogs/CommaPopupsCustomizer.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/AppearanceScreen.kt`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_002.md`
+- **What was actually done**:
+  1. In `PointerTracker.java`, lifted the symbol element restriction for `SYMBOL_ALPHA` in `startLongPressTimer()` to allow the long-press timer to run on the Alphabet layout, and added `cancelKeyTracking()` inside `onKeyLongPress()` to prevent pointer release from firing a normal tap event.
+  2. In `DesktopShortcutsView.kt`, disabled `fitsSystemWindows`, eliminated manual padding calculations, and enforced exact measure specs matching `keyboardHeight` in `onMeasure()` to remove the bottom gap.
+  3. In `LogCatcher.kt`, separated clean crash stack traces (`last_crash.log`) from diagnostic dumps (`VianBoard_CRASH_<timestamp>.log`), and added `stripSystemLogs()` to ensure only the crash trace is loaded by the UI.
+  4. In `LogKeeperActivity.kt`, updated the Errors tab copy action to export only the clean crash report and error/warning log entries, and added 1-tap copy buttons to both the Fatal Crash card and individual log entry cards.
+  5. Created `CommaPopupItem.kt` and `CommaPopupsCatalog` with default items (Settings [unremovable], Log Keeper, Voice Input, One-Handed Mode, Privacy Vault, Emoji, Desktop Shortcuts), providing serialization, deserialization, and enabled list querying.
+  6. Updated `TextKeyData.kt` `getCommaPopupKeys()` to dynamically query `CommaPopupsCatalog.getEnabledItems()` using `App.getInstance()?.prefs()`.
+  7. Created `CommaPopupsCustomizer.kt` with drag-and-drop reordering, switches (with Settings permanently checked and disabled), a reset-to-default button, and instant keyboard layout refresh on save via `KeyboardLayoutSet.onSystemLocaleChanged()`.
+  8. Integrated "Comma Key Popups" preference into `AppearanceScreen.kt` under Appearance settings.
+- **How it was verified**: Full application compilation verified via `compile_applet` (Build succeeded).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device manual QA.
+
+### Receipt: 2026-09-15 10:25:00
+- **Requested**: Implement fixes for failed GitHub Actions APK build pipeline.
+- **Exact files touched**:
+  - `.github/workflows/build-apk.yml`
+  - `vianboard/.github/workflows/build-apk.yml`
+  - `app/build.gradle.kts`
+  - `vianboard/app/build.gradle.kts`
+  - `receipts/RECEIPTS_002.md`
+  - `BLUEPRINT.md`
+- **What was actually done**:
+  1. Updated `.github/workflows/build-apk.yml` JDK setup from Java 17 to Java 21 (`actions/setup-java@v4` with `java-version: '21'`), aligning CI with the project runtime environment.
+  2. Integrated `android-actions/setup-android@v3` and added an automated step accepting Android SDK licenses and installing `platforms;android-36` and `build-tools;36.0.0`, resolving missing Android 16 SDK platform errors on GitHub Actions runners.
+  3. Added dynamic fallback NDK detection (`${ANDROID_NDK_HOME:-${ANDROID_NDK_LATEST_HOME:-$(find $ANDROID_HOME/ndk -maxdepth 1 -mindepth 1 2>/dev/null | sort -V | tail -n 1)}}`) in both `ndk-build` and `CMake` steps to ensure toolchain resolution across different runner image configurations.
+  4. Injected `DEBUG_KEYSTORE_PATH: ${{ github.workspace }}/debug.keystore` into the `Build Debug APK` workflow step environment so Gradle configures `customDebug` with the generated keystore.
+  5. Enhanced `app/build.gradle.kts` and `vianboard/app/build.gradle.kts` to configure `signingConfigs.create("release")` when `KEYSTORE_PATH` is passed via environment variables, with fallback to debug keystore for debug builds.
+- **How it was verified**: Full local compilation verified via `compile_applet` (Build succeeded).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Push changes to trigger GitHub Actions APK build workflow and verify remote green run.
+
+

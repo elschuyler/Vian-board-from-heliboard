@@ -207,4 +207,12 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
   - Formatted subsystem state dumps into clipboard copy and file export headers.
   - Audited full offline voice pipeline (`:voice` process, `VoiceInputService`, `WhisperEngine`, `AudioRecordPipeline`, `VoiceModelManager`, `VoiceReplacementDao`), Modular Backup & Restore (`ModularBackupEngine`), Accidental Number Typo Engine, Gesture Library loader, Security Vault & Pattern Lock, Desktop Shortcuts, and Comma Popups customizer.
   - Clean compilation verified via `compile_applet`.
+- **2026-09-15**: Resolved CI APK build pipeline failures in GitHub Actions:
+  - Aligned CI JDK from Java 17 to Java 21 (`actions/setup-java@v4` with `java-version: '21'`), matching local environment.
+  - Added Android SDK 16 installation and license acceptance step (`platforms;android-36`, `build-tools;36.0.0`) via `android-actions/setup-android@v3` and `sdkmanager`.
+  - Added dynamic fallback NDK toolchain path resolution in both `ndk-build` and `CMake` steps to ensure resilient compilation of native libraries across GitHub Actions runner environments.
+  - Injected `DEBUG_KEYSTORE_PATH: ${{ github.workspace }}/debug.keystore` into the `Build Debug APK` workflow step.
+  - Configured `signingConfigs.create("release")` in `app/build.gradle.kts` on receipt of `KEYSTORE_PATH` with fallback handling for debug APKs.
+  - Clean local compilation verified via `compile_applet`.
+
 

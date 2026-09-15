@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SPDX-License-Identifier: GPL-3.0-only
+-->
+<helium314.keyboard.latin.voice.VoiceInputView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/voice_input_view"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_gravity="bottom"
+    android:orientation="vertical"
+    android:background="@android:color/transparent"
+    android:visibility="gone"
+    android:paddingLeft="6dp"
+    android:paddingRight="6dp"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp">
+
+    <!-- Top Status & Streaming Preview Row -->
+    <LinearLayout
+        android:id="@+id/voice_top_row"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingLeft="8dp"
+        android:paddingRight="8dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp">
+
+        <helium314.keyboard.latin.voice.VoicePulseView
+            android:id="@+id/voice_pulse_view"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_gravity="center_vertical"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="8dp" />
+
+        <TextView
+            android:id="@+id/voice_streaming_text"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center_vertical|start"
+            android:text="@string/voice_status_listening"
+            android:textSize="14sp"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:padding="4dp"
+            android:background="?android:attr/selectableItemBackground" />
+
+        <TextView
+            android:id="@+id/voice_gain_pill"
+            android:layout_width="wrap_content"
+            android:minWidth="42dp"
+            android:layout_height="30dp"
+            android:gravity="center"
+            android:text="1x"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:paddingLeft="10dp"
+            android:paddingRight="10dp"
+            android:layout_marginStart="6dp"
+            android:layout_marginEnd="4dp"
+            android:background="?android:attr/selectableItemBackground" />
+
+    </LinearLayout>
+
+    <!-- Bottom 4-Button Keyboard Row matching Clipboard & Main Keyboard -->
+    <helium314.keyboard.keyboard.MainKeyboardView
+        android:id="@+id/bottom_row_keyboard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+</helium314.keyboard.latin.voice.VoiceInputView>

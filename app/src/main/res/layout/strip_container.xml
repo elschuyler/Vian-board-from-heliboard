@@ -80,4 +80,35 @@
                 android:layout_weight="1" />
         </LinearLayout>
     </HorizontalScrollView>
+    <LinearLayout
+        android:id="@+id/voice_preview_strip"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="6dp"
+        style="?attr/suggestionStripViewStyle"
+        android:visibility="gone">
+        <TextView
+            android:id="@+id/voice_preview_text"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:textSize="12.5sp"
+            android:includeFontPadding="false"
+            android:lineSpacingMultiplier="0.95"
+            android:gravity="center_vertical|start" />
+        <ImageView
+            android:id="@+id/voice_preview_clear"
+            android:layout_width="44dp"
+            android:layout_height="match_parent"
+            android:padding="10dp"
+            android:scaleType="centerInside"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_close_rounded"
+            android:contentDescription="@string/voice_preview_clear" />
+    </LinearLayout>
 </FrameLayout>

@@ -37,6 +37,7 @@ import helium314.keyboard.settings.screens.SecurityVaultPlaceholderScreen
 import helium314.keyboard.settings.screens.SubtypeScreen
 import helium314.keyboard.settings.screens.TextCorrectionScreen
 import helium314.keyboard.settings.screens.ToolbarScreen
+import helium314.keyboard.settings.screens.VoiceInputScreen
 import helium314.keyboard.settings.screens.WordEngineScreen
 import helium314.keyboard.settings.screens.gesturedata.GestureDataScreen
 import helium314.keyboard.settings.screens.gesturedata.ReviewScreen
@@ -76,9 +77,13 @@ fun SettingsNavHost(
                 onClickAppearance = { navController.navigate(SettingsDestination.Appearance) },
                 onClickWordEngine = { navController.navigate(SettingsDestination.WordEngine) },
                 onClickSecurity = { navController.navigate(SettingsDestination.Security) },
+                onClickVoiceInput = { navController.navigate(SettingsDestination.VoiceInput) },
                 onClickAdvanced = { navController.navigate(SettingsDestination.Advanced) },
                 onClickBack = ::goBack,
             )
+        }
+        composable(SettingsDestination.VoiceInput) {
+            VoiceInputScreen(onClickBack = ::goBack)
         }
         composable(SettingsDestination.Security) {
             SecurityScreen(
@@ -101,6 +106,7 @@ fun SettingsNavHost(
             WordEngineScreen(
                 onClickTextCorrection = { navController.navigate(SettingsDestination.TextCorrection) },
                 onClickDictionaries = { navController.navigate(SettingsDestination.Dictionaries) },
+                onClickGestureTyping = { navController.navigate(SettingsDestination.GestureTyping) },
                 onClickBack = ::goBack,
             )
         }
@@ -182,6 +188,7 @@ object SettingsDestination {
     const val About = "about"
     const val TextCorrection = "text_correction"
     const val WordEngine = "word_engine"
+    const val VoiceInput = "voice_input"
     const val BackupRestore = "backup_restore"
     const val Preferences = "preferences"
     const val Toolbar = "toolbar"

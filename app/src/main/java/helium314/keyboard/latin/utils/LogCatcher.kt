@@ -74,6 +74,7 @@ object LogCatcher {
         }
     }
 
+    @JvmStatic
     fun init(context: Context) {
         appContext = context.applicationContext
         val prefs = context.getSharedPreferences(
@@ -86,12 +87,15 @@ object LogCatcher {
         markComponentActive("LogCatcher", "Diagnostic", "Active")
     }
 
+    @JvmStatic
     fun setEnabled(enabled: Boolean) {
         isEnabled = enabled
     }
 
+    @JvmStatic
     fun isLoggingEnabled(): Boolean = isEnabled
 
+    @JvmStatic
     fun markComponentActive(name: String, category: String, status: String = "Running") {
         val now = SystemClock.elapsedRealtime()
         val info = activeComponents[name]
@@ -103,6 +107,7 @@ object LogCatcher {
         }
     }
 
+    @JvmStatic
     fun markComponentInactive(name: String, status: String = "Stopped") {
         val info = activeComponents[name]
         if (info != null) {
@@ -111,10 +116,12 @@ object LogCatcher {
         }
     }
 
+    @JvmStatic
     fun getActiveComponents(): List<ComponentInfo> {
         return activeComponents.values.toList().sortedBy { it.name }
     }
 
+    @JvmStatic
     fun getActiveLogFileSize(): Long {
         val context = appContext ?: return 0L
         return try {
@@ -125,6 +132,7 @@ object LogCatcher {
         }
     }
 
+    @JvmStatic
     fun log(level: Char, tag: String?, message: String, throwable: Throwable? = null) {
         if (!isEnabled) return
 
@@ -168,12 +176,14 @@ object LogCatcher {
         }
     }
 
+    @JvmStatic
     fun getLogs(maxLines: Int = MAX_RING_BUFFER_SIZE): List<LogEntry> {
         return synchronized(ringBuffer) {
             ringBuffer.takeLast(maxLines)
         }
     }
 
+    @JvmStatic
     fun clearLogs() {
         synchronized(ringBuffer) {
             ringBuffer.clear()
@@ -188,8 +198,26 @@ object LogCatcher {
         }
     }
 
-    /** Reads the persisted crash report file from the file system, if present. */
+    @JvmStatic
+    fun d(tag: String, message: String) = log('D', tag, message)
+    @JvmStatic
+    fun i(tag: String, message: String) = log('I', tag, message)
+    @JvmStatic
+    fun w(tag: String, message: String, throwable: Throwable? = null) = log('W', tag, message, throwable)
+    @JvmStatic
+    fun e(tag: String, message: String, throwable: Throwable? = null) = log('E', tag, message, throwable)
+
+    /** Reads the persisted crash report file from the file system, if present, cleanly without system logs. */
     fun readLastCrashReport(): String? {
+        val raw = readRawCrashReport() ?: return null
+        return if (raw.contains("RECENT SYSTEM LOGS:")) {
+            raw.substringBefore("RECENT SYSTEM LOGS:").trim()
+        } else {
+            raw.trim()
+        }
+    }
+
+    private fun readRawCrashReport(): String? {
         val context = appContext ?: return null
         return try {
             val file = File(context.filesDir, CRASH_LOG_FILE)
@@ -329,7 +357,7 @@ object LogCatcher {
                 }
 
                 val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Calendar.getInstance().time)
-                val crashReport = buildString {
+                val cleanCrashReport = buildString {
                     appendLine("=== VIANBOARD FATAL CRASH REPORT ===")
                     appendLine("Timestamp: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(Calendar.getInstance().time)}")
                     appendLine("Thread: ${t.name} (id=${t.id})")
@@ -343,18 +371,21 @@ object LogCatcher {
                     appendLine()
                     appendLine("FATAL EXCEPTION:")
                     appendLine(stackTrace)
+                }
+
+                // 1. Synchronously flush clean crash report to internal filesDir
+                val file = File(context.filesDir, CRASH_LOG_FILE)
+                file.writeText(cleanCrashReport)
+
+                // 2. Drop crash dump into device Download folder immediately (including recent logs for full context)
+                val fullDump = buildString {
+                    appendLine(cleanCrashReport)
                     appendLine()
                     appendLine("RECENT SYSTEM LOGS:")
                     appendLine(recentLogs)
                 }
-
-                // 1. Synchronously flush to internal filesDir
-                val file = File(context.filesDir, CRASH_LOG_FILE)
-                file.writeText(crashReport)
-
-                // 2. Drop crash dump into device Download folder immediately
                 val crashFileName = "VianBoard_CRASH_$timestamp.log"
-                saveToDownloads(context, crashFileName, crashReport)
+                saveToDownloads(context, crashFileName, fullDump)
             } catch (_: Throwable) {
                 // Ensure uncaughtException handler never throws
             } finally {
