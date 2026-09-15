@@ -238,30 +238,6 @@
     <string name="button_restore">Restore</string>
     <!-- Message when backup is restored successfully -->
     <string name="backup_restored">Backup restored</string>
-    <!-- Modular Backup and Restore -->
-    <string name="backup_modular_title">Modular Backup &amp; Restore</string>
-    <string name="backup_dialog_title">Export Backup Archive</string>
-    <string name="backup_dialog_desc">Select data modules to export into a compressed backup archive:</string>
-    <string name="restore_dialog_title">Selective Restore</string>
-    <string name="restore_dialog_desc">Select which components to restore. Unselected modules will remain untouched:</string>
-    <string name="backup_module_settings">Settings &amp; Appearance</string>
-    <string name="backup_module_settings_desc">Preferences, custom toolbar keys, theme, and comma popups order</string>
-    <string name="backup_module_dictionaries">User Dictionaries &amp; History</string>
-    <string name="backup_module_dictionaries_desc">Personal dictionaries, blacklist, and typed word frequencies</string>
-    <string name="backup_module_clipboard_prompts">Clipboard &amp; Prompts</string>
-    <string name="backup_module_clipboard_prompts_desc">Saved clips, pinned notes, and prompt templates</string>
-    <string name="backup_module_word_improvement">Word Improvement Dictionary</string>
-    <string name="backup_module_word_improvement_desc">Phonetic voice replacements and speech corrections</string>
-    <string name="backup_module_security_vault">Security Vault</string>
-    <string name="backup_module_security_vault_desc">Master pattern lock hash and secured configurations</string>
-    <string name="backup_vault_warning">Security Vault includes your master pattern hash. Only export/restore on trusted personal devices.</string>
-    <string name="backup_models_excluded_note">Voice AI models (.bin) are excluded from backups to keep file sizes small.</string>
-    <string name="button_export_selected">Export Selected</string>
-    <string name="button_restore_selected">Restore Selected</string>
-    <string name="backup_no_modules_selected">Please select at least one module</string>
-    <string name="backup_select_all">Select All</string>
-    <string name="backup_deselect_all">Deselect All</string>
-    <string name="backup_archive_info">Archive: %1$s • %2$s modules</string>
     <!-- Preferences item for format for timestamp keycode -->
     <string name="timestamp_format_title">Format for timestamp key</string>
     <!-- Message in preferences how to get timestamp key -->
@@ -398,9 +374,6 @@
     <string name="close_history" tools:keep="@string/close_history">Close clipboard history</string>
     <string name="emoji" tools:keep="@string/emoji">Emoji</string>
     <string name="floating" tools:keep="@string/floating">Floating Keyboard</string>
-    <string name="desktop_shortcuts" tools:keep="@string/desktop_shortcuts">Desktop shortcuts</string>
-    <string name="log_keeper" tools:keep="@string/log_keeper">Log Keeper</string>
-    <string name="privacy_vault" tools:keep="@string/privacy_vault">Privacy Vault</string>
     <!-- Title of the setting to set clipboard toolbar keys -->
     <string name="clipboard_toolbar_keys">Select clipboard toolbar keys</string>
     <!-- Title of the setting to set pinned toolbar keys -->
@@ -1334,9 +1307,11 @@ New dictionary:
     <string name="gesture_data_swipe_o_scope">Tool for visualizing gesture data: &lt;a href=%s&gt;Swipe-O-Scope&lt;/a&gt;</string>
 
     <string name="prompt_list">Prompt List</string>
+    <string name="log_keeper">Log Keeper</string>
     <string name="voice_input">Voice Input</string>
     <string name="security_vault">Security Vault</string>
 
+    <!-- Voice Input & Speech Recognition Strings -->
     <string name="voice_input_enabled">Enable Voice Input</string>
     <string name="voice_input_enabled_summary">Offline Whisper speech-to-text recognition</string>
     <string name="voice_input_model_section">Whisper Speech Model</string>
