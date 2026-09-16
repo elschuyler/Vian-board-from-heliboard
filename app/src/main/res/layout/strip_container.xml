@@ -111,4 +111,37 @@
             android:src="@drawable/ic_close_rounded"
             android:contentDescription="@string/voice_preview_clear" />
     </LinearLayout>
+    <LinearLayout
+        android:id="@+id/pattern_unlock_strip"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="8dp"
+        android:paddingEnd="12dp"
+        style="?attr/suggestionStripViewStyle"
+        android:visibility="gone">
+        <ImageButton
+            android:id="@+id/pattern_strip_close_btn"
+            android:layout_width="44dp"
+            android:layout_height="match_parent"
+            android:padding="10dp"
+            android:scaleType="centerInside"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_close_rounded"
+            android:contentDescription="@string/spoken_description_action_previous" />
+        <TextView
+            android:id="@+id/pattern_strip_status_text"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center_vertical|start"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:text="@string/pattern_draw_to_unlock" />
+    </LinearLayout>
 </FrameLayout>

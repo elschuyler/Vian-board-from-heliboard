@@ -242,6 +242,10 @@ Nouveau dictionnaire:
     <string name="settings_category_clipboard_history">Historique du presse-papier</string>
     <string name="settings_no_limit">Sans limite</string>
     <string name="clipboard_history_retention_time">Temps de rétention de l\'historique</string>
+    <string name="pattern_draw_to_unlock">Dessinez le schéma pour déverrouiller</string>
+    <string name="pattern_verifying">Vérification…</string>
+    <string name="pattern_unlocked">Déverrouillé</string>
+    <string name="pattern_incorrect">Schéma incorrect, réessayez</string>
     <string name="enable_clipboard_history_summary">Si désactivé, l\'appui sur la touche presse-papier collera l’éventuel contenu du presse-papier</string>
     <string name="enable_clipboard_history">Activer l\'historique</string>
     <string name="abbreviation_unit_minutes">%s min.</string>

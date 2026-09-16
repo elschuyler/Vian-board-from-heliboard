@@ -220,7 +220,7 @@ class VoiceInputView @JvmOverloads constructor(
             2 -> 4
             else -> 1
         }
-        context.prefs().edit().putInt(Settings.PREF_VOICE_INPUT_GAIN, currentGainMultiplier).apply()
+        context.prefs().edit().putString(Settings.PREF_VOICE_INPUT_GAIN, "${currentGainMultiplier}.0").apply()
         gainPill.text = "${currentGainMultiplier}x"
         LogCatcher.i(TAG, "Microphone sensitivity cycled to ${currentGainMultiplier}x")
         voiceConnection?.setGain(currentGainMultiplier)
@@ -272,7 +272,20 @@ class VoiceInputView @JvmOverloads constructor(
         streamingText.setTextColor(colors.get(ColorType.KEY_TEXT))
         KeyboardTypeface.applyToTextView(streamingText)
 
-        currentGainMultiplier = context.prefs().getInt(Settings.PREF_VOICE_INPUT_GAIN, 1)
+        currentGainMultiplier = try {
+            val gainStr = context.prefs().getString(Settings.PREF_VOICE_INPUT_GAIN, null)
+            if (gainStr != null) {
+                gainStr.toFloatOrNull()?.toInt() ?: 1
+            } else {
+                context.prefs().getInt(Settings.PREF_VOICE_INPUT_GAIN, 1)
+            }
+        } catch (e: Exception) {
+            try {
+                context.prefs().getInt(Settings.PREF_VOICE_INPUT_GAIN, 1)
+            } catch (_: Exception) {
+                1
+            }
+        }
         if (currentGainMultiplier !in listOf(1, 2, 4)) currentGainMultiplier = 1
         gainPill.text = "${currentGainMultiplier}x"
 

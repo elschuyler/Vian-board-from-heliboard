@@ -262,6 +262,10 @@
     <string name="backup_select_all">Select All</string>
     <string name="backup_deselect_all">Deselect All</string>
     <string name="backup_archive_info">Archive: %1$s • %2$s modules</string>
+    <string name="pattern_draw_to_unlock">Draw pattern to unlock</string>
+    <string name="pattern_verifying">Verifying…</string>
+    <string name="pattern_unlocked">Unlocked</string>
+    <string name="pattern_incorrect">Incorrect pattern, try again</string>
     <!-- Preferences item for format for timestamp keycode -->
     <string name="timestamp_format_title">Format for timestamp key</string>
     <!-- Message in preferences how to get timestamp key -->

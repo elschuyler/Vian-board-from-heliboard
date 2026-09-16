@@ -215,5 +215,14 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
   - Resolved GitHub Actions parser error (`Unrecognized named-value: 'secrets'`) by migrating release signing conditional validation to a shell-level check inside the signing step and removing invalid workflow expressions.
   - Confirmed `.gitignore` ignores all keystores, JKS, P12, APK, and AAB files to guarantee no credential or binary leakage to the repository.
   - Clean local compilation verified via `compile_applet`.
+- **2026-09-16**: Resolved Voice Input preference ClassCastException and realigned Pattern Unlock layout architecture:
+  - Fixed `VoiceInputView.kt` crash where `PREF_VOICE_INPUT_GAIN` was cast to `Int` from a `String` stored by `VoiceInputScreen.kt`; added resilient type parsing supporting both `String` ("1.0", "2.0", "4.0") and numeric formats with safe fallback to `1`.
+  - Realigned Pattern Unlock architecture with existing secondary strips (Clipboard, Desktop Shortcuts, Voice Preview):
+    - Added `pattern_unlock_strip` inside `strip_container.xml` containing a close button and dynamic status label styled to active keyboard theme colors.
+    - Simplified `pattern_unlock_view.xml` by eliminating the redundant 44dp internal top bar.
+    - Updated `PatternUnlockView.kt` to extend `FrameLayout`, disabled `fitsSystemWindows = false`, and enforced exact height measurement matching secondary keyboard height (`MeasureSpec.EXACTLY`).
+    - Updated `KeyboardSwitcher.java` to manage `mPatternUnlockStrip` visibility across all keyboard modes, providing consistent strip-level close and status feedback.
+    - Added localized status strings (`pattern_draw_to_unlock`, `pattern_verifying`, `pattern_unlocked`, `pattern_incorrect`) to `strings.xml` and French translations in `values-fr/strings.xml`.
+  - Clean local compilation verified via `compile_applet`.
 
 

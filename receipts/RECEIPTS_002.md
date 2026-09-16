@@ -161,5 +161,33 @@
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: Push to GitHub to verify workflow completion.
 
+### Receipt: 2026-09-16 00:22:00
+- **Requested**: Implement: Fix voice input crash (no modal appeared) and fix pattern unlock layout (modal under screen and close button below strip).
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/latin/voice/VoiceInputView.kt`
+  - `app/src/main/res/layout/strip_container.xml`
+  - `app/src/main/res/layout/pattern_unlock_view.xml`
+  - `app/src/main/java/helium314/keyboard/security/PatternUnlockView.kt`
+  - `app/src/main/java/helium314/keyboard/keyboard/KeyboardSwitcher.java`
+  - `app/src/main/res/values/strings.xml`
+  - `app/src/main/res/values-fr/strings.xml`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_002.md`
+- **What was actually done**:
+  1. Identified root cause of the voice input crash: `Settings.PREF_VOICE_INPUT_GAIN` is stored as a `String` ("1.0", "2.0", "4.0") by `VoiceInputScreen.kt`, but was read via `prefs().getInt()` in `VoiceInputView.kt`, throwing a `ClassCastException`.
+  2. Fixed `VoiceInputView.kt` by wrapping preference access in resilient parsing that inspects `getString()` with fallback to `getInt()`, handles float strings safely (`toFloatOrNull()?.toInt()`), defaults safely to `1`, and updates `cycleGain()` to write `"${currentGainMultiplier}.0"` as a `String`.
+  3. Identified root causes of pattern unlock layout defects:
+     - `PatternUnlockView` used `fitsSystemWindows = true`, causing Android 15 edge-to-edge window insets to add artificial top/bottom padding that shoved the grid off the bottom of the screen.
+     - `PatternUnlockView` measured with wrap_content instead of exact secondary keyboard height bounds.
+     - `PatternUnlockView` contained an internal 44dp `pattern_top_bar`, placing the close button and title below the suggestion strip bar rather than in the unified strip container where clipboard, desktop shortcuts, and voice preview strips live.
+  4. Created `pattern_unlock_strip` in `strip_container.xml` matching the architectural pattern of `voice_preview_strip` and `desktop_shortcuts_strip`, containing the close ImageButton and status TextView.
+  5. Stripped the internal top bar from `pattern_unlock_view.xml`, reducing it to a pure `PatternGridView` container extending `FrameLayout`.
+  6. Rebuilt `PatternUnlockView.kt` with `fitsSystemWindows = false`, `padding = 0`, exact secondary keyboard height measurement (`MeasureSpec.EXACTLY`), and connected its callbacks to `KeyboardSwitcher.getInstance().patternUnlockStrip`.
+  7. Updated `KeyboardSwitcher.java` to declare `mPatternUnlockStrip`, manage its visibility across alphabet, emoji, clipboard, prompt, desktop shortcuts, voice input, and pattern unlock views, and ensure close button dismissal returns cleanly to the unshifted alphabet keyboard.
+  8. Added localized strings to `strings.xml` and French translations in `values-fr/strings.xml`.
+- **How it was verified**: Full local compilation verified via `compile_applet` (Build succeeded).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device verification.
+
 
 
