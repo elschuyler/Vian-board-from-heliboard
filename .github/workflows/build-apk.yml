@@ -39,13 +39,6 @@ jobs:
       - name: Grant Execute Permission for Gradlew
         run: chmod +x gradlew
 
-      - name: Ensure Debug Keystore
-        run: |
-          if [ ! -f "debug.keystore" ]; then
-            echo "Generating debug.keystore for CI build..."
-            keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
-          fi
-
       - name: Build Native LatinIME Library (ndk-build)
         run: |
           NDK_DIR="${ANDROID_NDK_HOME:-${ANDROID_NDK_LATEST_HOME:-$(find $ANDROID_HOME/ndk -maxdepth 1 -mindepth 1 2>/dev/null | sort -V | tail -n 1)}}"
@@ -83,18 +76,19 @@ jobs:
           fi
 
       - name: Build Debug APK
-        env:
-          DEBUG_KEYSTORE_PATH: ${{ github.workspace }}/debug.keystore
         run: ./gradlew assembleDebug --stacktrace
 
       - name: Sign Release APK (Optional if secrets provided)
-        if: ${{ secrets.STORE_PASSWORD != '' && secrets.KEY_PASSWORD != '' && secrets.KEYSTORE_BASE64 != '' }}
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'upload' }}
         run: |
+          if [ -z "$STORE_PASSWORD" ] || [ -z "$KEY_PASSWORD" ] || [ -z "$KEYSTORE_BASE64" ]; then
+            echo "Release signing secrets not configured. Skipping release APK build."
+            exit 0
+          fi
           echo "$KEYSTORE_BASE64" | base64 --decode > /tmp/release-keystore.jks
           export KEYSTORE_PATH="/tmp/release-keystore.jks"
           ./gradlew assembleRelease --stacktrace
@@ -109,7 +103,6 @@ jobs:
           retention-days: 14
 
       - name: Upload Release APK
-        if: ${{ secrets.STORE_PASSWORD != '' && secrets.KEY_PASSWORD != '' && secrets.KEYSTORE_BASE64 != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: VianBoard-Release-APK

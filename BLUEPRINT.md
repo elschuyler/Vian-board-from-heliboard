@@ -211,9 +211,9 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
   - Aligned CI JDK from Java 17 to Java 21 (`actions/setup-java@v4` with `java-version: '21'`), matching local environment.
   - Resolved runner conflict on Ubuntu 24.04 (`ubuntu-latest`) by removing `android-actions/setup-android@v3` and directly utilizing the pre-installed SDK via `$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager` to accept licenses and install `platforms;android-36`, `platforms;android-36.1`, `build-tools;36.0.0`, and `platform-tools`.
   - Added dynamic fallback NDK toolchain path resolution in both `ndk-build` and `CMake` steps to ensure resilient compilation of native libraries across GitHub Actions runner environments.
-  - Injected `DEBUG_KEYSTORE_PATH: ${{ github.workspace }}/debug.keystore` into the `Build Debug APK` workflow step.
-  - Configured `signingConfigs.create("release")` in `app/build.gradle.kts` on receipt of `KEYSTORE_PATH` with fallback handling for debug APKs.
-  - Fixed release step conditionals to evaluate repository secrets (`secrets.STORE_PASSWORD`) rather than unpopulated step-level environment variables.
+  - Removed redundant `Ensure Debug Keystore` CI step and `DEBUG_KEYSTORE_PATH` override, allowing standard Android Gradle debug builds to sign via the runner's default `~/.android/debug.keystore`.
+  - Resolved GitHub Actions parser error (`Unrecognized named-value: 'secrets'`) by migrating release signing conditional validation to a shell-level check inside the signing step and removing invalid workflow expressions.
+  - Confirmed `.gitignore` ignores all keystores, JKS, P12, APK, and AAB files to guarantee no credential or binary leakage to the repository.
   - Clean local compilation verified via `compile_applet`.
 
 
