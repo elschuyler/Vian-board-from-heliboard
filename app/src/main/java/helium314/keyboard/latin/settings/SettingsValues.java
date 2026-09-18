@@ -192,8 +192,8 @@ public class SettingsValues {
         mVibrateOn = Settings.readVibrationEnabled(prefs);
         mVibrateInDndMode = prefs.getBoolean(Settings.PREF_VIBRATE_IN_DND_MODE, Defaults.PREF_VIBRATE_IN_DND_MODE);
         mSoundOn = prefs.getBoolean(Settings.PREF_SOUND_ON, Defaults.PREF_SOUND_ON);
-        mSuggestEmojis = prefs.getBoolean(Settings.PREF_SUGGEST_EMOJIS, Defaults.PREF_SUGGEST_EMOJIS);
-        mInlineEmojiSearch = prefs.getBoolean(Settings.PREF_INLINE_EMOJI_SEARCH, Defaults.PREF_INLINE_EMOJI_SEARCH);
+        mSuggestEmojis = false;
+        mInlineEmojiSearch = false;
         mShowEmojiDescriptions = prefs.getBoolean(Settings.PREF_SHOW_EMOJI_DESCRIPTIONS, Defaults.PREF_SHOW_EMOJI_DESCRIPTIONS);
         mKeyPreviewPopupOn = false; // Option B: locked - no popup preview on tap, only long-press popup panel
         mSlidingKeyInputPreviewEnabled = prefs.getBoolean(
@@ -395,13 +395,6 @@ public class SettingsValues {
     }
 
     private static boolean readUseContactsEnabled(final SharedPreferences prefs, final Context ctx) {
-        final boolean setting = prefs.getBoolean(Settings.PREF_USE_CONTACTS, Defaults.PREF_USE_CONTACTS);
-        if (!setting) return false;
-        if (PermissionsUtil.checkAllPermissionsGranted(ctx, Manifest.permission.READ_CONTACTS)) {
-            return true;
-        }
-        // disable if permission not granted
-        prefs.edit().putBoolean(Settings.PREF_USE_CONTACTS, false).apply();
         return false;
     }
 

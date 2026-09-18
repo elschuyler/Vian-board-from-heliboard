@@ -55,7 +55,7 @@ public class ContactsBinaryDictionary extends ExpandableBinaryDictionary
 
     public static ContactsBinaryDictionary getDictionary(final Context context, @NonNull final Locale locale,
             final File dictFile, final String dictNamePrefix) {
-        return new ContactsBinaryDictionary(context, locale, dictFile, dictNamePrefix + NAME);
+        return null;
     }
 
     @Override

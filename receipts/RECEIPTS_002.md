@@ -189,5 +189,86 @@
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: Ready for on-device verification.
 
+### Receipt: 2026-09-18 10:45:00
+- **Requested**: Make plan file.
+- **Exact files touched**:
+  - `PLAN.md`
+  - `receipts/RECEIPTS_002.md`
+- **What was actually done**:
+  1. Created consolidated `PLAN.md` incorporating all agreed architectural specifications:
+     - Full-app Normal vs Lite Mode (excluding Bare Bones).
+     - Universal decoupling of contacts and emoji suggestion engines.
+     - Privacy Vault as an in-memory partition of the Personal Dictionary (zero background services, masked pill rendering).
+     - Suggestion bar candidate long-press popup with history purge (Delete) and built-in penalty overlay (Demote).
+     - Backspace word resumption state machine, `helhello` duplication fix, and DOM batch edit optimizations.
+     - Root-cause resolution plan for the 7 secondary view defects (pattern insets, close button bindings, comma popup mic, sound wave bar, voice permission resume).
+     - Defined structured 6-phase milestone roadmap.
+  2. Appended audit entry to `receipts/RECEIPTS_002.md`.
+- **How it was verified**: File creation verified; no code modified.
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Await user instruction to begin Phase 1 implementation.
+
+### Receipt: 2026-09-18 11:15:00
+- **Requested**: "Implement. Implement. Take your time. Be thorough. Be meticulous. Don't rush. Be patient" — Implement Phase 2: Engine Pruning (Contacts & Emoji Decoupling).
+- **Exact files touched**:
+  - `app/src/main/AndroidManifest.xml`
+  - `app/src/main/java/helium314/keyboard/latin/settings/Defaults.kt`
+  - `app/src/main/java/helium314/keyboard/latin/settings/SettingsValues.java`
+  - `app/src/main/java/helium314/keyboard/latin/DictionaryFacilitatorImpl.kt`
+  - `app/src/main/java/helium314/keyboard/latin/dictionary/DictionaryFactory.kt`
+  - `app/src/main/java/helium314/keyboard/latin/dictionary/ContactsBinaryDictionary.java`
+  - `app/src/main/java/helium314/keyboard/latin/inputlogic/InputLogic.java`
+  - `app/src/main/java/helium314/keyboard/latin/Suggest.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/TextCorrectionScreen.kt`
+  - `app/src/main/java/helium314/keyboard/settings/SettingsActivity.kt`
+  - `app/src/main/java/helium314/keyboard/keyboard/emoji/EmojiSearchActivity.kt`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_002.md`
+- **What was actually done**:
+  1. Removed `READ_CONTACTS` permission declaration from `AndroidManifest.xml`.
+  2. In `Defaults.kt` and `SettingsValues.java`, hardcoded `mSuggestEmojis = false`, `mInlineEmojiSearch = false`, and `readUseContactsEnabled() = false` to eliminate emoji and contacts lookups regardless of legacy SharedPreferences.
+  3. In `DictionaryFacilitatorImpl.kt`, removed `Dictionary.TYPE_CONTACTS` from `subDictTypesToUse`, hardcoded `useEmojiDict = false` during dictionary initialization, and returned `null` for `Dictionary.TYPE_CONTACTS`.
+  4. In `ContactsBinaryDictionary.java`, returned `null` from `getDictionary()` to prevent any instantiation of `ContactsManager` or `ContactsContentObserver`.
+  5. In `DictionaryFactory.kt`, filtered out `Dictionary.TYPE_EMOJI` during assets dictionary listing, asset extraction, and dictionary list generation so `main_emoji.dict` is never extracted or loaded.
+  6. In `InputLogic.java`, updated `updateEmojiDictionary()` to invoke `closeEmojiDictionary()`, eliminating background instantiation of `SingleDictionaryFacilitator` on typing `:`.
+  7. In `Suggest.kt`, eliminated calls to `makeFirstTwoSuggestionsNonEmoji()` and `useDefaultEmojiSkinTone()` in both non-batch and batch suggestion pipelines and made `makeFirstTwoSuggestionsNonEmoji()` a no-op, reducing per-keystroke candidate iteration overhead.
+  8. In `TextCorrectionScreen.kt` and `SettingsActivity.kt`, removed contacts and emoji switch preferences from the UI to prevent unhandled permission launches or broken toggles.
+  9. In `EmojiSearchActivity.kt`, handled null `dictionaryFacilitator` safely without cancelling.
+- **How it was verified**: Local compilation verified via `compile_applet`.
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device testing.
+
+---
+
+### Receipt Entry: Phase 3 - Suggestion Bar Long-Press (Delete & Demote)
+- **Timestamp**: 2026-09-18T11:55:00-07:00
+- **Summary of request**: Implement suggestion bar long-press action where words in personal dictionary show Delete (trash bin) and words not in personal dictionary show Down (Demote), preserving native look, hit bounds, and popup behavior.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/latin/suggestions/DemotionManager.kt` (New)
+  - `app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt`
+  - `app/src/main/java/helium314/keyboard/latin/DictionaryFacilitator.java`
+  - `app/src/main/java/helium314/keyboard/latin/SingleDictionaryFacilitator.kt`
+  - `app/src/main/java/helium314/keyboard/latin/DictionaryFacilitatorImpl.kt`
+  - `app/src/main/java/helium314/keyboard/latin/Suggest.kt`
+  - `app/src/main/java/helium314/keyboard/latin/suggestions/SuggestionStripView.kt`
+  - `app/src/main/java/helium314/keyboard/latin/LatinIME.java`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_002.md`
+- **What was actually done**:
+  1. Created `DemotionManager.kt` storing in-memory thread-safe demotions and persisting them to `demoted_words.txt` in app storage.
+  2. Added `NAME_DEMOTE` to `KeyboardIconsSet.kt` mapped to `R.drawable.ic_page_down` (material) and `R.drawable.ic_page_down_rounded` (rounded).
+  3. Added `demoteWord(word)` to `DictionaryFacilitator.java`, `SingleDictionaryFacilitator.kt`, and `DictionaryFacilitatorImpl.kt`.
+  4. In `DictionaryFacilitatorImpl.kt`, `demoteWord` unlearns user history reinforcement using `NgramContext.EMPTY_PREV_WORDS_INFO` and registers the word in `DemotionManager`.
+  5. In `Suggest.kt`, applied demotion sorting in both `getSuggestedWordsForNonBatchInput` and `getSuggestedWordsForBatchInput` to move demoted candidates to the end of `suggestionsContainer`.
+  6. In `SuggestionStripView.kt`, inspected dictionary source of long-pressed word: if personal dictionary / user history, showed `NAME_BIN`; if system / non-personal dictionary, showed `NAME_DEMOTE`. Maintained exact touch bounds, dismiss, and strip refresh.
+  7. Added `demoteSuggestion(word)` in `SuggestionStripView.Listener` and implemented in `LatinIME.java`.
+- **How it was verified**: Local build verified via `compile_applet` (succeeded cleanly).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device manual QA.
+
+
+
+
+
 
 

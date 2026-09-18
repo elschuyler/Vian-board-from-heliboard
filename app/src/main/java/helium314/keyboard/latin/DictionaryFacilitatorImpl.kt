@@ -58,6 +58,7 @@ import java.util.concurrent.TimeUnit
  */
 class DictionaryFacilitatorImpl : DictionaryFacilitator {
     private var dictionaryGroups = listOf(DictionaryGroup())
+    private var context: Context? = null
 
     @Volatile
     private var mLatchForWaitingLoadingMainDictionaries = CountDownLatch(0)
@@ -136,15 +137,14 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         listener: DictionaryInitializationListener?
     ) {
         Log.i(TAG, "resetDictionaries, force reloading main dictionary: $forceReloadMainDictionary")
+        this.context = context
 
         val locales = getUsedLocales(newLocale, context)
 
         val subDictTypesToUse = listOfNotNull(
             Dictionary.TYPE_USER,
             if (useAppsDict) Dictionary.TYPE_APPS else null,
-            if (usePersonalizedDicts) Dictionary.TYPE_USER_HISTORY else null,
-            if (useContactsDict && PermissionsUtil.checkAllPermissionsGranted(context, Manifest.permission.READ_CONTACTS))
-                Dictionary.TYPE_CONTACTS else null
+            if (usePersonalizedDicts) Dictionary.TYPE_USER_HISTORY else null
         )
 
         val (newDictionaryGroups, existingDictsToCleanup) =
@@ -237,7 +237,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         mLatchForWaitingLoadingMainDictionaries = latchForWaitingLoadingMainDictionary
         scope.launch {
             try {
-                val useEmojiDict = Settings.getValues().mSuggestEmojis
+                val useEmojiDict = false
                 val dictGroupsWithNewMainDict = locales.mapNotNull {
                     val dictionaryGroup = findDictionaryGroupWithLocale(dictionaryGroups, it)
                     if (dictionaryGroup == null) {
@@ -588,6 +588,13 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         }
     }
 
+    override fun demoteWord(word: String) {
+        unlearnFromUserHistory(word, NgramContext.EMPTY_PREV_WORDS_INFO, System.currentTimeMillis() / 1000L, DictionaryFacilitator.UnlearnEvent.REJECTION)
+        context?.let { ctx ->
+            helium314.keyboard.latin.suggestions.DemotionManager.demote(ctx, word)
+        }
+    }
+
     override fun clearUserHistoryDictionary(context: Context) {
         for (dictionaryGroup in dictionaryGroups) {
             dictionaryGroup.getSubDict(Dictionary.TYPE_USER_HISTORY)?.clear()
@@ -628,7 +635,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
                 return when (dictType) {
                     Dictionary.TYPE_USER_HISTORY -> UserHistoryDictionary.getDictionary(context, locale, dictFile, dictNamePrefix)
                     Dictionary.TYPE_USER -> UserBinaryDictionary.getDictionary(context, locale, dictFile, dictNamePrefix)
-                    Dictionary.TYPE_CONTACTS -> ContactsBinaryDictionary.getDictionary(context, locale, dictFile, dictNamePrefix)
+                    Dictionary.TYPE_CONTACTS -> null
                     Dictionary.TYPE_APPS -> AppsBinaryDictionary.getDictionary(context, locale, dictFile, dictNamePrefix)
                     else -> throw IllegalArgumentException("unknown dictionary type $dictType")
                 }

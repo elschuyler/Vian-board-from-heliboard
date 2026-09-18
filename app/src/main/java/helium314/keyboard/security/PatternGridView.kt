@@ -83,10 +83,12 @@ class PatternGridView @JvmOverloads constructor(
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
-        val availableSize = min(w - paddingLeft - paddingRight, h - paddingTop - paddingBottom).toFloat()
+        val bottomSafeArea = (32 * resources.displayMetrics.density).toInt()
+        val effectiveH = (h - paddingTop - paddingBottom - bottomSafeArea).coerceAtLeast(1)
+        val availableSize = min(w - paddingLeft - paddingRight, effectiveH).toFloat()
         val cellSize = availableSize / 3f
         val startX = (w - availableSize) / 2f + cellSize / 2f
-        val startY = (h - availableSize) / 2f + cellSize / 2f
+        val startY = paddingTop + (effectiveH - availableSize) / 2f + cellSize / 2f
 
         dotRadius = cellSize * 0.12f
         selectedDotRadius = cellSize * 0.16f

@@ -27,6 +27,7 @@ import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.core.view.doOnNextLayout
 import androidx.core.view.isVisible
 import helium314.keyboard.event.HapticEvent
@@ -79,6 +80,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         fun pickSuggestionManually(word: SuggestedWordInfo?)
         fun onCodeInput(primaryCode: Int, x: Int, y: Int, isKeyRepeat: Boolean)
         fun removeSuggestion(word: String?)
+        fun demoteSuggestion(word: String?)
         fun removeExternalSuggestions()
         fun onSwipeDownOnToolbar()
     }
@@ -386,14 +388,22 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     @SuppressLint("ClickableViewAccessibility") // no need for View#performClick, we only return false mostly anyway
     private fun onLongClickSuggestion(wordView: TextView): Boolean {
         var showIcon = true
+        var isPersonal = false
         if (wordView.tag is Int) {
             val index = wordView.tag as Int
-            val type = suggestedWords.getInfo(index).mSourceDict
-            if (type == Dictionary.DICTIONARY_USER_TYPED || type == Dictionary.DICTIONARY_HARDCODED)
-                showIcon = false
+            if (index < suggestedWords.size()) {
+                val dict = suggestedWords.getInfo(index).mSourceDict
+                if (dict == Dictionary.DICTIONARY_USER_TYPED || dict == Dictionary.DICTIONARY_HARDCODED) {
+                    showIcon = false
+                } else {
+                    isPersonal = dict.mDictType == Dictionary.TYPE_USER || dict.mDictType == Dictionary.TYPE_USER_HISTORY
+                }
+            }
         }
         if (showIcon) {
-            val icon = KeyboardIconsSet.instance.getNewDrawable(KeyboardIconsSet.NAME_BIN, context)!!
+            val iconName = if (isPersonal) KeyboardIconsSet.NAME_BIN else KeyboardIconsSet.NAME_DEMOTE
+            val icon = KeyboardIconsSet.instance.getNewDrawable(iconName, context)
+                ?: ContextCompat.getDrawable(context, if (isPersonal) R.drawable.ic_bin_rounded else R.drawable.ic_page_down_rounded)!!
             Settings.getValues().mColors.setColor(icon, ColorType.REMOVE_SUGGESTION_ICON)
             val w = icon.intrinsicWidth
             val h = icon.intrinsicHeight
@@ -405,7 +415,11 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
                     val x = motionEvent.x
                     val y = motionEvent.y
                     if (0 < x && x < w && 0 < y && y < h) {
-                        removeSuggestion(wordView)
+                        if (isPersonal) {
+                            removeSuggestion(wordView)
+                        } else {
+                            demoteSuggestion(wordView)
+                        }
                         wordView.cancelLongPress()
                         wordView.isPressed = false
                         return@setOnTouchListener true
@@ -460,6 +474,31 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         listener.removeSuggestion(word)
         moreSuggestionsView.dismissPopupKeysPanel()
         // show suggestions, but without the removed word
+        val suggestedWordInfos = ArrayList<SuggestedWordInfo>()
+        for (i in 0..<suggestedWords.size()) {
+            val info = suggestedWords.getInfo(i)
+            if (info.word != word) suggestedWordInfos.add(info)
+        }
+        suggestedWords.mRawSuggestions?.removeFirst { it.word == word }
+
+        val newSuggestedWords = SuggestedWords(
+            suggestedWordInfos, suggestedWords.mRawSuggestions, suggestedWords.typedWordInfo, suggestedWords.mTypedWordValid,
+            suggestedWords.mWillAutoCorrect, suggestedWords.mIsObsoleteSuggestions, suggestedWords.mInputStyle, suggestedWords.mSequenceNumber
+        )
+        setSuggestions(newSuggestedWords, direction != 1)
+        suggestionsStrip.isVisible = true
+
+        // Show the toolbar if no suggestions are left and the "Auto show toolbar" setting is enabled
+        if (this.suggestedWords.isEmpty && Settings.getValues().mAutoShowToolbar) {
+            setToolbarVisibility(true)
+        }
+    }
+
+    private fun demoteSuggestion(wordView: TextView) {
+        val word = wordView.text.toString()
+        listener.demoteSuggestion(word)
+        moreSuggestionsView.dismissPopupKeysPanel()
+        // show suggestions, but without the demoted word in current strip
         val suggestedWordInfos = ArrayList<SuggestedWordInfo>()
         for (i in 0..<suggestedWords.size()) {
             val info = suggestedWords.getInfo(i)

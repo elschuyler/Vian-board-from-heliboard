@@ -20,6 +20,7 @@ import helium314.keyboard.latin.define.DecoderSpecificConstants.SHOULD_REMOVE_PR
 import helium314.keyboard.latin.dictionary.Dictionary
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.settings.SettingsValuesForSuggestion
+import helium314.keyboard.latin.suggestions.DemotionManager
 import helium314.keyboard.latin.suggestions.SuggestionStripView
 import helium314.keyboard.latin.utils.AutoCorrectionUtils
 import helium314.keyboard.latin.utils.Log
@@ -108,6 +109,9 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         val trailingSingleQuotesCount = StringUtils.getTrailingSingleQuotesCount(typedWordString)
         val capsMode = getCapsModeForTyping(wordComposer, keyboard)
         val suggestionsContainer = ArrayList(suggestionResults)
+        if (DemotionManager.hasDemotions()) {
+            suggestionsContainer.sortBy { if (DemotionManager.isDemoted(it.mWord)) 1 else 0 }
+        }
         capitalizeAndAddTrailingSingleQuotes(suggestionsContainer, capsMode, trailingSingleQuotesCount, mDictionaryFacilitator.mainLocale)
         val capitalizedTypedWord = capitalize(typedWordString, capsMode, mDictionaryFacilitator.mainLocale)
 
@@ -116,7 +120,6 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         // we check against the capitalizedTypedWord because getTransformedSuggestedWordInfoList adjusts for capsMode
         val typedWordFirstOccurrenceWordInfo = suggestionsContainer.firstOrNull { it.mWord == capitalizedTypedWord }
         val firstOccurrenceOfTypedWordInSuggestions = SuggestedWordInfo.removeDupsAndTypedWord(capitalizedTypedWord, suggestionsContainer)
-        makeFirstTwoSuggestionsNonEmoji(suggestionsContainer)
 
         val (allowsToBeAutoCorrected, hasAutoCorrection) = shouldBeAutoCorrected(
             trailingSingleQuotesCount,
@@ -151,8 +154,6 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         } else {
             inputStyleIfNotPrediction
         }
-
-        useDefaultEmojiSkinTone(suggestionsList)
 
         // If there is an incoming autocorrection, make sure typed word is shown, so user is able to override it.
         // Otherwise, if the relevant setting is enabled, show the typed word in the middle.
@@ -308,6 +309,9 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         val locale = mDictionaryFacilitator.mainLocale
         val capsMode = getCapsModeForGesture(wordComposer, keyboard)
         val suggestionsContainer = ArrayList(suggestionResults)
+        if (DemotionManager.hasDemotions()) {
+            suggestionsContainer.sortBy { if (DemotionManager.isDemoted(it.mWord)) 1 else 0 }
+        }
         replaceSingleLetterFirstSuggestion(suggestionsContainer)
 
         val rejected: SuggestedWordInfo?
@@ -322,7 +326,6 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
             rejected = null
         }
         SuggestedWordInfo.removeDupsAndTypedWord(null, suggestionsContainer)
-        makeFirstTwoSuggestionsNonEmoji(suggestionsContainer)
         val pseudoTypedWord = suggestionsContainer.firstOrNull() // unchanged first suggestion, but considering adjusted order
         capitalizeAndAddTrailingSingleQuotes(suggestionsContainer, capsMode, 0, locale)
 
@@ -342,8 +345,6 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
                     Dictionary.DICTIONARY_USER_TYPED, SuggestedWordInfo.NOT_AN_INDEX, SuggestedWordInfo.NOT_A_CONFIDENCE)
             )
         }
-
-        useDefaultEmojiSkinTone(suggestionsContainer)
 
         // In the batch input mode, the most relevant suggested word should act as a "typed word"
         // (typedWordValid=true), not as an "auto correct word" (willAutoCorrect=false).
@@ -532,16 +533,7 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         }
 
         private fun makeFirstTwoSuggestionsNonEmoji(words: MutableList<SuggestedWordInfo>) {
-            for (i in 0..1) {
-                if (words.size > 2 && words[i].isEmoji) {
-                    val relativeIndex = words.subList(2, words.size).indexOfFirst { !it.isEmoji }
-                    if (relativeIndex < 0) break
-                    val firstNonEmojiIndex = relativeIndex + 2
-                    if (firstNonEmojiIndex > i) {
-                        words.add(i, words.removeAt(firstNonEmojiIndex))
-                    }
-                }
-            }
+            // No-op: emoji dictionary decoupled
         }
 
         /** reduces score of the first suggestion if next one is close and has more than a single letter */

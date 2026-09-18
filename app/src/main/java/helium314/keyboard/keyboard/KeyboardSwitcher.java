@@ -281,6 +281,13 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         setKeyboard(shiftMode.element, KeyboardSwitchState.OTHER);
     }
 
+    public void closeSecondaryKeyboard() {
+        if (DEBUG_ACTION) {
+            Log.d(TAG, "closeSecondaryKeyboard");
+        }
+        setAlphabetKeyboard(ShiftMode.UNSHIFT);
+    }
+
     // Implements {@link KeyboardState.SwitchActions}.
     @Override
     public void setSymbolsKeyboard() {

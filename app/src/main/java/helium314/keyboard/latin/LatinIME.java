@@ -545,6 +545,7 @@ public class LatinIME extends InputMethodService implements
         helium314.keyboard.latin.utils.LogCatcher.INSTANCE.markComponentActive("LatinIME", "Input Service", "Active");
         mSettings.startListener();
         KeyboardIconsSet.Companion.getInstance().loadIcons(this);
+        helium314.keyboard.latin.suggestions.DemotionManager.INSTANCE.init(this);
         mRichImm = RichInputMethodManager.getInstance();
         AudioAndHapticFeedbackManager.init(this);
         AccessibilityUtils.init(this);
@@ -1445,7 +1446,10 @@ public class LatinIME extends InputMethodService implements
         if (!VoicePermissionBridge.INSTANCE.hasRecordAudioPermission(this)) {
             VoicePermissionBridge.INSTANCE.requestRecordAudioPermission(this, granted -> {
                 if (granted) {
-                    mHandler.post(() -> mKeyboardSwitcher.setVoiceInputKeyboard());
+                    mHandler.post(() -> {
+                        requestShowSelf(0);
+                        mKeyboardSwitcher.setVoiceInputKeyboard();
+                    });
                 }
                 return kotlin.Unit.INSTANCE;
             });
@@ -1620,6 +1624,13 @@ public class LatinIME extends InputMethodService implements
     @Override
     public void removeSuggestion(final String word) {
         mDictionaryFacilitator.removeWord(word);
+    }
+
+    @Override
+    public void demoteSuggestion(final String word) {
+        if (word != null) {
+            mDictionaryFacilitator.demoteWord(word);
+        }
     }
 
     @Override

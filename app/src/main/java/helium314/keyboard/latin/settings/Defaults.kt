@@ -55,8 +55,8 @@ object Defaults {
     const val PREF_VIBRATE_ON = false
     const val PREF_VIBRATE_IN_DND_MODE = false
     const val PREF_SOUND_ON = false
-    const val PREF_SUGGEST_EMOJIS = true
-    const val PREF_INLINE_EMOJI_SEARCH = true
+    const val PREF_SUGGEST_EMOJIS = false
+    const val PREF_INLINE_EMOJI_SEARCH = false
     const val PREF_SHOW_EMOJI_DESCRIPTIONS = false
     @JvmField
     var PREF_POPUP_ON = false

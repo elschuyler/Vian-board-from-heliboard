@@ -79,12 +79,7 @@ class PatternUnlockView @JvmOverloads constructor(
 
             closeButton?.setOnClickListener {
                 stopPatternUnlock()
-                keyboardActionListener?.onCodeInput(
-                    KeyCode.ALPHA,
-                    Constants.NOT_A_COORDINATE,
-                    Constants.NOT_A_COORDINATE,
-                    false
-                )
+                KeyboardSwitcher.getInstance().closeSecondaryKeyboard()
             }
         }
 

@@ -54,7 +54,16 @@ class RichInputMethodManager private constructor() {
 
     private var shortcuts = listOf<Shortcut>()
 
-    val isShortcutImeReady get() = shortcuts.isNotEmpty()
+    val isShortcutImeReady: Boolean
+        get() {
+            if (shortcuts.isNotEmpty()) return true
+            if (!isInitializedInternal) return false
+            return try {
+                context.prefs().getBoolean(Settings.PREF_VOICE_INPUT_ENABLED, false)
+            } catch (_: Exception) {
+                false
+            }
+        }
 
     fun getEnabledInputMethodSubtypes(imi: InputMethodInfo, allowsImplicitlySelectedSubtypes: Boolean) =
         inputMethodInfoCache.getEnabledInputMethodSubtypeList(imi, allowsImplicitlySelectedSubtypes)

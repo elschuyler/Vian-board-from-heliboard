@@ -334,7 +334,6 @@ class EmojiSearchActivity : ComponentActivity() {
     private fun search(text: String) {
         initDictionaryFacilitator(this)
         if (dictionaryFacilitator == null) {
-            cancel()
             return
         }
 

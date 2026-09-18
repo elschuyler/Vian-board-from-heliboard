@@ -256,7 +256,11 @@ class VoiceInputView @JvmOverloads constructor(
             }
             if (pClear != null) {
                 colors.setColor(pClear, ColorType.KEY_ICON)
-                pClear.setOnClickListener { clearPreview() }
+                pClear.setOnClickListener {
+                    clearPreview()
+                    stopVoiceInput()
+                    KeyboardSwitcher.getInstance().closeSecondaryKeyboard()
+                }
             }
         }
 
@@ -348,6 +352,8 @@ class VoiceInputView @JvmOverloads constructor(
             override fun onCodeInput(code: Int, x: Int, y: Int, isKeyRepeat: Boolean) {
                 if (code == KeyCode.ALPHA) {
                     stopVoiceInput()
+                    KeyboardSwitcher.getInstance().closeSecondaryKeyboard()
+                    return
                 } else {
                     pauseVoiceInput()
                 }

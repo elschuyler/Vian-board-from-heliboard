@@ -224,5 +224,46 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
     - Updated `KeyboardSwitcher.java` to manage `mPatternUnlockStrip` visibility across all keyboard modes, providing consistent strip-level close and status feedback.
     - Added localized status strings (`pattern_draw_to_unlock`, `pattern_verifying`, `pattern_unlocked`, `pattern_incorrect`) to `strings.xml` and French translations in `values-fr/strings.xml`.
   - Clean local compilation verified via `compile_applet`.
+- **2026-09-18**: Created Master Implementation Plan (`PLAN.md`) consolidating architecture:
+  - System-wide Normal vs Lite operational modes (excluding bare-bones).
+  - Decoupling contacts dictionary and emoji suggestion search across all modes.
+  - Zero-background-service Privacy Vault implemented as an in-memory partition of the Personal Dictionary (`PARTITION_NORMAL` vs `PARTITION_VAULT`) with masked pill suggestion rendering.
+  - Suggestion bar candidate long-press popup with history purge (Delete) and unlearning penalty overlay (Demote).
+  - Backspace word resumption state machine, `helhello` text duplication fix, and DOM batch edit optimizations.
+  - Root-cause resolution plan for the 7 secondary view defects (pattern insets, close button bindings, comma popup mic, sound wave bar, voice permission resume).
+  - Outlined 6-phase milestone execution schedule.
+- **2026-09-18**: Completed Phase 2 (Engine Pruning - Contacts & Emoji Decoupling):
+  - **Contacts Engine Pruning**:
+    - Excised `<uses-permission android:name="android.permission.READ_CONTACTS" />` from `AndroidManifest.xml`.
+    - Removed `Dictionary.TYPE_CONTACTS` from `subDictTypesToUse` in `DictionaryFacilitatorImpl.kt`.
+    - Hardcoded `Dictionary.TYPE_CONTACTS -> null` in `DictionaryFacilitatorImpl.kt` and returned `null` from `ContactsBinaryDictionary.getDictionary()`, preventing any instance of `ContactsBinaryDictionary`, `ContactsManager`, or `ContactsContentObserver` from running.
+    - Updated `SettingsValues.java` `readUseContactsEnabled()` to return `false` unconditionally.
+    - Removed contacts switch preference from `TextCorrectionScreen.kt` and `SettingsActivity.kt`.
+  - **Emoji Prediction Engine Decoupling**:
+    - Decoupled `main_emoji.dict` from `DictionaryFactory.kt`: skipped `Dictionary.TYPE_EMOJI` during asset extraction, asset list caching, and dictionary loading.
+    - Hardcoded `val useEmojiDict = false` in `DictionaryFacilitatorImpl.kt` async dictionary reload.
+    - Hardcoded `mSuggestEmojis = false` and `mInlineEmojiSearch = false` in `SettingsValues.java` and `Defaults.kt`.
+    - Deactivated `updateEmojiDictionary()` in `InputLogic.java`, eliminating background allocation of `SingleDictionaryFacilitator` on `:` trigger characters.
+    - Pruned redundant emoji post-processing in `Suggest.kt`: removed `makeFirstTwoSuggestionsNonEmoji()` and `useDefaultEmojiSkinTone()` from non-batch and batch word suggestion pipelines.
+    - Handled null dictionary facilitator safely in `EmojiSearchActivity.kt`.
+    - Preserved standalone category-based emoji palette drawers (`EmojiPalettesView`).
+
+- **Phase 3: Suggestion Bar Long-Press (Delete & Demote) [COMPLETED]**:
+  - **Native In-Place Long-Press Preservation**:
+    - Retained HeliBoard's native suggestion long-press layout, visual style, and `MoreSuggestionsView` behavior in `SuggestionStripView.kt`.
+    - Preserved touch hit-box geometry (`0 < x < w && 0 < y < h`), auto-dismissal, and dynamic candidate strip refreshing.
+  - **Conditional Delete vs. Demote Button**:
+    - For Personal Dictionary & User History words (`Dictionary.TYPE_USER` / `Dictionary.TYPE_USER_HISTORY`): Renders the native Delete (trash bin) icon (`KeyboardIconsSet.NAME_BIN` / `ic_bin_rounded`) at the start of the `TextView`.
+    - For System / Main Dictionary words (`Dictionary.TYPE_MAIN` and other non-personal sources): Dynamically displays the Down (Demote) icon (`KeyboardIconsSet.NAME_DEMOTE` / `ic_page_down_rounded`) at the exact same location.
+  - **Dual-Action Engine Mechanics**:
+    - **Delete Action (`removeSuggestion`)**: Purges the word dynamically from user history / personal dictionary in `DictionaryFacilitatorImpl.kt`.
+    - **Demote Action (`demoteSuggestion`)**: Fires `unlearnFromUserHistory(word, NgramContext.EMPTY_PREV_WORDS_INFO, timestamp, UnlearnEvent.REJECTION)` to clear user history reinforcement, and registers the word in `DemotionManager` (`demoted_words.txt`).
+    - In `Suggest.kt`, candidates are checked against `DemotionManager.isDemoted(word)` in both non-batch and batch pipelines (`suggestionsContainer.sortBy { if (isDemoted) 1 else 0 }`), deprioritizing demoted words so they drop out of top suggestion slots.
+    - Updated `SuggestionStripView.Listener` and `LatinIME.java` with `demoteSuggestion(word)`.
+  - **Themed Icons Mapping**:
+    - Added `NAME_DEMOTE` to `KeyboardIconsSet.kt` mapped to `ic_page_down` (material) and `ic_page_down_rounded` (rounded) with `ColorType.REMOVE_SUGGESTION_ICON` tinting.
+
+
+
 
 

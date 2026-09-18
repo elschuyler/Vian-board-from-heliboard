@@ -79,6 +79,7 @@ class KeyboardIconsSet private constructor() {
         const val NAME_RESIZE_ONEHANDED_KEY = "resize_onehanded_key"
         const val NAME_TOOLBAR_KEY = "toolbar_key"
         const val NAME_BIN = "bin"
+        const val NAME_DEMOTE = "demote"
         const val NAME_LOG_KEEPER_KEY = "log_keeper_key"
         const val NAME_PRIVACY_VAULT_KEY = "privacy_vault_key"
 
@@ -126,6 +127,7 @@ class KeyboardIconsSet private constructor() {
             NAME_RESIZE_ONEHANDED_KEY to        R.drawable.ic_arrow_horizontal,
             NAME_TOOLBAR_KEY to                 R.drawable.ic_arrow_right,
             NAME_BIN to                         R.drawable.ic_bin,
+            NAME_DEMOTE to                      R.drawable.ic_page_down,
             NAME_LOG_KEEPER_KEY to              R.drawable.ic_settings_about_log,
             NAME_PRIVACY_VAULT_KEY to           R.drawable.ic_settings_security,
         ).apply {
@@ -194,6 +196,7 @@ class KeyboardIconsSet private constructor() {
             NAME_RESIZE_ONEHANDED_KEY to        R.drawable.ic_arrow_horizontal_rounded,
             NAME_TOOLBAR_KEY to                 R.drawable.ic_arrow_right_rounded,
             NAME_BIN to                         R.drawable.ic_bin_rounded,
+            NAME_DEMOTE to                      R.drawable.ic_page_down_rounded,
             NAME_LOG_KEEPER_KEY to              R.drawable.ic_settings_about_log,
             NAME_PRIVACY_VAULT_KEY to           R.drawable.ic_settings_security,
         ).apply {
