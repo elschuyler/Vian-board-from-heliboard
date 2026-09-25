@@ -79,6 +79,12 @@ fun AdvancedSettingsScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(innerPadding)
             ) {
+                SwitchPreference(
+                    name = stringResource(R.string.settings_lite_mode_title),
+                    description = stringResource(R.string.settings_lite_mode_summary),
+                    key = Settings.PREF_LITE_MODE,
+                    default = false
+                )
                 Preference(
                     name = stringResource(R.string.log_keeper),
                     description = "System & crash logs, telemetry filter, diagnostic export",
@@ -107,6 +113,11 @@ fun AdvancedSettingsScreen(
 
 @SuppressLint("ApplySharedPref")
 fun createAdvancedSettings(context: Context) = listOf(
+    Setting(context, Settings.PREF_LITE_MODE,
+        R.string.settings_lite_mode_title, R.string.settings_lite_mode_summary)
+    {
+        SwitchPreference(it, false)
+    },
     Setting(context, Settings.PREF_ALWAYS_INCOGNITO_MODE,
         R.string.incognito, R.string.prefs_force_incognito_mode_summary)
     {

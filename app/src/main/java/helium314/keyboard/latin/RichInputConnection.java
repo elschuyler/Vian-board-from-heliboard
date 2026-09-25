@@ -109,6 +109,10 @@ public final class RichInputConnection implements PrivateCommandPerformer {
      */
     private int mExpectedSelEnd = INVALID_CURSOR_POSITION; // in chars, not code points
     /**
+     * Generation counter for selection and text updates initiated by the keyboard.
+     */
+    private int mSelectionUpdateGeneration = 0;
+    /**
      * This contains the committed text immediately preceding the cursor and the composing
      * text, if any. It is refreshed when the cursor moves by calling upon the TextView.
      */
@@ -189,27 +193,35 @@ public final class RichInputConnection implements PrivateCommandPerformer {
     }
 
     public void beginBatchEdit() {
+        mSelectionUpdateGeneration++;
         if (++mNestLevel == 1) {
             mIC = mParent.getCurrentInputConnection();
             if (isConnected()) {
                 mIC.beginBatchEdit();
             }
-        } else {
-            if (DBG) {
-                throw new RuntimeException("Nest level too deep");
-            }
-            Log.e(TAG, "Nest level too deep : " + mNestLevel);
         }
         if (DEBUG_BATCH_NESTING) checkBatchEdit();
         if (DEBUG_PREVIOUS_TEXT) checkConsistencyForDebug();
     }
 
     public void endBatchEdit() {
-        if (mNestLevel <= 0) Log.e(TAG, "Batch edit not in progress!"); // TODO: exception instead
+        if (mNestLevel <= 0) {
+            Log.e(TAG, "Batch edit not in progress!");
+            return;
+        }
+        mSelectionUpdateGeneration++;
         if (--mNestLevel == 0 && isConnected()) {
             mIC.endBatchEdit();
         }
         if (DEBUG_PREVIOUS_TEXT) checkConsistencyForDebug();
+    }
+
+    public boolean isBatchEdit() {
+        return mNestLevel > 0;
+    }
+
+    public int getSelectionUpdateGeneration() {
+        return mSelectionUpdateGeneration;
     }
 
     /**
@@ -230,6 +242,7 @@ public final class RichInputConnection implements PrivateCommandPerformer {
      */
     public boolean resetCachesUponCursorMoveAndReturnSuccess(final int newSelStart,
             final int newSelEnd, final boolean shouldFinishComposition) {
+        mSelectionUpdateGeneration++;
         mComposingText.setLength(0);
         final boolean didReloadTextSuccessfully = reloadTextCache();
         if (!didReloadTextSuccessfully) {
@@ -322,6 +335,7 @@ public final class RichInputConnection implements PrivateCommandPerformer {
      * @param newCursorPosition The new cursor position around the text.
      */
     public void commitText(final CharSequence text, final int newCursorPosition) {
+        mSelectionUpdateGeneration++;
         if (DEBUG_BATCH_NESTING) checkBatchEdit();
         if (DEBUG_PREVIOUS_TEXT) checkConsistencyForDebug();
         if (DebugFlags.DEBUG_ENABLED)
@@ -564,6 +578,7 @@ public final class RichInputConnection implements PrivateCommandPerformer {
     }
 
     public void deleteTextBeforeCursor(final int beforeLength) {
+        mSelectionUpdateGeneration++;
         if (DEBUG_BATCH_NESTING) checkBatchEdit();
         // TODO: the following is incorrect if the cursor is not immediately after the composition.
         //  Right now we never come here in this case because we reset the composing state before we
@@ -660,6 +675,7 @@ public final class RichInputConnection implements PrivateCommandPerformer {
     }
 
     public void setComposingRegion(final int start, final int end) {
+        mSelectionUpdateGeneration++;
         if (DEBUG_BATCH_NESTING) checkBatchEdit();
         if (DEBUG_PREVIOUS_TEXT) checkConsistencyForDebug();
         final int moveBy = mExpectedSelStart - start; // determine now, as mExpectedSelStart may change in getTextBeforeCursor
@@ -688,6 +704,7 @@ public final class RichInputConnection implements PrivateCommandPerformer {
     // return whether the text was (probably) set correctly
     // unfortunately this is necessary in some cases
     public boolean setComposingText(final CharSequence text, final int newCursorPosition) {
+        mSelectionUpdateGeneration++;
         if (DEBUG_BATCH_NESTING) checkBatchEdit();
         if (DEBUG_PREVIOUS_TEXT) checkConsistencyForDebug();
         mExpectedSelStart += text.length() - mComposingText.length();
@@ -728,6 +745,7 @@ public final class RichInputConnection implements PrivateCommandPerformer {
      * invalid arguments were passed.
      */
     public boolean setSelection(final int start, final int end) {
+        mSelectionUpdateGeneration++;
         if (DEBUG_BATCH_NESTING) checkBatchEdit();
         if (DEBUG_PREVIOUS_TEXT) checkConsistencyForDebug();
         if (DebugFlags.DEBUG_ENABLED)
@@ -986,7 +1004,8 @@ public final class RichInputConnection implements PrivateCommandPerformer {
         // This update is "belated" if we are expecting it. That is, mExpectedSelStart and
         // mExpectedSelEnd match the new values that the TextView is updating TO.
         if (mExpectedSelStart == newSelStart && mExpectedSelEnd == newSelEnd) {
-            if (composingSpanEnd - composingSpanStart < mComposingText.length()) {
+            if (composingSpanStart >= 0 && composingSpanEnd >= composingSpanStart
+                    && (composingSpanEnd - composingSpanStart < mComposingText.length())) {
                 // composing span is smaller than expected, maybe changed by the app (see #1141)
                 // larger composing span is ok, because mComposingText only contains the word up to the cursor
                 return false;

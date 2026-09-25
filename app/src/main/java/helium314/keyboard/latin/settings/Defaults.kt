@@ -188,7 +188,11 @@ object Defaults {
     const val PREF_SAVE_SUBTYPE_PER_APP = false
     const val PREF_SPELLCHECK_SUGGEST = true
     const val PREF_SHOW_ONLY_TOOLBAR_WITH_HARDWARE_KEYBOARD = false
-    const val PREF_VOICE_INPUT_ENABLED = false
+    const val PREF_VOICE_INPUT_ENABLED = true
     const val PREF_VOICE_INPUT_GAIN = "1.0"
     const val PREF_VOICE_MODEL_NAME = ""
+    const val PREF_VOICE_SUPPRESS_ANNOTATIONS = true
+    const val PREF_VOICE_USE_BEAM_SEARCH = true
+    const val PREF_VOICE_CONTINUOUS_STREAMING = true
+    const val PREF_VOICE_VERBOSE_MODE = false
 }

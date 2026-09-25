@@ -31,11 +31,11 @@
 
         <helium314.keyboard.latin.voice.VoicePulseView
             android:id="@+id/voice_pulse_view"
-            android:layout_width="46dp"
+            android:layout_width="52dp"
             android:layout_height="36dp"
             android:layout_gravity="center_vertical"
             android:layout_marginStart="4dp"
-            android:layout_marginEnd="8dp" />
+            android:layout_marginEnd="6dp" />
 
         <TextView
             android:id="@+id/voice_streaming_text"

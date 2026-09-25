@@ -67,6 +67,9 @@ import helium314.keyboard.latin.utils.prefs
 import helium314.keyboard.latin.voice.VoiceModelInfo
 import helium314.keyboard.latin.voice.VoiceModelManager
 import helium314.keyboard.settings.SearchSettingsScreen
+import helium314.keyboard.latin.utils.NextScreenIcon
+import helium314.keyboard.settings.preferences.Preference
+import helium314.keyboard.settings.preferences.PreferenceCategory
 import helium314.keyboard.settings.preferences.SwitchPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -77,6 +80,7 @@ private const val TAG = "VoiceInputScreen"
 @Composable
 fun VoiceInputScreen(
     onClickBack: () -> Unit,
+    onClickAdvanced: () -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -228,6 +232,19 @@ fun VoiceInputScreen(
                     },
                     onDeleteClick = { showDeleteModelDialog = true }
                 )
+
+                Spacer(modifier = Modifier.height(24.dp))
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Advanced Speech Settings row linking to sub-page
+                PreferenceCategory(title = stringResource(R.string.voice_input_advanced_title))
+                Preference(
+                    name = stringResource(R.string.voice_input_advanced_title),
+                    description = stringResource(R.string.voice_input_advanced_summary),
+                    onClick = onClickAdvanced,
+                    icon = R.drawable.sym_keyboard_voice_rounded
+                ) { NextScreenIcon() }
 
                 Spacer(modifier = Modifier.height(24.dp))
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
@@ -610,3 +627,4 @@ private fun ReplacementEditDialog(
         }
     )
 }
+

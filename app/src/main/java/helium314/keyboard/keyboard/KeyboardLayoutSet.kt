@@ -274,6 +274,17 @@ class KeyboardLayoutSet internal constructor(private val mContext: Context, priv
             clearKeyboardCache()
         }
 
+        fun clearNonCoreCache() {
+            val iterator = keyboardCache.entries.iterator()
+            while (iterator.hasNext()) {
+                val entry = iterator.next()
+                val element = entry.key.element
+                if (!element.isAlphabet && !element.isNumberLayout) {
+                    iterator.remove()
+                }
+            }
+        }
+
         private fun clearKeyboardCache() {
             keyboardCache.clear()
             uniqueKeysCache.clear()

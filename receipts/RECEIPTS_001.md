@@ -478,5 +478,28 @@
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: All requested features compiled cleanly and integrated across clipboard, prompts, shortcuts, backup/restore, and log keeper.
 
+---
 
-
+### Receipt: 2026-09-20 03:27:00
+- **Requested**: "Finish what you were doing" — Phase 1: View & Secondary Keyboard Defect Resolutions.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/keyboard/Key.java`
+  - `app/src/main/java/helium314/keyboard/latin/settings/Defaults.kt`
+  - `app/src/main/java/helium314/keyboard/latin/RichInputMethodManager.kt`
+  - `app/src/main/java/helium314/keyboard/latin/voice/VoicePermissionActivity.kt`
+  - `app/src/main/java/helium314/keyboard/latin/LatinIME.java`
+  - `receipts/RECEIPTS_001.md`
+  - `PLAN.md`
+- **What was actually done**:
+  1. Resolved Comma Popup Microphone Missing Defect:
+     - Updated `Key.java` `getDisabledIconName()` to recognize `"shortcut_key"` and `"voice"` as valid voice icon identifiers matching `NAME_SHORTCUT_KEY_DISABLED`, preventing disabled voice keys from collapsing into invisible blank holes.
+     - Updated `Defaults.kt` `PREF_VOICE_INPUT_ENABLED` to default to `true`.
+     - Updated `RichInputMethodManager.kt` `isShortcutImeReady` to reference `Defaults.PREF_VOICE_INPUT_ENABLED` and return ready for internal voice input.
+  2. Resolved Voice Permission Keyboard Dismissal Defect:
+     - Updated `VoicePermissionActivity.kt` to complete `finish()` and clear pending transitions before dispatching `VoicePermissionBridge.onPermissionResult`.
+     - Updated `LatinIME.java` with a 250ms delayed post upon permission grant, ensuring window focus transitions back to the IME client view before invoking `requestShowSelf(0)` and `setVoiceInputKeyboard()`.
+  3. Verified Pattern Unlock bottom insets, close buttons, voice preview strip dismissal, and 5-bar sound wave animations.
+  4. Verified complete project compilation cleanly via `compile_applet`.
+- **How it was verified**: Local build verified via `compile_applet` (Build succeeded).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for next phase in `PLAN.md`.

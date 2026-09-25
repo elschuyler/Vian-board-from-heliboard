@@ -61,6 +61,8 @@ Java_helium314_keyboard_latin_voice_WhisperEngine_fullTranscribe(
         jobject /* this */,
         jlong contextPtr,
         jint numThreads,
+        jboolean useBeamSearch,
+        jstring jInitialPrompt,
         jfloatArray audioData) {
     if (contextPtr == 0) {
         LOGE("Context pointer is null in fullTranscribe");
@@ -84,7 +86,12 @@ Java_helium314_keyboard_latin_voice_WhisperEngine_fullTranscribe(
         return nullptr;
     }
 
-    struct whisper_full_params wparams = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
+    struct whisper_full_params wparams = whisper_full_default_params(
+        useBeamSearch ? WHISPER_SAMPLING_BEAM_SEARCH : WHISPER_SAMPLING_GREEDY
+    );
+    if (useBeamSearch) {
+        wparams.beam_search.beam_size = 5;
+    }
     wparams.n_threads = (numThreads > 0) ? numThreads : 2;
     wparams.print_progress = false;
     wparams.print_special = false;
@@ -95,6 +102,15 @@ Java_helium314_keyboard_latin_voice_WhisperEngine_fullTranscribe(
     wparams.single_segment = true;
     wparams.suppress_blank = true;
     wparams.suppress_non_speech_tokens = true;
+
+    // Prompt-based vocabulary boosting
+    const char *prompt_str = nullptr;
+    if (jInitialPrompt != nullptr) {
+        prompt_str = env->GetStringUTFChars(jInitialPrompt, nullptr);
+        if (prompt_str != nullptr) {
+            wparams.initial_prompt = prompt_str;
+        }
+    }
 
     // Dynamic Audio Context (audio_ctx) optimization:
     // Whisper standard window is 1500 frames (30s at 160 samples/frame).
@@ -107,6 +123,10 @@ Java_helium314_keyboard_latin_voice_WhisperEngine_fullTranscribe(
 
     int ret = whisper_full(ctx, wparams, samples, n_samples);
     env->ReleaseFloatArrayElements(audioData, samples, JNI_ABORT);
+
+    if (jInitialPrompt != nullptr && prompt_str != nullptr) {
+        env->ReleaseStringUTFChars(jInitialPrompt, prompt_str);
+    }
 
     if (ret != 0) {
         LOGE("whisper_full inference failed with error code: %d", ret);

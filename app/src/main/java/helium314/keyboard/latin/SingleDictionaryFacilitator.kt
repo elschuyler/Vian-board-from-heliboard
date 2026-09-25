@@ -96,6 +96,8 @@ class SingleDictionaryFacilitator(private val dict: Dictionary) : DictionaryFaci
 
     override fun isActive(): Boolean = true
 
+    override fun getContext(): Context? = null
+
     override fun getMainLocale(): Locale = dict.mLocale
 
     override fun getCurrentLocale(): Locale = mainLocale
@@ -142,6 +144,14 @@ class SingleDictionaryFacilitator(private val dict: Dictionary) : DictionaryFaci
     override fun getDictionaryStats(context: Context): List<DictionaryStats> = emptyList()
 
     override fun dump(context: Context) = getDictionaryStats(context).joinToString("\n")
+
+    override fun dropSecondaryDictionaries() {}
+
+    override fun isSecondaryDropped(): Boolean = false
+
+    override fun restoreSecondaryDictionaries(context: Context, listener: DictionaryInitializationListener?) {}
+
+    override fun shouldAutoRestoreSecondary(): Boolean = false
 
     companion object {
         interface SuggestionLogger {

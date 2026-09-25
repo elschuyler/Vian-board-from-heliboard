@@ -14,6 +14,7 @@ import helium314.keyboard.latin.common.ComposedData
 import helium314.keyboard.latin.common.Constants
 import helium314.keyboard.latin.common.InputPointers
 import helium314.keyboard.latin.common.StringUtils
+import helium314.keyboard.latin.database.VaultDao
 import helium314.keyboard.latin.define.DebugFlags
 import helium314.keyboard.latin.define.DecoderSpecificConstants.SHOULD_AUTO_CORRECT_USING_NON_WHITE_LISTED_SUGGESTION
 import helium314.keyboard.latin.define.DecoderSpecificConstants.SHOULD_REMOVE_PREVIOUSLY_REJECTED_SUGGESTION
@@ -21,6 +22,7 @@ import helium314.keyboard.latin.dictionary.Dictionary
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.settings.SettingsValuesForSuggestion
 import helium314.keyboard.latin.suggestions.DemotionManager
+import helium314.keyboard.latin.suggestions.NumberSuggestionsHelper
 import helium314.keyboard.latin.suggestions.SuggestionStripView
 import helium314.keyboard.latin.utils.AutoCorrectionUtils
 import helium314.keyboard.latin.utils.Log
@@ -81,6 +83,27 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
                 getNextWordSuggestions(ngramContext, keyboard, inputStyleIfNotPrediction, settingsValuesForSuggestion)
             else mDictionaryFacilitator.getSuggestionResults(wordComposer.composedDataSnapshot, ngramContext, keyboard,
                 settingsValuesForSuggestion, SESSION_ID_TYPING, inputStyleIfNotPrediction)
+
+        if (typedWordString.isEmpty() && suggestionResults.isEmpty()) {
+            val prevWord = ngramContext.getNthPrevWord(1)?.toString()
+            if (NumberSuggestionsHelper.isNumeric(prevWord)) {
+                val suffixes = NumberSuggestionsHelper.getSuffixes(mDictionaryFacilitator.context)
+                for ((index, suffix) in suffixes.withIndex()) {
+                    suggestionResults.add(
+                        SuggestedWordInfo(
+                            suffix,
+                            suffix,
+                            "",
+                            SuggestedWordInfo.MAX_SCORE - 1 - index,
+                            SuggestedWordInfo.KIND_PREDICTION,
+                            Dictionary.DICTIONARY_USER_TYPED,
+                            SuggestedWordInfo.NOT_AN_INDEX,
+                            SuggestedWordInfo.NOT_A_CONFIDENCE
+                        )
+                    )
+                }
+            }
+        }
 
         if (wordComposer.isAccidentalDigitWord) {
             val candidates = wordComposer.getNearbyLetterCandidatesForDigit(keyboard)
@@ -143,6 +166,46 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
             SuggestedWordInfo.NOT_AN_INDEX , SuggestedWordInfo.NOT_A_CONFIDENCE)
         if (typedWordString.isNotEmpty()) {
             suggestionsContainer.add(0, typedWordInfo)
+            val ctx = mDictionaryFacilitator.context
+            if (ctx != null) {
+                val vaultEntry = VaultDao.getInstance(ctx).findByShortcut(typedWordString)
+                if (vaultEntry != null) {
+                    val maskedLabel = VaultDao.maskPhrase(vaultEntry.phrase)
+                    val vaultInfo = SuggestedWordInfo(
+                        vaultEntry.phrase,
+                        maskedLabel,
+                        "",
+                        SuggestedWordInfo.MAX_SCORE - 1,
+                        SuggestedWordInfo.KIND_VAULT_ENTRY,
+                        Dictionary.DICTIONARY_USER_TYPED,
+                        SuggestedWordInfo.NOT_AN_INDEX,
+                        SuggestedWordInfo.NOT_A_CONFIDENCE
+                    )
+                    suggestionsContainer.add(1, vaultInfo)
+                }
+            }
+        }
+        if (typedWordString.isNotEmpty() && suggestionsContainer.size == 1 && NumberSuggestionsHelper.isNumeric(typedWordString)) {
+            val suffixes = NumberSuggestionsHelper.getSuffixes(mDictionaryFacilitator.context)
+            for ((index, suffix) in suffixes.withIndex()) {
+                val wordToCommit = if (suffix.startsWith('/') || suffix.startsWith('-') || suffix.startsWith('%')) {
+                    "${typedWordString}${suffix}"
+                } else {
+                    "${typedWordString} ${suffix}"
+                }
+                suggestionsContainer.add(
+                    SuggestedWordInfo(
+                        wordToCommit,
+                        suffix,
+                        "",
+                        SuggestedWordInfo.MAX_SCORE - 1 - index,
+                        SuggestedWordInfo.KIND_HARDCODED,
+                        Dictionary.DICTIONARY_USER_TYPED,
+                        SuggestedWordInfo.NOT_AN_INDEX,
+                        SuggestedWordInfo.NOT_A_CONFIDENCE
+                    )
+                )
+            }
         }
         val suggestionsList = if (SuggestionStripView.DEBUG_SUGGESTIONS && suggestionsContainer.isNotEmpty())
                 getSuggestionsInfoListWithDebugInfo(capitalizedTypedWord, suggestionsContainer)

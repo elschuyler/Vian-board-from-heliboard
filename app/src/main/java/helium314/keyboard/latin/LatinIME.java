@@ -92,6 +92,7 @@ import helium314.keyboard.latin.utils.SubtypeSettings;
 import helium314.keyboard.latin.utils.SubtypeState;
 import helium314.keyboard.latin.utils.TempIncognitoManager;
 import helium314.keyboard.latin.utils.ToolbarMode;
+import helium314.keyboard.security.VaultSessionManager;
 import helium314.keyboard.settings.SettingsActivity2;
 import kotlin.Unit;
 
@@ -945,6 +946,9 @@ public class LatinIME extends InputMethodService implements
             // it can adjust its combiners if needed.
             mInputLogic.startInput(mRichImm.getCombiningRulesExtraValueOfCurrentSubtype(), currentSettingsValues);
 
+            if (currentSettingsValues.mLiteMode && mDictionaryFacilitator.shouldAutoRestoreSecondary()) {
+                mDictionaryFacilitator.restoreSecondaryDictionaries(this, this);
+            }
             resetDictionaryFacilitatorIfNecessary();
 
             // TODO[IL]: Can the following be moved to InputLogic#startInput?
@@ -1034,6 +1038,10 @@ public class LatinIME extends InputMethodService implements
             mainKeyboardView.closing();
         }
         clearNavigationBarColor();
+        if (mSettings.getCurrent().mLiteMode) {
+            mDictionaryFacilitator.dropSecondaryDictionaries();
+            mKeyboardSwitcher.trimMemory();
+        }
     }
 
     void onFinishInputInternal() {
@@ -1060,6 +1068,10 @@ public class LatinIME extends InputMethodService implements
         // Should do the following in onFinishInputInternal but until JB MR2 it's not called :(
         mInputLogic.finishInput();
         mKeyboardActionListener.resetMetaState();
+        if (mSettings.getCurrent().mLiteMode) {
+            mDictionaryFacilitator.dropSecondaryDictionaries();
+            mKeyboardSwitcher.trimMemory();
+        }
     }
 
     protected void deallocateMemory() {
@@ -1142,6 +1154,10 @@ public class LatinIME extends InputMethodService implements
         if (isShowingOptionDialog()) {
             mOptionsDialog.dismiss();
             mOptionsDialog = null;
+        }
+        if (mSettings.getCurrent().mLiteMode) {
+            mDictionaryFacilitator.dropSecondaryDictionaries();
+            mKeyboardSwitcher.trimMemory();
         }
         super.hideWindow();
     }
@@ -1446,10 +1462,10 @@ public class LatinIME extends InputMethodService implements
         if (!VoicePermissionBridge.INSTANCE.hasRecordAudioPermission(this)) {
             VoicePermissionBridge.INSTANCE.requestRecordAudioPermission(this, granted -> {
                 if (granted) {
-                    mHandler.post(() -> {
+                    mHandler.postDelayed(() -> {
                         requestShowSelf(0);
                         mKeyboardSwitcher.setVoiceInputKeyboard();
-                    });
+                    }, 250);
                 }
                 return kotlin.Unit.INSTANCE;
             });
@@ -1572,6 +1588,15 @@ public class LatinIME extends InputMethodService implements
     // interface
     @Override
     public void pickSuggestionManually(final SuggestedWordInfo suggestionInfo) {
+        if (suggestionInfo != null && suggestionInfo.isKindOf(SuggestedWordInfo.KIND_VAULT_ENTRY)) {
+            if (VaultSessionManager.INSTANCE.isPatternSet(this) && !VaultSessionManager.INSTANCE.isPrivacySessionValid()) {
+                mKeyboardSwitcher.showPatternUnlockView(() -> {
+                    VaultSessionManager.INSTANCE.startPrivacySession();
+                    pickSuggestionManually(suggestionInfo);
+                });
+                return;
+            }
+        }
         final InputTransaction completeInputTransaction = mInputLogic.onPickSuggestionManually(
                 mSettings.getCurrent(), suggestionInfo,
                 mKeyboardSwitcher.getKeyboardCapsMode(),
@@ -1771,6 +1796,19 @@ public class LatinIME extends InputMethodService implements
         return mClipboardHistoryManager;
     }
 
+    public DictionaryFacilitator getDictionaryFacilitator() {
+        return mDictionaryFacilitator;
+    }
+
+    public boolean isLiteMode() {
+        return mSettings.getCurrent().mLiteMode;
+    }
+
+    public void restoreSecondaryDictionaries() {
+        mDictionaryFacilitator.restoreSecondaryDictionaries(this, this);
+        android.widget.Toast.makeText(this, R.string.secondary_languages_restored_toast, android.widget.Toast.LENGTH_SHORT).show();
+    }
+
     void launchSettings() {
         mInputLogic.commitTyped(mSettings.getCurrent(), LastComposedWord.NOT_A_SEPARATOR);
         requestHideSelf(0);
@@ -1906,6 +1944,10 @@ public class LatinIME extends InputMethodService implements
     @Override
     public void onTrimMemory(int level) {
         super.onTrimMemory(level);
+        if (mSettings.getCurrent().mLiteMode) {
+            mDictionaryFacilitator.dropSecondaryDictionaries();
+            mKeyboardSwitcher.trimMemory();
+        }
         switch (level) {
             case TRIM_MEMORY_RUNNING_LOW, TRIM_MEMORY_RUNNING_CRITICAL, TRIM_MEMORY_COMPLETE -> {
                 KeyboardLayoutSet.Companion.onSystemLocaleChanged(); // clears caches, nothing else

@@ -43,13 +43,13 @@ class VoicePulseView @JvmOverloads constructor(
     private var wavePhase: Float = 0f
     private var waveAnimator: ValueAnimator? = null
 
-    // 5 sound wave bars
-    private val numBars = 5
-    private val barWeights = floatArrayOf(0.45f, 0.80f, 1.0f, 0.75f, 0.40f)
+    // 7 rounded vertical equalizer bars matching reference design
+    private val numBars = 7
+    private val barWeights = floatArrayOf(0.35f, 0.60f, 0.90f, 1.0f, 0.90f, 0.60f, 0.35f)
     private val barRect = RectF()
 
     // Color definitions
-    private val colorListeningActive = Color.parseColor("#34A853") // Active vocal green
+    private val colorListeningActive = Color.parseColor("#00BCD4") // Vibrant active cyan/teal
     private val colorListeningAmbient = Color.parseColor("#4285F4") // Ambient blue
     private val colorPaused = Color.parseColor("#FBBC05")          // Amber / Yellow
     private val colorError = Color.parseColor("#EA4335")           // Red
@@ -110,8 +110,8 @@ class VoicePulseView @JvmOverloads constructor(
         barPaint.color = barColor
 
         val density = resources.displayMetrics.density
-        val barWidth = 3.5f * density
-        val barSpacing = 3.0f * density
+        val barWidth = 3.2f * density
+        val barSpacing = 2.6f * density
         val totalBarsWidth = numBars * barWidth + (numBars - 1) * barSpacing
         val startX = (w - totalBarsWidth) / 2f
         val centerY = h / 2f

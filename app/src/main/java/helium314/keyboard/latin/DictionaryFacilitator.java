@@ -33,14 +33,10 @@ public interface DictionaryFacilitator {
 
     String[] ALL_DICTIONARY_TYPES = new String[] {
             Dictionary.TYPE_MAIN,
-            Dictionary.TYPE_CONTACTS,
-            Dictionary.TYPE_APPS,
             Dictionary.TYPE_USER_HISTORY,
             Dictionary.TYPE_USER};
 
     String[] DYNAMIC_DICTIONARY_TYPES = new String[] {
-            Dictionary.TYPE_CONTACTS,
-            Dictionary.TYPE_APPS,
             Dictionary.TYPE_USER_HISTORY,
             Dictionary.TYPE_USER};
 
@@ -79,6 +75,9 @@ public interface DictionaryFacilitator {
 
     /** whether a dictionary is set */
     boolean isActive();
+
+    @Nullable
+    Context getContext();
 
     /** the locale provided in resetDictionaries */
     @NonNull Locale getMainLocale();
@@ -152,6 +151,14 @@ public interface DictionaryFacilitator {
     void dumpDictionaryForDebug(final String dictName);
 
     @NonNull List<DictionaryStats> getDictionaryStats(final Context context);
+
+    void dropSecondaryDictionaries();
+
+    boolean isSecondaryDropped();
+
+    void restoreSecondaryDictionaries(final Context context, @Nullable final DictionaryInitializationListener listener);
+
+    boolean shouldAutoRestoreSecondary();
 
     enum UnlearnEvent { BACKSPACE, REJECTION, REVERT }
 }

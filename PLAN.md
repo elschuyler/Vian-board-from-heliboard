@@ -82,11 +82,11 @@ Attaches an `OnLongClickListener` to candidate views in `SuggestionStripView`:
 
 ## 6. Execution Phases & Milestones
 
-### Phase 1: View & Secondary Keyboard Fixes
+### Phase 1: View & Secondary Keyboard Fixes [COMPLETED]
 - Fix Pattern navigation bar padding & height bounds.
 - Fix Pattern 'X' close action.
 - Fix Voice 'X' close action and clean up bottom bar stray crosses.
-- Fix Comma popup mic visibility in `RichInputMethodManager.kt`.
+- Fix Comma popup mic visibility in `RichInputMethodManager.kt` and `Key.java`.
 - Replace pulse circles with real-time sound wave bars in `VoicePulseView.kt`.
 - Auto-resume keyboard upon Voice Permission grant.
 

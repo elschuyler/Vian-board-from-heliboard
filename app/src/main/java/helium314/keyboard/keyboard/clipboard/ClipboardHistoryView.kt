@@ -29,6 +29,7 @@ import helium314.keyboard.latin.R
 import helium314.keyboard.latin.common.ColorType
 import helium314.keyboard.latin.common.Constants
 import helium314.keyboard.latin.database.ClipboardDao
+import helium314.keyboard.latin.database.PromptDao
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.ResourceUtils
 import helium314.keyboard.latin.utils.ToolbarKey
@@ -45,8 +46,11 @@ class ClipboardHistoryView @JvmOverloads constructor(
         attrs: AttributeSet?,
         defStyle: Int = R.attr.clipboardHistoryViewStyle
 ) : LinearLayout(context, attrs, defStyle), View.OnClickListener,
-    ClipboardDao.Listener, OnKeyEventListener,
+    ClipboardDao.Listener, PromptDao.Listener, OnKeyEventListener,
     View.OnLongClickListener, SharedPreferences.OnSharedPreferenceChangeListener {
+
+    var currentMode: HistoryMode = HistoryMode.CLIPBOARD
+        private set
 
     private val clipboardLayoutParams = ClipboardLayoutParams(context)
     private val pinIconId: Int
@@ -58,7 +62,8 @@ class ClipboardHistoryView @JvmOverloads constructor(
     private lateinit var clipboardAdapter: ClipboardAdapter
 
     lateinit var keyboardActionListener: KeyboardActionListener
-    private lateinit var clipboardHistoryManager: ClipboardHistoryManager
+    private var clipboardHistoryManager: ClipboardHistoryManager? = null
+    private var promptDao: PromptDao? = null
 
     init {
         val clipboardViewAttr = context.obtainStyledAttributes(attrs,
@@ -120,7 +125,6 @@ class ClipboardHistoryView @JvmOverloads constructor(
     }
 
     private fun setupToolbarKeys() {
-        // set layout params
         val toolbarKeyLayoutParams = LayoutParams(resources.getDimensionPixelSize(R.dimen.config_suggestions_strip_edge_key_width), LayoutParams.MATCH_PARENT)
         toolbarKeys.forEach { it.layoutParams = toolbarKeyLayoutParams }
     }
@@ -136,9 +140,12 @@ class ClipboardHistoryView @JvmOverloads constructor(
 
     fun setHardwareAcceleratedDrawingEnabled(enabled: Boolean) {
         if (!enabled) return
-        // TODO: Should use LAYER_TYPE_SOFTWARE when hardware acceleration is off?
         setLayerType(LAYER_TYPE_HARDWARE, null)
     }
+
+    fun isShowingClipboard(): Boolean = isShown && currentMode == HistoryMode.CLIPBOARD
+
+    fun isShowingPrompt(): Boolean = isShown && currentMode == HistoryMode.PROMPTS
 
     fun startClipboardHistory(
             historyManager: ClipboardHistoryManager,
@@ -146,13 +153,57 @@ class ClipboardHistoryView @JvmOverloads constructor(
             editorInfo: EditorInfo,
             keyboardActionListener: KeyboardActionListener
     ) {
-        clipboardHistoryManager = historyManager
+        currentMode = HistoryMode.CLIPBOARD
+        this.keyboardActionListener = keyboardActionListener
+        this.clipboardHistoryManager = historyManager
+        this.promptDao?.listener = null
+        this.promptDao = null
+
         initialize()
         setupToolbarKeys()
         historyManager.prepareClipboardHistory()
         historyManager.setHistoryChangeListener(this)
-        clipboardAdapter.clipboardHistoryManager = historyManager
 
+        clipboardAdapter.mode = HistoryMode.CLIPBOARD
+        clipboardAdapter.clipboardHistoryManager = historyManager
+        clipboardAdapter.promptDao = null
+        clipboardAdapter.onPromptSelect = null
+
+        configureCommonViews(keyVisualAttr, editorInfo)
+    }
+
+    fun startPromptHistory(
+            actionListener: KeyboardActionListener,
+            keyVisualAttr: KeyVisualAttributes?,
+            editorInfo: EditorInfo,
+            onCommitText: (String) -> Unit
+    ) {
+        currentMode = HistoryMode.PROMPTS
+        this.keyboardActionListener = actionListener
+        this.clipboardHistoryManager?.setHistoryChangeListener(null)
+        this.clipboardHistoryManager = null
+
+        val pDao = PromptDao.getInstance(context)
+        this.promptDao = pDao
+        pDao.listener = this
+
+        initialize()
+        setupToolbarKeys()
+
+        clipboardAdapter.mode = HistoryMode.PROMPTS
+        clipboardAdapter.clipboardHistoryManager = null
+        clipboardAdapter.promptDao = pDao
+        clipboardAdapter.onPromptSelect = { text ->
+            onCommitText(text)
+            if (Settings.getValues().mAlphaAfterClipHistoryEntry) {
+                keyboardActionListener.onCodeInput(KeyCode.ALPHA, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
+            }
+        }
+
+        configureCommonViews(keyVisualAttr, editorInfo)
+    }
+
+    private fun configureCommonViews(keyVisualAttr: KeyVisualAttributes?, editorInfo: EditorInfo) {
         val params = KeyDrawParams()
         params.updateParams(clipboardLayoutParams.bottomRowKeyboardHeight, keyVisualAttr)
         val settings = Settings.getInstance()
@@ -165,41 +216,64 @@ class ClipboardHistoryView @JvmOverloads constructor(
             setTextColor(params.mTextColor)
             setTextSize(TypedValue.COMPLEX_UNIT_PX, params.mLabelSize.toFloat() * 2)
         }
+
         clipboardRecyclerView.apply {
             adapter = clipboardAdapter
             val keyboardWidth = ResourceUtils.getKeyboardWidth(context, settings.current)
             layoutParams.width = keyboardWidth
-            // new ClipboardLayoutParams means ClipboardAdapter has wrong gaps, but that's ok (only relevant when resizing floating keyboard)
             ClipboardLayoutParams(context).setListProperties(this)
 
-            // set side padding
             val keyboardAttr = context.obtainStyledAttributes(
                 null, R.styleable.Keyboard, R.attr.keyboardStyle, R.style.Keyboard)
             val leftPadding = (keyboardAttr.getFraction(R.styleable.Keyboard_keyboardLeftPadding,
                 keyboardWidth, keyboardWidth, 0f)
                     * settings.current.mSidePaddingScale).toInt()
-            val rightPadding =  (keyboardAttr.getFraction(R.styleable.Keyboard_keyboardRightPadding,
+            val rightPadding = (keyboardAttr.getFraction(R.styleable.Keyboard_keyboardRightPadding,
                 keyboardWidth, keyboardWidth, 0f)
                     * settings.current.mSidePaddingScale).toInt()
             keyboardAttr.recycle()
             setPadding(leftPadding, paddingTop, rightPadding, paddingBottom)
         }
 
-        // absurd workaround so Android sets the correct color from stateList (depending on "activated")
+        if (currentMode == HistoryMode.PROMPTS) {
+            placeholderView.visibility = View.GONE
+            clipboardRecyclerView.visibility = View.VISIBLE
+        }
+
         toolbarKeys.forEach { it.isEnabled = false; it.isEnabled = true }
     }
 
     fun stopClipboardHistory() {
+        stopHistory()
+    }
+
+    fun stopPromptHistory() {
+        stopHistory()
+    }
+
+    fun stopHistory() {
         if (!this::clipboardAdapter.isInitialized) return
         clipboardRecyclerView.adapter = null
-        clipboardHistoryManager.setHistoryChangeListener(null)
+        clipboardHistoryManager?.setHistoryChangeListener(null)
         clipboardAdapter.clipboardHistoryManager = null
+        clipboardHistoryManager = null
+
+        promptDao?.listener = null
+        clipboardAdapter.promptDao = null
+        promptDao = null
+        clipboardAdapter.onPromptSelect = null
     }
 
     override fun onClick(view: View) {
         if (view.tag is ToolbarKey) {
-            onClickToolbarKey(view) {
-                keyboardActionListener.onCodeInput(it, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
+            val key = view.tag as ToolbarKey
+            if (key == ToolbarKey.CLOSE_HISTORY) {
+                val exitCode = if (currentMode == HistoryMode.PROMPTS) KeyCode.PROMPT_LIST else KeyCode.CLIPBOARD
+                keyboardActionListener.onCodeInput(exitCode, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
+            } else {
+                onClickToolbarKey(view) {
+                    keyboardActionListener.onCodeInput(it, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
+                }
             }
         }
     }
@@ -219,7 +293,8 @@ class ClipboardHistoryView @JvmOverloads constructor(
     }
 
     override fun onKeyUp(clipId: Long) {
-        val clipContent = clipboardHistoryManager.getHistoryEntryContent(clipId)
+        if (currentMode != HistoryMode.CLIPBOARD) return
+        val clipContent = clipboardHistoryManager?.getHistoryEntryContent(clipId)
         if (clipContent?.filename != null) keyboardActionListener.onContent(clipContent.getContentInfo(context))
         else keyboardActionListener.onTextInput(clipContent?.text)
         keyboardActionListener.onReleaseKey(KeyCode.NOT_SPECIFIED, false)
@@ -227,30 +302,65 @@ class ClipboardHistoryView @JvmOverloads constructor(
             keyboardActionListener.onCodeInput(KeyCode.ALPHA, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
     }
 
+    // --- ClipboardDao.Listener callbacks ---
     override fun onClipInserted(position: Int) {
+        if (currentMode != HistoryMode.CLIPBOARD) return
         clipboardAdapter.notifyItemInserted(position)
         clipboardRecyclerView.smoothScrollToPosition(position)
     }
 
     override fun onClipsRemoved(position: Int, count: Int) {
+        if (currentMode != HistoryMode.CLIPBOARD) return
         clipboardAdapter.notifyItemRangeRemoved(position, count)
     }
 
     override fun onClipMoved(oldPosition: Int, newPosition: Int) {
+        if (currentMode != HistoryMode.CLIPBOARD) return
         clipboardAdapter.notifyItemMoved(oldPosition, newPosition)
         clipboardAdapter.notifyItemChanged(newPosition)
         if (newPosition < oldPosition) clipboardRecyclerView.smoothScrollToPosition(newPosition)
     }
 
+    // --- PromptDao.Listener callbacks ---
+    override fun onPromptInserted(position: Int) {
+        if (currentMode != HistoryMode.PROMPTS) return
+        val adapterPos = position + 1
+        clipboardAdapter.notifyItemInserted(adapterPos)
+        clipboardRecyclerView.smoothScrollToPosition(adapterPos)
+    }
+
+    override fun onPromptsRemoved(position: Int, count: Int) {
+        if (currentMode != HistoryMode.PROMPTS) return
+        val adapterPos = position + 1
+        clipboardAdapter.notifyItemRangeRemoved(adapterPos, count)
+    }
+
+    override fun onPromptMoved(oldPosition: Int, newPosition: Int) {
+        if (currentMode != HistoryMode.PROMPTS) return
+        val oldAdapterPos = oldPosition + 1
+        val newAdapterPos = newPosition + 1
+        clipboardAdapter.notifyItemMoved(oldAdapterPos, newAdapterPos)
+        clipboardAdapter.notifyItemChanged(newAdapterPos)
+        if (newAdapterPos < oldAdapterPos) {
+            clipboardRecyclerView.smoothScrollToPosition(newAdapterPos)
+        }
+    }
+
+    override fun onPromptUpdated() {
+        if (currentMode != HistoryMode.PROMPTS) return
+        clipboardAdapter.notifyDataSetChanged()
+    }
+
     override fun onSharedPreferenceChanged(prefs: SharedPreferences?, key: String?) {
         setToolbarButtonsActivatedStateOnPrefChange(KeyboardSwitcher.getInstance().clipboardStrip, key)
 
-        // The setting can only be changed from a settings screen, but adding it to this listener seems necessary: https://github.com/HeliBorg/HeliBoard/pull/1903#issuecomment-3478424606
-        if (::clipboardHistoryManager.isInitialized && key == Settings.PREF_CLIPBOARD_HISTORY_PINNED_FIRST) {
-            // Ensure settings are reloaded first
+        if (currentMode == HistoryMode.CLIPBOARD && clipboardHistoryManager != null && key == Settings.PREF_CLIPBOARD_HISTORY_PINNED_FIRST) {
             Settings.getInstance().onSharedPreferenceChanged(prefs, key)
-            clipboardHistoryManager.sortHistoryEntries()
+            clipboardHistoryManager?.sortHistoryEntries()
+            clipboardAdapter.notifyDataSetChanged()
+        } else if (currentMode == HistoryMode.PROMPTS) {
             clipboardAdapter.notifyDataSetChanged()
         }
     }
 }
+

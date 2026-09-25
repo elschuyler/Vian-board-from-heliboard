@@ -44,20 +44,24 @@ class VoicePermissionActivity : ComponentActivity() {
     ) { isGranted ->
         val showRationale = shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO)
         LogCatcher.i("VoicePermissionActivity", "Permission result: RECORD_AUDIO granted=$isGranted, showRationale=$showRationale")
-        VoicePermissionBridge.onPermissionResult?.invoke(isGranted)
-        VoicePermissionBridge.onPermissionResult = null
         finish()
         overridePendingTransition(0, 0)
+        window.decorView.post {
+            VoicePermissionBridge.onPermissionResult?.invoke(isGranted)
+            VoicePermissionBridge.onPermissionResult = null
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         overridePendingTransition(0, 0)
         if (VoicePermissionBridge.hasRecordAudioPermission(this)) {
-            VoicePermissionBridge.onPermissionResult?.invoke(true)
-            VoicePermissionBridge.onPermissionResult = null
             finish()
             overridePendingTransition(0, 0)
+            window.decorView.post {
+                VoicePermissionBridge.onPermissionResult?.invoke(true)
+                VoicePermissionBridge.onPermissionResult = null
+            }
             return
         }
         requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)

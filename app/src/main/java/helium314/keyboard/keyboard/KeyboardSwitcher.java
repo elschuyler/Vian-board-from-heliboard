@@ -34,7 +34,6 @@ import androidx.annotation.Nullable;
 
 import helium314.keyboard.event.Event;
 import helium314.keyboard.keyboard.clipboard.ClipboardHistoryView;
-import helium314.keyboard.keyboard.clipboard.PromptHistoryView;
 import helium314.keyboard.keyboard.desktop.DesktopShortcutsView;
 import helium314.keyboard.keyboard.emoji.EmojiPalettesView;
 import helium314.keyboard.keyboard.internal.KeyboardState;
@@ -78,8 +77,6 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     private View mEmojiTabStripView;
     private LinearLayout mClipboardStripView;
     private HorizontalScrollView mClipboardStripScrollView;
-    private LinearLayout mPromptStripView;
-    private HorizontalScrollView mPromptStripScrollView;
     private LinearLayout mDesktopShortcutsStripView;
     private HorizontalScrollView mDesktopShortcutsStripScrollView;
     private LinearLayout mVoicePreviewStrip;
@@ -87,7 +84,6 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     private SuggestionStripView mSuggestionStripView;
     private FrameLayout mStripContainer;
     private ClipboardHistoryView mClipboardHistoryView;
-    private PromptHistoryView mPromptHistoryView;
     private DesktopShortcutsView mDesktopShortcutsView;
     private PatternUnlockView mPatternUnlockView;
     private VoiceInputView mVoiceInputView;
@@ -329,16 +325,9 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         mEmojiPalettesView.stopEmojiPalettes();
         mEmojiTabStripView.setVisibility(View.GONE);
         mClipboardStripScrollView.setVisibility(View.GONE);
-        if (mPromptStripScrollView != null) {
-            mPromptStripScrollView.setVisibility(View.GONE);
-        }
         mSuggestionStripView.setVisibility(stripVisibility);
         mClipboardHistoryView.setVisibility(View.GONE);
         mClipboardHistoryView.stopClipboardHistory();
-        if (mPromptHistoryView != null) {
-            mPromptHistoryView.setVisibility(View.GONE);
-            mPromptHistoryView.stopPromptHistory();
-        }
         if (mDesktopShortcutsView != null) {
             mDesktopShortcutsView.setVisibility(View.GONE);
             mDesktopShortcutsView.stopDesktopShortcuts();
@@ -360,6 +349,12 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mVoiceInputView.setVisibility(View.GONE);
             mVoiceInputView.stopVoiceInput();
         }
+        if (settingsValues.mLiteMode) {
+            if (mEmojiPalettesView != null) {
+                mEmojiPalettesView.clearKeyboardCache();
+            }
+            KeyboardLayoutSet.Companion.clearNonCoreCache();
+        }
     }
 
     // Implements {@link KeyboardState.SwitchActions}.
@@ -376,9 +371,6 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         mSuggestionStripView.setVisibility(View.GONE);
         mStripContainer.setVisibility(getSecondaryStripVisibility());
         mClipboardStripScrollView.setVisibility(View.GONE);
-        if (mPromptStripScrollView != null) {
-            mPromptStripScrollView.setVisibility(View.GONE);
-        }
         if (mDesktopShortcutsStripScrollView != null) {
             mDesktopShortcutsStripScrollView.setVisibility(View.GONE);
         }
@@ -390,10 +382,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         }
         mEmojiTabStripView.setVisibility(View.VISIBLE);
         mClipboardHistoryView.setVisibility(View.GONE);
-        if (mPromptHistoryView != null) {
-            mPromptHistoryView.setVisibility(View.GONE);
-            mPromptHistoryView.stopPromptHistory();
-        }
+        mClipboardHistoryView.stopClipboardHistory();
         if (mDesktopShortcutsView != null) {
             mDesktopShortcutsView.setVisibility(View.GONE);
             mDesktopShortcutsView.stopDesktopShortcuts();
@@ -425,9 +414,6 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         mEmojiTabStripView.setVisibility(View.GONE);
         mSuggestionStripView.setVisibility(View.GONE);
         mStripContainer.setVisibility(getSecondaryStripVisibility());
-        if (mPromptStripScrollView != null) {
-            mPromptStripScrollView.setVisibility(View.GONE);
-        }
         if (mDesktopShortcutsStripScrollView != null) {
             mDesktopShortcutsStripScrollView.setVisibility(View.GONE);
         }
@@ -443,10 +429,6 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         mClipboardHistoryView.startClipboardHistory(mLatinIME.getClipboardHistoryManager(), mKeyboardView.getKeyVisualAttribute(),
                 mLatinIME.getCurrentInputEditorInfo(), mLatinIME.mKeyboardActionListener);
         mClipboardHistoryView.setVisibility(View.VISIBLE);
-        if (mPromptHistoryView != null) {
-            mPromptHistoryView.setVisibility(View.GONE);
-            mPromptHistoryView.stopPromptHistory();
-        }
         if (mDesktopShortcutsView != null) {
             mDesktopShortcutsView.setVisibility(View.GONE);
             mDesktopShortcutsView.stopDesktopShortcuts();
@@ -471,7 +453,6 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         mEmojiTabStripView.setVisibility(View.GONE);
         mSuggestionStripView.setVisibility(View.GONE);
         mStripContainer.setVisibility(getSecondaryStripVisibility());
-        mClipboardStripScrollView.setVisibility(View.GONE);
         if (mDesktopShortcutsStripScrollView != null) {
             mDesktopShortcutsStripScrollView.setVisibility(View.GONE);
         }
@@ -481,12 +462,9 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         if (mPatternUnlockStrip != null) {
             mPatternUnlockStrip.setVisibility(View.GONE);
         }
-        if (mPromptStripScrollView != null) {
-            mPromptStripScrollView.post(() -> mPromptStripScrollView.fullScroll(HorizontalScrollView.FOCUS_RIGHT));
-            mPromptStripScrollView.setVisibility(View.VISIBLE);
-        }
+        mClipboardStripScrollView.post(() -> mClipboardStripScrollView.fullScroll(HorizontalScrollView.FOCUS_RIGHT));
+        mClipboardStripScrollView.setVisibility(View.VISIBLE);
         mEmojiPalettesView.setVisibility(View.GONE);
-        mClipboardHistoryView.setVisibility(View.GONE);
         if (mDesktopShortcutsView != null) {
             mDesktopShortcutsView.setVisibility(View.GONE);
             mDesktopShortcutsView.stopDesktopShortcuts();
@@ -495,8 +473,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mVoiceInputView.setVisibility(View.GONE);
             mVoiceInputView.stopVoiceInput();
         }
-        if (mPromptHistoryView != null) {
-            mPromptHistoryView.startPromptHistory(
+        if (mClipboardHistoryView != null) {
+            mClipboardHistoryView.startPromptHistory(
                     mLatinIME.mKeyboardActionListener,
                     mKeyboardView.getKeyVisualAttribute(),
                     mLatinIME.getCurrentInputEditorInfo(),
@@ -505,7 +483,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                         return kotlin.Unit.INSTANCE;
                     }
             );
-            mPromptHistoryView.setVisibility(View.VISIBLE);
+            mClipboardHistoryView.setVisibility(View.VISIBLE);
         }
     }
 
@@ -520,9 +498,6 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         mSuggestionStripView.setVisibility(View.GONE);
         mStripContainer.setVisibility(getSecondaryStripVisibility());
         mClipboardStripScrollView.setVisibility(View.GONE);
-        if (mPromptStripScrollView != null) {
-            mPromptStripScrollView.setVisibility(View.GONE);
-        }
         if (mVoicePreviewStrip != null) {
             mVoicePreviewStrip.setVisibility(View.GONE);
         }
@@ -531,10 +506,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         }
         mEmojiPalettesView.setVisibility(View.GONE);
         mClipboardHistoryView.setVisibility(View.GONE);
-        if (mPromptHistoryView != null) {
-            mPromptHistoryView.stopPromptHistory();
-            mPromptHistoryView.setVisibility(View.GONE);
-        }
+        mClipboardHistoryView.stopClipboardHistory();
         if (mPatternUnlockView != null) {
             mPatternUnlockView.stopPatternUnlock();
             mPatternUnlockView.setVisibility(View.GONE);
@@ -610,9 +582,6 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         mSuggestionStripView.setVisibility(View.GONE);
         mStripContainer.setVisibility(View.VISIBLE);
         mClipboardStripScrollView.setVisibility(View.GONE);
-        if (mPromptStripScrollView != null) {
-            mPromptStripScrollView.setVisibility(View.GONE);
-        }
         if (mDesktopShortcutsStripScrollView != null) {
             mDesktopShortcutsStripScrollView.setVisibility(View.GONE);
         }
@@ -624,10 +593,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         }
         mEmojiPalettesView.setVisibility(View.GONE);
         mClipboardHistoryView.setVisibility(View.GONE);
-        if (mPromptHistoryView != null) {
-            mPromptHistoryView.stopPromptHistory();
-            mPromptHistoryView.setVisibility(View.GONE);
-        }
+        mClipboardHistoryView.stopClipboardHistory();
         if (mDesktopShortcutsView != null) {
             mDesktopShortcutsView.stopDesktopShortcuts();
             mDesktopShortcutsView.setVisibility(View.GONE);
@@ -666,9 +632,6 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mPatternUnlockStrip.setVisibility(View.GONE);
         }
         mClipboardStripScrollView.setVisibility(View.GONE);
-        if (mPromptStripScrollView != null) {
-            mPromptStripScrollView.setVisibility(View.GONE);
-        }
         if (mDesktopShortcutsStripScrollView != null) {
             mDesktopShortcutsStripScrollView.setVisibility(View.GONE);
         }
@@ -676,10 +639,6 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         mEmojiPalettesView.stopEmojiPalettes();
         mClipboardHistoryView.setVisibility(View.GONE);
         mClipboardHistoryView.stopClipboardHistory();
-        if (mPromptHistoryView != null) {
-            mPromptHistoryView.setVisibility(View.GONE);
-            mPromptHistoryView.stopPromptHistory();
-        }
         if (mDesktopShortcutsView != null) {
             mDesktopShortcutsView.setVisibility(View.GONE);
             mDesktopShortcutsView.stopDesktopShortcuts();
@@ -760,10 +719,6 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                 mClipboardHistoryView.stopClipboardHistory();
                 mClipboardHistoryView.setVisibility(View.GONE);
 
-                if (mPromptHistoryView != null) {
-                    mPromptHistoryView.stopPromptHistory();
-                    mPromptHistoryView.setVisibility(View.GONE);
-                }
                 if (mDesktopShortcutsView != null) {
                     mDesktopShortcutsView.stopDesktopShortcuts();
                     mDesktopShortcutsView.setVisibility(View.GONE);
@@ -1000,11 +955,11 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     }
 
     public boolean isShowingClipboardHistory() {
-        return mClipboardHistoryView != null && mClipboardHistoryView.isShown();
+        return mClipboardHistoryView != null && mClipboardHistoryView.isShowingClipboard();
     }
 
     public boolean isShowingPromptHistory() {
-        return mPromptHistoryView != null && mPromptHistoryView.isShown();
+        return mClipboardHistoryView != null && mClipboardHistoryView.isShowingPrompt();
     }
 
     public boolean isShowingDesktopShortcuts() {
@@ -1043,10 +998,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             return mVoiceInputView;
         } else if (isShowingEmojiPalettes()) {
             return mEmojiPalettesView;
-        } else if (isShowingClipboardHistory()) {
+        } else if (isShowingClipboardHistory() || isShowingPromptHistory()) {
             return mClipboardHistoryView;
-        } else if (isShowingPromptHistory()) {
-            return mPromptHistoryView;
         } else if (isShowingDesktopShortcuts()) {
             return mDesktopShortcutsView;
         } else if (isShowingPatternUnlock()) {
@@ -1068,7 +1021,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     }
 
     public LinearLayout getPromptStrip() {
-        return mPromptStripView;
+        return mClipboardStripView;
     }
 
     public LinearLayout getDesktopShortcutsStrip() {
@@ -1100,10 +1053,6 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         if (mClipboardHistoryView != null) {
             mClipboardHistoryView.stopClipboardHistory();
         }
-        if (mPromptHistoryView != null) {
-            mPromptHistoryView.stopPromptHistory();
-            mPromptHistoryView.setVisibility(View.GONE);
-        }
         if (mPatternUnlockView != null) {
             mPatternUnlockView.stopPatternUnlock();
             mPatternUnlockView.setVisibility(View.GONE);
@@ -1118,6 +1067,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         if (mEmojiPalettesView != null) {
             mEmojiPalettesView.clearKeyboardCache();
         }
+        KeyboardLayoutSet.Companion.clearNonCoreCache();
     }
 
     @SuppressLint("InflateParams")
@@ -1140,7 +1090,6 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         mMainKeyboardFrame = mCurrentInputView.findViewById(R.id.main_keyboard_frame);
         mEmojiPalettesView = mCurrentInputView.findViewById(R.id.emoji_palettes_view);
         mClipboardHistoryView = mCurrentInputView.findViewById(R.id.clipboard_history_view);
-        mPromptHistoryView = mCurrentInputView.findViewById(R.id.prompt_history_view);
         mDesktopShortcutsView = mCurrentInputView.findViewById(R.id.desktop_shortcuts_view);
         mPatternUnlockView = mCurrentInputView.findViewById(R.id.pattern_unlock_view);
         mVoiceInputView = mCurrentInputView.findViewById(R.id.voice_input_view);
@@ -1161,8 +1110,6 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         mEmojiTabStripView = mCurrentInputView.findViewById(R.id.emoji_tab_strip);
         mClipboardStripView = mCurrentInputView.findViewById(R.id.clipboard_strip);
         mClipboardStripScrollView = mCurrentInputView.findViewById(R.id.clipboard_strip_scroll_view);
-        mPromptStripView = mCurrentInputView.findViewById(R.id.prompt_strip);
-        mPromptStripScrollView = mCurrentInputView.findViewById(R.id.prompt_strip_scroll_view);
         mDesktopShortcutsStripView = mCurrentInputView.findViewById(R.id.desktop_shortcuts_strip);
         mDesktopShortcutsStripScrollView = mCurrentInputView.findViewById(R.id.desktop_shortcuts_strip_scroll_view);
         mSuggestionStripView = mCurrentInputView.findViewById(R.id.suggestion_strip_view);

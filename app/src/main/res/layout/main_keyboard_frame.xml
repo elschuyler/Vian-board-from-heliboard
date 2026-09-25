@@ -36,9 +36,6 @@
             android:id="@+id/clipboard_history_view"
             layout="@layout/clipboard_history_view" />
         <include
-            android:id="@+id/prompt_history_view"
-            layout="@layout/prompt_history_view" />
-        <include
             android:id="@+id/desktop_shortcuts_view"
             layout="@layout/desktop_shortcuts_view" />
         <include

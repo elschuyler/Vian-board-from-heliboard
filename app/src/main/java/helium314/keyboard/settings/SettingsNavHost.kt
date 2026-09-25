@@ -30,13 +30,14 @@ import helium314.keyboard.settings.screens.PersonalDictionariesScreen
 import helium314.keyboard.settings.screens.PersonalDictionaryScreen
 import helium314.keyboard.settings.screens.PreferencesScreen
 import helium314.keyboard.settings.screens.PatternLockSettingsScreen
-import helium314.keyboard.settings.screens.PrivacyVaultPlaceholderScreen
+import helium314.keyboard.settings.screens.PrivacyVaultScreen
 import helium314.keyboard.settings.screens.SecondaryLayoutScreen
 import helium314.keyboard.settings.screens.SecurityScreen
 import helium314.keyboard.settings.screens.SecurityVaultPlaceholderScreen
 import helium314.keyboard.settings.screens.SubtypeScreen
 import helium314.keyboard.settings.screens.TextCorrectionScreen
 import helium314.keyboard.settings.screens.ToolbarScreen
+import helium314.keyboard.settings.screens.VoiceAdvancedSettingsScreen
 import helium314.keyboard.settings.screens.VoiceInputScreen
 import helium314.keyboard.settings.screens.WordEngineScreen
 import helium314.keyboard.settings.screens.gesturedata.GestureDataScreen
@@ -83,7 +84,13 @@ fun SettingsNavHost(
             )
         }
         composable(SettingsDestination.VoiceInput) {
-            VoiceInputScreen(onClickBack = ::goBack)
+            VoiceInputScreen(
+                onClickBack = ::goBack,
+                onClickAdvanced = { navController.navigate(SettingsDestination.VoiceAdvanced) }
+            )
+        }
+        composable(SettingsDestination.VoiceAdvanced) {
+            VoiceAdvancedSettingsScreen(onClickBack = ::goBack)
         }
         composable(SettingsDestination.Security) {
             SecurityScreen(
@@ -97,7 +104,7 @@ fun SettingsNavHost(
             PatternLockSettingsScreen(onClickBack = ::goBack)
         }
         composable(SettingsDestination.PrivacyVault) {
-            PrivacyVaultPlaceholderScreen(onClickBack = ::goBack)
+            PrivacyVaultScreen(onClickBack = ::goBack)
         }
         composable(SettingsDestination.SecurityVault) {
             SecurityVaultPlaceholderScreen(onClickBack = ::goBack)
@@ -189,6 +196,7 @@ object SettingsDestination {
     const val TextCorrection = "text_correction"
     const val WordEngine = "word_engine"
     const val VoiceInput = "voice_input"
+    const val VoiceAdvanced = "voice_advanced"
     const val BackupRestore = "backup_restore"
     const val Preferences = "preferences"
     const val Toolbar = "toolbar"

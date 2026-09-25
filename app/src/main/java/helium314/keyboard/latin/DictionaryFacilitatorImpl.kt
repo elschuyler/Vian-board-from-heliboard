@@ -61,6 +61,10 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
     private var context: Context? = null
 
     @Volatile
+    private var isSecondaryDropped = false
+    private var lastDropTimestamp: Long = 0L
+
+    @Volatile
     private var mLatchForWaitingLoadingMainDictionaries = CountDownLatch(0)
 
     // The library does not deal well with ngram history for auto-capitalized words, so we adjust
@@ -107,6 +111,8 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         return dictionaryGroups[0].locale.language.isNotEmpty()
     }
 
+    override fun getContext(): Context? = context
+
     override fun getMainLocale(): Locale {
         return dictionaryGroups[0].locale
     }
@@ -117,11 +123,54 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
 
     override fun usesSameSettings(locales: List<Locale>, contacts: Boolean, apps: Boolean, personalization: Boolean): Boolean {
         val dictGroup = dictionaryGroups[0] // settings are the same for all groups
-        return contacts == dictGroup.hasDict(Dictionary.TYPE_CONTACTS)
-                && apps == dictGroup.hasDict(Dictionary.TYPE_APPS)
-                && personalization == dictGroup.hasDict(Dictionary.TYPE_USER_HISTORY)
+        return personalization == dictGroup.hasDict(Dictionary.TYPE_USER_HISTORY)
                 && locales.size == dictionaryGroups.size
                 && locales.none { findDictionaryGroupWithLocale(dictionaryGroups, it) == null }
+    }
+
+    override fun isSecondaryDropped(): Boolean = isSecondaryDropped
+
+    override fun dropSecondaryDictionaries() {
+        synchronized(this) {
+            if (isSecondaryDropped || dictionaryGroups.size <= 1) return
+            val primaryGroup = dictionaryGroups[0]
+            val secondaryGroups = dictionaryGroups.drop(1)
+            dictionaryGroups = listOf(primaryGroup)
+            isSecondaryDropped = true
+            lastDropTimestamp = android.os.SystemClock.elapsedRealtime()
+            secondaryGroups.forEach { group ->
+                DictionaryFacilitator.ALL_DICTIONARY_TYPES.forEach { dictType ->
+                    group.closeDict(dictType)
+                }
+            }
+            Log.i(TAG, "dropSecondaryDictionaries: dropped secondary dictionaries in Lite Mode")
+        }
+    }
+
+    override fun restoreSecondaryDictionaries(context: Context, listener: DictionaryInitializationListener?) {
+        synchronized(this) {
+            if (!isSecondaryDropped) return
+            isSecondaryDropped = false
+            val currentMainLocale = getMainLocale()
+            val currentSettings = Settings.getValues()
+            resetDictionaries(
+                context,
+                currentMainLocale,
+                currentSettings.mUseContactsDictionary,
+                currentSettings.mUseAppsDictionary,
+                currentSettings.mUsePersonalizedDicts,
+                false,
+                "",
+                listener
+            )
+            Log.i(TAG, "restoreSecondaryDictionaries: secondary dictionaries restored")
+        }
+    }
+
+    override fun shouldAutoRestoreSecondary(): Boolean {
+        if (!isSecondaryDropped) return false
+        // 15 minutes cooldown (900_000 ms)
+        return (android.os.SystemClock.elapsedRealtime() - lastDropTimestamp) > 900_000L
     }
 
     // -------------- managing (loading & closing) dictionaries ------------
@@ -139,11 +188,10 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         Log.i(TAG, "resetDictionaries, force reloading main dictionary: $forceReloadMainDictionary")
         this.context = context
 
-        val locales = getUsedLocales(newLocale, context)
+        val locales = if (isSecondaryDropped) listOf(newLocale) else getUsedLocales(newLocale, context)
 
         val subDictTypesToUse = listOfNotNull(
             Dictionary.TYPE_USER,
-            if (useAppsDict) Dictionary.TYPE_APPS else null,
             if (usePersonalizedDicts) Dictionary.TYPE_USER_HISTORY else null
         )
 
@@ -500,8 +548,9 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         }
         suggestionsArray[0] = getSuggestions(composedData, ngramContext, settingsValuesForSuggestion, sessionId,
             proximityInfoHandle, weightOfLangModelVsSpatialModel, dictionaryGroups[0])
+        val maxSuggestions = if (Settings.getValues().mLiteMode) 8 else SuggestedWords.MAX_SUGGESTIONS
         val suggestionResults = SuggestionResults(
-            SuggestedWords.MAX_SUGGESTIONS, ngramContext.isBeginningOfSentenceContext, false
+            maxSuggestions, ngramContext.isBeginningOfSentenceContext, false
         )
         waitForOtherDicts?.await()
 
@@ -635,9 +684,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
                 return when (dictType) {
                     Dictionary.TYPE_USER_HISTORY -> UserHistoryDictionary.getDictionary(context, locale, dictFile, dictNamePrefix)
                     Dictionary.TYPE_USER -> UserBinaryDictionary.getDictionary(context, locale, dictFile, dictNamePrefix)
-                    Dictionary.TYPE_CONTACTS -> null
-                    Dictionary.TYPE_APPS -> AppsBinaryDictionary.getDictionary(context, locale, dictFile, dictNamePrefix)
-                    else -> throw IllegalArgumentException("unknown dictionary type $dictType")
+                    else -> null
                 }
             } catch (e: SecurityException) {
                 Log.e(TAG, "Cannot create dictionary: $dictType", e)
@@ -722,20 +769,6 @@ private class DictionaryGroup(
 
         // and from personal dictionary
         getSubDict(Dictionary.TYPE_USER)?.removeUnigramEntryDynamically(word)
-
-        val contactsDict = getSubDict(Dictionary.TYPE_CONTACTS)
-        if (contactsDict != null && contactsDict.isInDictionary(word)) {
-            contactsDict.removeUnigramEntryDynamically(word) // will be gone until next reload of dict
-            addToBlacklist(word)
-            return
-        }
-
-        val appsDict = getSubDict(Dictionary.TYPE_APPS)
-        if (appsDict != null && appsDict.isInDictionary(word)) {
-            appsDict.removeUnigramEntryDynamically(word) // will be gone until next reload of dict
-            addToBlacklist(word)
-            return
-        }
 
         val mainDict = mainDict ?: return
         if (mainDict.isValidWord(word)) {

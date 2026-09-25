@@ -98,6 +98,28 @@ class InputLogicTest {
         assertEquals("there", composingText)
     }
 
+    @Test fun deleteAndContinueDeletingInResumedWord() {
+        setText("hello there ")
+        functionalKeyPress(KeyCode.DELETE)
+        assertEquals("hello there", text)
+        assertEquals("there", composingText)
+
+        functionalKeyPress(KeyCode.DELETE)
+        assertEquals("hello ther", text)
+        assertEquals("ther", composingText)
+
+        functionalKeyPress(KeyCode.DELETE)
+        assertEquals("hello the", text)
+        assertEquals("the", composingText)
+    }
+
+    @Test fun deleteAtEndOfUncomposedWordResumes() {
+        setText("testing")
+        functionalKeyPress(KeyCode.DELETE)
+        assertEquals("testin", text)
+        assertEquals("testin", composingText)
+    }
+
     @Test fun deleteMultiCodepointText() {
         setText("hello there \uD83E\uDF00")
         functionalKeyPress(KeyCode.DELETE)

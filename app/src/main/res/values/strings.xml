@@ -46,6 +46,11 @@
     <string name="settings_screen_correction">Text correction</string>
     <!-- Settings screen title for advanced settings -->
     <string name="settings_screen_advanced">Advanced</string>
+    <!-- Lite Mode setting -->
+    <string name="settings_lite_mode_title">Lite Mode</string>
+    <string name="settings_lite_mode_summary">Minimizes memory and CPU usage by caching only core layouts, pruning background dictionaries, and streamlining prediction.</string>
+    <string name="restore_secondary_language_action">⚡ Restore Secondary Languages</string>
+    <string name="secondary_languages_restored_toast">Secondary language dictionaries restored</string>
     <!-- Settings screen title for keyboard theme settings -->
     <string name="settings_screen_theme">Theme</string>
     <!-- Settings category title for Preference/Input settings -->
@@ -1376,7 +1381,29 @@ New dictionary:
     <string name="voice_key_space">Space</string>
     <string name="voice_key_backspace">Backspace</string>
     <string name="voice_key_enter">Enter</string>
+    <string name="voice_input_advanced_title">Advanced Speech Settings</string>
+    <string name="voice_input_advanced_summary">Transcription decoding and noise filtering</string>
+    <string name="voice_input_advanced_decoding_cat">Decoding &amp; Audio Filtering</string>
+    <string name="voice_input_advanced_diagnostics_cat">Diagnostics &amp; Telemetry</string>
+    <string name="voice_input_suppress_annotations">Suppress non-speech annotations</string>
+    <string name="voice_input_suppress_annotations_summary">Strips [cough], [music], [laughter], etc.</string>
+    <string name="voice_input_use_beam_search">Use beam search</string>
+    <string name="voice_input_use_beam_search_summary">Recommended for higher accuracy during final pass</string>
+    <string name="voice_input_continuous_streaming">Continuous dictation chunking</string>
+    <string name="voice_input_continuous_streaming_summary">Automatically segments speech buffers at natural pauses</string>
+    <string name="voice_input_verbose_mode">Verbose Mode</string>
+    <string name="voice_input_verbose_mode_summary">Log detailed transcription and timing telemetry</string>
     <string name="voice_preview_clear">Clear transcription</string>
+
+    <!-- Privacy Vault -->
+    <string name="privacy_vault_title">Privacy Vault</string>
+    <string name="privacy_vault_summary">Isolated private phrases &amp; credentials</string>
+    <string name="privacy_vault_add_phrase">Add Private Phrase</string>
+    <string name="privacy_vault_edit_phrase">Edit Private Phrase</string>
+    <string name="privacy_vault_shortcut_hint">Shortcut / Trigger (e.g. eml, pin)</string>
+    <string name="privacy_vault_phrase_hint">Private Phrase / Secret</string>
+    <string name="privacy_vault_notes_hint">Notes / Label (optional)</string>
+    <string name="privacy_vault_isolated_notice">🔒 Strictly isolated inside HeliBoard sandbox. Never shared with Android system or other apps.</string>
 
     <!-- new strings should go above the section for gesture data gathering -->
 </resources>

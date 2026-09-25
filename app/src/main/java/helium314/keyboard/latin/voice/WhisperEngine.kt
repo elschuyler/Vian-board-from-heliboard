@@ -38,14 +38,16 @@ class WhisperEngine {
 
         /**
          * Strips common Whisper hallucination artifacts and control tokens.
+         * Suppresses bracketed non-speech annotations like [cough], [music], [applause], etc.
          */
-        fun cleanWhisperOutput(raw: String): String {
-            return raw
-                .replace(Regex("<\\|.*?\\|>"), "")
-                .replace("[BLANK_AUDIO]", "")
-                .replace("[MUSIC]", "")
-                .replace("[APPLAUSE]", "")
-                .trim()
+        fun cleanWhisperOutput(raw: String, suppressAnnotations: Boolean = true): String {
+            var text = raw.replace(Regex("<\\|.*?\\|>"), "")
+            if (suppressAnnotations) {
+                // Universal non-speech acoustic annotations: [cough], [music], [laughter], [applause], etc.
+                text = text.replace(Regex("\\[[a-zA-Z\\s\\-_]+\\]"), "")
+                text = text.replace(Regex("\\([a-zA-Z\\s\\-_]+\\)"), "")
+            }
+            return text.replace(Regex("\\s+"), " ").trim()
         }
     }
 
@@ -96,7 +98,10 @@ class WhisperEngine {
     @Synchronized
     fun transcribe(
         audioSamples: FloatArray,
-        numThreads: Int = minOf(4, Runtime.getRuntime().availableProcessors())
+        numThreads: Int = minOf(4, Runtime.getRuntime().availableProcessors()),
+        useBeamSearch: Boolean = false,
+        initialPrompt: String? = null,
+        suppressAnnotations: Boolean = true
     ): String? {
         if (contextPtr == 0L) {
             LogCatcher.w(TAG, "transcribe called without active model context")
@@ -108,18 +113,19 @@ class WhisperEngine {
 
         return try {
             val durationSec = audioSamples.size / SAMPLE_RATE_HZ.toFloat()
-            LogCatcher.i(TAG, "Starting inference: ${audioSamples.size} samples (~${"%.2f".format(durationSec)}s, $numThreads threads)")
-            LogCatcher.markComponentActive(COMPONENT_NAME, "VoiceEngine", "Transcribing (${"%.1f".format(durationSec)}s audio)")
+            val modeStr = if (useBeamSearch) "BeamSearch(5)" else "Greedy"
+            LogCatcher.i(TAG, "Starting inference: ${audioSamples.size} samples (~${"%.2f".format(durationSec)}s, $numThreads threads, mode=$modeStr, prompt=${!initialPrompt.isNullOrEmpty()})")
+            LogCatcher.markComponentActive(COMPONENT_NAME, "VoiceEngine", "Transcribing (${"%.1f".format(durationSec)}s, $modeStr)")
 
             val startTime = System.currentTimeMillis()
-            val rawResult = fullTranscribe(contextPtr, numThreads, audioSamples)
+            val rawResult = fullTranscribe(contextPtr, numThreads, useBeamSearch, initialPrompt, audioSamples)
             val elapsed = System.currentTimeMillis() - startTime
 
             LogCatcher.i(TAG, "Inference completed in ${elapsed}ms")
             LogCatcher.markComponentActive(COMPONENT_NAME, "VoiceEngine", "Idle (Last inference: ${elapsed}ms)")
 
             if (rawResult != null) {
-                val cleaned = cleanWhisperOutput(rawResult)
+                val cleaned = cleanWhisperOutput(rawResult, suppressAnnotations)
                 cleaned
             } else {
                 LogCatcher.w(TAG, "Native fullTranscribe returned null")
@@ -150,5 +156,11 @@ class WhisperEngine {
     // --- Native JNI Method Declarations ---
     private external fun initContext(modelPath: String): Long
     private external fun freeContext(contextPtr: Long)
-    private external fun fullTranscribe(contextPtr: Long, numThreads: Int, audioData: FloatArray): String?
+    private external fun fullTranscribe(
+        contextPtr: Long,
+        numThreads: Int,
+        useBeamSearch: Boolean,
+        initialPrompt: String?,
+        audioData: FloatArray
+    ): String?
 }

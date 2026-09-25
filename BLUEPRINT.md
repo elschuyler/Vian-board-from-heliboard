@@ -263,6 +263,39 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
   - **Themed Icons Mapping**:
     - Added `NAME_DEMOTE` to `KeyboardIconsSet.kt` mapped to `ic_page_down` (material) and `ic_page_down_rounded` (rounded) with `ColorType.REMOVE_SUGGESTION_ICON` tinting.
 
+- **Phase 4: Backspace Word Resumption & Input Race Condition Fix [COMPLETED]**:
+  - **Monotonic Selection Generation Counter**: Introduced `mSelectionUpdateGeneration` in `RichInputConnection.java`, incremented whenever the keyboard triggers a text mutation, cursor move, composing span alteration, or batch edit.
+  - **Atomic Backspace Execution Pipeline**: Enclosed `handleBackspaceEvent` in `InputLogic.java` within an atomic `mConnection.beginBatchEdit()` / `try { ... } finally { mConnection.endBatchEdit(); }` block, guaranteeing that deleting characters and resuming word suggestions happens in a single transaction.
+  - **Asynchronous Selection Guard**: Added an early-exit check in `InputLogic.java` (`onUpdateSelection`): `if (mConnection.isBatchEdit()) return expectCursorMove;`. This prevents intermediate asynchronous selection callbacks emitted by the system Android framework during active batch edits from prematurely clearing the composing text, corrupting cursor state, or duplicating words (e.g. "helhello").
+  - **Span Inversion Safety Guard**: Hardened `RichInputConnection.isBelatedExpectedUpdate()` with validation ensuring composing start and end spans are non-negative and properly ordered before testing span lengths against cached composing text.
+  - **Empty String Resumption Guard**: Added `if (TextUtils.isEmpty(word)) return false;` in `InputLogic.isResumableWord()` to prevent index out of bounds exceptions on empty string queries.
+  - **Unit Test Coverage**: Added `deleteAndContinueDeletingInResumedWord` and `deleteAtEndOfUncomposedWordResumes` in `InputLogicTest.kt` verifying backspace resumption, character-by-character backspacing, and clean uncomposed word resumption without duplication.
+
+- **Phase 23: Privacy Vault & Dictionary Streamlining [COMPLETED]**:
+  - **Isolated Privacy Vault Persistence (`VaultDao.kt`, `heliboard.db`)**:
+    - Created `vault_entries` table in HeliBoard's private SQLite database with columns `_id`, `SHORTCUT`, `PHRASE`, `NOTES`, `TIMESTAMP`, and shortcut index.
+    - Bumped `Database.kt` version to 6 with automated migration and backup restoration.
+    - Completely isolated from Android's `UserDictionary.Words` content provider so third-party apps and OS services cannot view private phrases.
+    - Loaded into high-speed in-memory cache ($O(1)$ RAM lookup, $\approx 0.0001\text{ ms}$) for instantaneous shortcut matching.
+  - **Pruning Unwanted Background Dictionaries (`TYPE_CONTACTS` & `TYPE_APPS`)**:
+    - Removed `Dictionary.TYPE_CONTACTS` and `Dictionary.TYPE_APPS` from `DictionaryFacilitator.java` `ALL_DICTIONARY_TYPES` and `DYNAMIC_DICTIONARY_TYPES`.
+    - Removed `AppsBinaryDictionary` and `ContactsBinaryDictionary` allocations in `DictionaryFacilitatorImpl.kt`.
+    - Cleaned `subDictTypesToUse` and `removeWord`, eliminating redundant background observers and reducing keystroke latency.
+  - **Typing Suggestion & Shoulder-Surfing Masking (`Suggest.kt`)**:
+    - Shortcut matching against `VaultDao` generates a `SuggestedWordInfo` with `KIND_VAULT_ENTRY`.
+    - Automatically displays masked display labels (e.g. `🔒 jo****om`, `🔒 p**9`) on the suggestion strip via `VaultDao.maskPhrase`.
+    - Stores the raw secret phrase in `mWord` for immediate or authenticated insertion.
+  - **Pattern Lock & Zero-Learning Tap Flow (`LatinIME.java`, `InputLogic.java`)**:
+    - Intercepts vault suggestion taps in `LatinIME.java`: if master pattern is configured and session is expired, presents `PatternUnlockView` via `mKeyboardSwitcher.showPatternUnlockView()`.
+    - On valid pattern verification, begins a 5-minute session in `VaultSessionManager` and commits the text.
+    - In `InputLogic.java`, directly commits vault phrases via `mConnection.commitText()`, bypassing `performAdditionToUserHistoryDictionary` to guarantee zero predictive learning, zero suggestion spans, and zero data leakage into bigram models.
+  - **Material 3 Privacy Vault Settings UI (`PrivacyVaultScreen.kt`)**:
+    - Replaced placeholder screen with full Material 3 Compose UI matching `PersonalDictionaryScreen.kt`.
+    - Gated by `VaultSessionManager`: if pattern configured, challenges with embedded `PatternGridView` before unlocking.
+    - Interactive search filtering, masked/plaintext toggle ("Peek" button), shortcut pills, notes display, and Add/Edit/Delete dialogs.
+    - Updated `SecurityScreen.kt` description and added string resources.
+
+
 
 
 

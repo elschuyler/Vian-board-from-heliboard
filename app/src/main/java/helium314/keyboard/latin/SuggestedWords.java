@@ -131,7 +131,8 @@ public class SuggestedWords {
      * @return The text to be displayed.
      */
     public String getLabel(final int index) {
-        return mSuggestedWordInfoList.get(index).mWord;
+        final SuggestedWordInfo info = mSuggestedWordInfoList.get(index);
+        return (info != null && info.mLabel != null) ? info.mLabel : info.mWord;
     }
 
     /**
@@ -255,6 +256,7 @@ public class SuggestedWords {
         // in java for re-correction)
         public static final int KIND_RESUMED = 9;
         public static final int KIND_OOV_CORRECTION = 10; // Most probable string correction
+        public static final int KIND_VAULT_ENTRY = 11; // Isolated Privacy Vault entry
 
         public static final int KIND_FLAG_POSSIBLY_OFFENSIVE = 0x80000000;
         public static final int KIND_FLAG_EXACT_MATCH = 0x40000000;
@@ -262,6 +264,7 @@ public class SuggestedWords {
         public static final int KIND_FLAG_APPROPRIATE_FOR_AUTO_CORRECTION = 0x10000000;
 
         public final String mWord;
+        public final String mLabel;
         public final String mPrevWordsContext;
         // The completion info from the application. Null for suggestions that don't come from
         // the application (including keyboard-computed ones, so this is almost always null)
@@ -296,7 +299,16 @@ public class SuggestedWords {
                 final int score, final int kindAndFlags,
                 final Dictionary sourceDict, final int indexOfTouchPointOfSecondWord,
                 final int autoCommitFirstWordConfidence) {
+            this(word, null, prevWordsContext, score, kindAndFlags, sourceDict,
+                    indexOfTouchPointOfSecondWord, autoCommitFirstWordConfidence);
+        }
+
+        public SuggestedWordInfo(final String word, final String label, final String prevWordsContext,
+                final int score, final int kindAndFlags,
+                final Dictionary sourceDict, final int indexOfTouchPointOfSecondWord,
+                final int autoCommitFirstWordConfidence) {
             mWord = word;
+            mLabel = label;
             mPrevWordsContext = prevWordsContext;
             mApplicationSpecifiedCompletionInfo = null;
             mScore = score;
@@ -314,6 +326,7 @@ public class SuggestedWords {
          */
         public SuggestedWordInfo(final CompletionInfo applicationSpecifiedCompletion) {
             mWord = applicationSpecifiedCompletion.getText().toString();
+            mLabel = null;
             mPrevWordsContext = "";
             mApplicationSpecifiedCompletionInfo = applicationSpecifiedCompletion;
             mScore = SuggestedWordInfo.MAX_SCORE;

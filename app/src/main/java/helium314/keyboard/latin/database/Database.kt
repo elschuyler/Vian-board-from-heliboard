@@ -17,6 +17,7 @@ class Database internal constructor(context: Context, name: String = NAME) : SQL
         db.execSQL(ClipboardDao.CREATE_TABLE)
         PromptDao.ensureTableExists(db)
         VoiceReplacementDao.ensureTableExists(db)
+        VaultDao.ensureTableExists(db)
         onUpgrade(db, 0, VERSION)
     }
 
@@ -34,11 +35,14 @@ class Database internal constructor(context: Context, name: String = NAME) : SQL
         if (oldVersion <= 4) {
             VoiceReplacementDao.ensureTableExists(db)
         }
+        if (oldVersion <= 5) {
+            VaultDao.ensureTableExists(db)
+        }
     }
 
     companion object {
         private val TAG = Database::class.java.simpleName
-        private const val VERSION = 5
+        private const val VERSION = 6
         const val NAME = "heliboard.db"
         private var instance: Database? = null
         fun getInstance(context: Context): Database {
@@ -135,9 +139,36 @@ class Database internal constructor(context: Context, name: String = NAME) : SQL
                     } catch (t: Throwable) {
                         LogCatcher.log('W', TAG, "Restore voice replacements skipped: ${t.message}")
                     }
+
+                    // Restore Privacy Vault table if present in otherDb
+                    try {
+                        VaultDao.ensureTableExists(db.writableDatabase)
+                        val hasVaultTable = otherDb.readableDatabase.rawQuery(
+                            "SELECT name FROM sqlite_master WHERE type='table' AND name='${VaultDao.TABLE}'", null
+                        ).use { it.moveToFirst() }
+                        if (hasVaultTable) {
+                            val vaultDao = VaultDao.getInstance(context)
+                            otherDb.readableDatabase.rawQuery(
+                                "SELECT _id, SHORTCUT, PHRASE, NOTES, TIMESTAMP FROM ${VaultDao.TABLE}", null
+                            ).use { c ->
+                                vaultDao.clear()
+                                while (c.moveToNext()) {
+                                    vaultDao.addOrUpdate(
+                                        shortcut = c.getString(1) ?: "",
+                                        phrase = c.getString(2) ?: "",
+                                        notes = c.getStringOrNull(3) ?: ""
+                                    )
+                                }
+                            }
+                            LogCatcher.i(TAG, "Restored ${vaultDao.count} vault entries")
+                        }
+                    } catch (t: Throwable) {
+                        LogCatcher.log('W', TAG, "Restore vault entries skipped: ${t.message}")
+                    }
                 }
-                // Reload in-memory PromptDao cache
+                // Reload in-memory PromptDao and VaultDao cache
                 PromptDao.getInstance(context).reload()
+                VaultDao.getInstance(context).reload()
             } finally {
                 otherDb.close()
                 file.delete()

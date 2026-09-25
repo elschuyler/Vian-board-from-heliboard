@@ -199,6 +199,11 @@ public final class Settings implements SharedPreferences.OnSharedPreferenceChang
     public static final String PREF_VOICE_INPUT_ENABLED = "pref_voice_input_enabled";
     public static final String PREF_VOICE_INPUT_GAIN = "pref_voice_input_gain";
     public static final String PREF_VOICE_MODEL_NAME = "pref_voice_model_name";
+    public static final String PREF_VOICE_SUPPRESS_ANNOTATIONS = "pref_voice_suppress_annotations";
+    public static final String PREF_VOICE_USE_BEAM_SEARCH = "pref_voice_use_beam_search";
+    public static final String PREF_VOICE_CONTINUOUS_STREAMING = "pref_voice_continuous_streaming";
+    public static final String PREF_VOICE_VERBOSE_MODE = "pref_voice_verbose_mode";
+    public static final String PREF_LITE_MODE = "pref_lite_mode";
 
     // Emoji
     public static final String PREF_EMOJI_MAX_SDK = "emoji_max_sdk";

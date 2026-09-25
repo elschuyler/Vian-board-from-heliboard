@@ -345,6 +345,33 @@ public final class InputLogic {
             return inputTransaction;
         }
 
+        if (suggestionInfo.isKindOf(SuggestedWordInfo.KIND_VAULT_ENTRY)) {
+            mSuggestedWords = SuggestedWords.getEmptyInstance();
+            mSuggestionStripViewAccessor.setNeutralSuggestionStrip();
+            inputTransaction.requireShiftUpdate(InputTransaction.SHIFT_UPDATE_NOW);
+            resetComposingState(true /* alsoResetLastComposedWord */);
+            mConnection.commitText(suggestion, 1);
+            mConnection.endBatchEdit();
+            mLastComposedWord.deactivate();
+            if (settingsValues.mAutospaceAfterSuggestion)
+                mSpaceState = SpaceState.PHANTOM;
+            setInlineEmojiSearchAction(false);
+            handler.postUpdateSuggestionStrip(SuggestedWords.INPUT_STYLE_NONE);
+            return inputTransaction;
+        }
+
+        if (suggestion.startsWith("/-")) {
+            final CharSequence before = mConnection.getTextBeforeCursor(1, 0);
+            if (before != null && before.length() > 0 && before.charAt(before.length() - 1) == ' ') {
+                mConnection.deleteTextBeforeCursor(1);
+            }
+        } else if (!suggestion.contains(" ") && suggestion.length() > 0 && Character.isLetterOrDigit(suggestion.charAt(0))) {
+            final CharSequence before = mConnection.getTextBeforeCursor(1, 0);
+            if (before != null && before.length() > 0 && Character.isDigit(before.charAt(before.length() - 1))) {
+                mConnection.commitText(" ", 1);
+            }
+        }
+
         commitChosenWord(settingsValues, suggestion, LastComposedWord.COMMIT_TYPE_MANUAL_PICK, LastComposedWord.NOT_A_SEPARATOR);
         mConnection.endBatchEdit();
         // Don't allow cancellation of manual pick
@@ -389,6 +416,9 @@ public final class InputLogic {
     public boolean onUpdateSelection(int oldSelStart, int oldSelEnd, int newSelStart,
              int newSelEnd, int composingSpanStart, int composingSpanEnd, SettingsValues settingsValues) {
         boolean expectCursorMove = mightBeExpectedCursorMove(); // reset the timer
+        if (mConnection.isBatchEdit()) {
+            return expectCursorMove;
+        }
         if (mConnection.isBelatedExpectedUpdate(oldSelStart, newSelStart, oldSelEnd, newSelEnd, composingSpanStart, composingSpanEnd)) {
             // return whether we expect a user-initiated explicit cursor move (i.e. not as result of other input, but e.g. space swipe)
             // note that arrow keys are not considered, because for them isBelatedExpectedUpdate returns false
@@ -495,6 +525,7 @@ public final class InputLogic {
                 processedEvent, SystemClock.uptimeMillis(), mSpaceState,
                 getActualCapsMode(settingsValues, keyboardCapsMode));
         if (processedEvent.getKeyCode() != KeyCode.DELETE
+                || !event.isKeyRepeat()
                 || inputTransaction.getTimestamp() > mLastKeyTime + Constants.LONG_PRESS_MILLISECONDS) {
             mDeleteCount = 0;
         }
@@ -1291,187 +1322,192 @@ public final class InputLogic {
                 : InputTransaction.SHIFT_UPDATE_NOW;
         inputTransaction.requireShiftUpdate(shiftUpdateKind);
 
-        if (mWordComposer.isCursorFrontOrMiddleOfComposingWord()) {
-            // If we are in the middle of a recorrection, we need to commit the recorrection
-            // first so that we can remove the character at the current cursor position.
-            // We also need to unlearn the original word that is now being corrected.
-            unlearnWord(mWordComposer.getTypedWord(), inputTransaction.getSettingsValues(), DictionaryFacilitator.UnlearnEvent.BACKSPACE);
-            resetEntireInputState(mConnection.getExpectedSelectionStart(),
-                    mConnection.getExpectedSelectionEnd(), true /* clearSuggestionStrip */);
-            // When we exit this if-clause, mWordComposer.isComposingWord() will return false.
-        }
-        if (mWordComposer.isComposingWord()) {
-            if (mWordComposer.isBatchMode()) {
-                final String rejectedSuggestion = mWordComposer.getTypedWord();
-                if (GestureDataGatheringKt.useBackgroundGathering)
-                    BackgroundGatheringCache.INSTANCE.onRejectedSuggestion(rejectedSuggestion);
-                mWordComposer.reset();
-                mWordComposer.setRejectedBatchModeSuggestion(rejectedSuggestion);
-                if (!TextUtils.isEmpty(rejectedSuggestion)) {
-                    unlearnWord(rejectedSuggestion, inputTransaction.getSettingsValues(), DictionaryFacilitator.UnlearnEvent.REJECTION);
-                }
-                StatsUtils.onBackspaceWordDelete(rejectedSuggestion.length());
-            } else {
-                if (GestureDataGatheringKt.useBackgroundGathering)
-                    BackgroundGatheringCache.INSTANCE.removeLast(mWordComposer.getTypedWord());
-                mWordComposer.applyProcessedEvent(event);
-                StatsUtils.onBackspacePressed(1);
+        mConnection.beginBatchEdit();
+        try {
+            if (mWordComposer.isCursorFrontOrMiddleOfComposingWord()) {
+                // If we are in the middle of a recorrection, we need to commit the recorrection
+                // first so that we can remove the character at the current cursor position.
+                // We also need to unlearn the original word that is now being corrected.
+                unlearnWord(mWordComposer.getTypedWord(), inputTransaction.getSettingsValues(), DictionaryFacilitator.UnlearnEvent.BACKSPACE);
+                resetEntireInputState(mConnection.getExpectedSelectionStart(),
+                        mConnection.getExpectedSelectionEnd(), true /* clearSuggestionStrip */);
+                // When we exit this if-clause, mWordComposer.isComposingWord() will return false.
             }
             if (mWordComposer.isComposingWord()) {
-                setComposingTextInternal(getTextWithUnderline(mWordComposer.getTypedWord()), 1);
+                if (mWordComposer.isBatchMode()) {
+                    final String rejectedSuggestion = mWordComposer.getTypedWord();
+                    if (GestureDataGatheringKt.useBackgroundGathering)
+                        BackgroundGatheringCache.INSTANCE.onRejectedSuggestion(rejectedSuggestion);
+                    mWordComposer.reset();
+                    mWordComposer.setRejectedBatchModeSuggestion(rejectedSuggestion);
+                    if (!TextUtils.isEmpty(rejectedSuggestion)) {
+                        unlearnWord(rejectedSuggestion, inputTransaction.getSettingsValues(), DictionaryFacilitator.UnlearnEvent.REJECTION);
+                    }
+                    StatsUtils.onBackspaceWordDelete(rejectedSuggestion.length());
+                } else {
+                    if (GestureDataGatheringKt.useBackgroundGathering)
+                        BackgroundGatheringCache.INSTANCE.removeLast(mWordComposer.getTypedWord());
+                    mWordComposer.applyProcessedEvent(event);
+                    StatsUtils.onBackspacePressed(1);
+                }
+                if (mWordComposer.isComposingWord()) {
+                    setComposingTextInternal(getTextWithUnderline(mWordComposer.getTypedWord()), 1);
+                } else {
+                    mConnection.commitText("", 1);
+                }
+                updateInlineEmojiSearch();
+                inputTransaction.setRequiresUpdateSuggestions();
             } else {
-                mConnection.commitText("", 1);
-            }
-            updateInlineEmojiSearch();
-            inputTransaction.setRequiresUpdateSuggestions();
-        } else {
-            if (mLastComposedWord.canRevertCommit() && inputTransaction.getSettingsValues().mBackspaceRevertsAutocorrect) {
-                final String lastComposedWord = mLastComposedWord.mTypedWord;
-                revertCommit(inputTransaction);
-                StatsUtils.onRevertAutoCorrect();
-                StatsUtils.onWordCommitUserTyped(lastComposedWord, mWordComposer.isBatchMode());
-                // Restart suggestions when backspacing into a reverted word. This is required for
-                // the final corrected word to be learned, as learning only occurs when suggestions
-                // are active.
-                //
-                // Note: restartSuggestionsOnWordTouchedByCursor is already called for normal
-                // (non-revert) backspace handling.
-                if (inputTransaction.getSettingsValues().needsToLookupSuggestions()
+                if (mLastComposedWord.canRevertCommit() && inputTransaction.getSettingsValues().mBackspaceRevertsAutocorrect) {
+                    final String lastComposedWord = mLastComposedWord.mTypedWord;
+                    revertCommit(inputTransaction);
+                    StatsUtils.onRevertAutoCorrect();
+                    StatsUtils.onWordCommitUserTyped(lastComposedWord, mWordComposer.isBatchMode());
+                    // Restart suggestions when backspacing into a reverted word. This is required for
+                    // the final corrected word to be learned, as learning only occurs when suggestions
+                    // are active.
+                    //
+                    // Note: restartSuggestionsOnWordTouchedByCursor is already called for normal
+                    // (non-revert) backspace handling.
+                    if (inputTransaction.getSettingsValues().needsToLookupSuggestions()
+                            && inputTransaction.getSettingsValues().mSpacingAndPunctuations.mCurrentLanguageHasSpaces) {
+                        restartSuggestionsOnWordTouchedByCursor(inputTransaction.getSettingsValues(), currentKeyboardScript);
+                    }
+                    return;
+                }
+                // todo: this is currently disabled, as it causes inconsistencies with textInput, depending whether the end
+                //  is part of a word (where we start composing) or not (where we end in code below)
+                //  see https://github.com/HeliBorg/HeliBoard/issues/1019
+                //  with better emoji detection on backspace (getFullEmojiAtEnd), this functionality might not be necessary
+                //  -> enable again if there are issues, otherwise delete the code, together with mEnteredText
+                if (false && mEnteredText != null && mConnection.sameAsTextBeforeCursor(mEnteredText)) {
+                    // Cancel multi-character input: remove the text we just entered.
+                    // This is triggered on backspace after a key that inputs multiple characters,
+                    // like the smiley key or the .com key.
+                    mConnection.deleteTextBeforeCursor(mEnteredText.length());
+                    StatsUtils.onDeleteMultiCharInput(mEnteredText.length());
+                    mEnteredText = null;
+                    // If we have mEnteredText, then we know that mHasUncommittedTypedChars == false.
+                    // In addition we know that spaceState is false, and that we should not be
+                    // reverting any autocorrect at this point. So we can safely return.
+                    return;
+                }
+                if (SpaceState.DOUBLE == inputTransaction.getSpaceState()) {
+                    cancelDoubleSpacePeriodCountdown();
+                    if (mConnection.revertDoubleSpacePeriod(inputTransaction.getSettingsValues().mSpacingAndPunctuations)) {
+                        // No need to reset mSpaceState, it has already be done (that's why we
+                        // receive it as a parameter)
+                        inputTransaction.setRequiresUpdateSuggestions();
+                        mWordComposer.setCapitalizedModeAtStartComposingTime(CapsMode.OFF);
+                        StatsUtils.onRevertDoubleSpacePeriod();
+                        return;
+                    }
+                } else if (SpaceState.SWAP_PUNCTUATION == inputTransaction.getSpaceState()) {
+                    if (mConnection.revertSwapPunctuation()) {
+                        StatsUtils.onRevertSwapPunctuation();
+                        // Likewise
+                        return;
+                    }
+                }
+
+                boolean hasUnlearnedWordBeingDeleted = false;
+
+                // No cancelling of commit/double space/swap: we have a regular backspace.
+                // We should backspace one char and restart suggestion if at the end of a word.
+                if (mConnection.hasSelection()) {
+                    // If there is a selection, remove it.
+                    // We also need to unlearn the selected text.
+                    final CharSequence selection = mConnection.getSelectedText(0 /* 0 for no styles */);
+                    if (!TextUtils.isEmpty(selection)) {
+                        unlearnWord(selection.toString(), inputTransaction.getSettingsValues(), DictionaryFacilitator.UnlearnEvent.BACKSPACE);
+                        hasUnlearnedWordBeingDeleted = true;
+                    }
+                    final int numCharsDeleted = mConnection.getExpectedSelectionEnd()
+                            - mConnection.getExpectedSelectionStart();
+                    mConnection.setSelection(mConnection.getExpectedSelectionEnd(),
+                            mConnection.getExpectedSelectionEnd());
+                    mConnection.deleteTextBeforeCursor(numCharsDeleted);
+                    StatsUtils.onBackspaceSelectedText(numCharsDeleted);
+                } else {
+                    // There is no selection, just delete one character.
+                    if (inputTransaction.getSettingsValues().mInputAttributes.isTypeNull()
+                            || Constants.NOT_A_CURSOR_POSITION == mConnection.getExpectedSelectionEnd()) {
+                        // There are three possible reasons to send a key event: either the field has
+                        // type TYPE_NULL, in which case the keyboard should send events, or we are
+                        // running in backward compatibility mode, or we don't know the cursor position.
+                        // Before Jelly bean, the keyboard would simulate a hardware keyboard event on
+                        // pressing enter or delete. This is bad for many reasons (there are race
+                        // conditions with commits) but some applications are relying on this behavior
+                        // so we continue to support it for older apps, so we retain this behavior if
+                        // the app has target SDK < JellyBean.
+                        // As for the case where we don't know the cursor position, it can happen
+                        // because of bugs in the framework. But the framework should know, so the next
+                        // best thing is to leave it to whatever it thinks is best.
+                        sendDownUpKeyEvent(KeyEvent.KEYCODE_DEL);
+                        int totalDeletedLength = 1;
+                        if (event.isKeyRepeat() && mDeleteCount > Constants.DELETE_ACCELERATE_AT) {
+                            // If this is an accelerated (i.e., double) deletion, then we need to
+                            // consider unlearning here because we may have already reached
+                            // the previous word, and will lose it after next deletion.
+                            hasUnlearnedWordBeingDeleted |= unlearnWordBeingDeleted(
+                                    inputTransaction.getSettingsValues(), currentKeyboardScript);
+                            sendDownUpKeyEvent(KeyEvent.KEYCODE_DEL);
+                            totalDeletedLength++;
+                        }
+                        StatsUtils.onBackspacePressed(totalDeletedLength);
+                    } else {
+                        final int codePointBeforeCursor = mConnection.getCodePointBeforeCursor();
+                        if (codePointBeforeCursor == Constants.NOT_A_CODE) {
+                            // HACK for backward compatibility with broken apps that haven't realized
+                            // yet that hardware keyboards are not the only way of inputting text.
+                            // Nothing to delete before the cursor. We should not do anything, but many
+                            // broken apps expect something to happen in this case so that they can
+                            // catch it and have their broken interface react. If you need the keyboard
+                            // to do this, you're doing it wrong -- please fix your app.
+                            //  To make this more interesting, web browsers, and apps that are basically
+                            // browsers under the hood, in too many cases don't understand "deleteSurroundingText".
+                            // So we try to send a backspace keypress instead.
+                            if ((getCurrentInputEditorInfo().inputType & InputType.TYPE_MASK_VARIATION)
+                                    == InputType.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT)
+                                sendDownUpKeyEvent(KeyEvent.KEYCODE_DEL);
+                            else mConnection.deleteTextBeforeCursor(1);
+                            // TODO: Add a new StatsUtils method onBackspaceWhenNoText()
+                            return;
+                        }
+                        int lengthToDelete = mConnection.getCharCountToDeleteBeforeCursor();
+                        mConnection.deleteTextBeforeCursor(lengthToDelete);
+                        int totalDeletedLength = lengthToDelete;
+                        if (event.isKeyRepeat() && mDeleteCount > Constants.DELETE_ACCELERATE_AT) {
+                            // If this is an accelerated (i.e., double) deletion, then we need to
+                            // consider unlearning here because we may have already reached
+                            // the previous word, and will lose it after next deletion.
+                            hasUnlearnedWordBeingDeleted |= unlearnWordBeingDeleted(
+                                    inputTransaction.getSettingsValues(), currentKeyboardScript);
+                            final int codePointBeforeCursorToDeleteAgain =
+                                    mConnection.getCodePointBeforeCursor();
+                            if (codePointBeforeCursorToDeleteAgain != Constants.NOT_A_CODE) {
+                                int lengthToDeleteAgain = mConnection.getCharCountToDeleteBeforeCursor();
+                                mConnection.deleteTextBeforeCursor(lengthToDeleteAgain);
+                                totalDeletedLength += lengthToDeleteAgain;
+                            }
+                        }
+                        StatsUtils.onBackspacePressed(totalDeletedLength);
+                    }
+                }
+                if (!hasUnlearnedWordBeingDeleted) {
+                    // Consider unlearning the word being deleted (if we have not done so already).
+                    unlearnWordBeingDeleted(
+                            inputTransaction.getSettingsValues(), currentKeyboardScript);
+                }
+                if (mConnection.hasSlowInputConnection()) {
+                    mSuggestionStripViewAccessor.setNeutralSuggestionStrip();
+                } else if (inputTransaction.getSettingsValues().needsToLookupSuggestions()
                         && inputTransaction.getSettingsValues().mSpacingAndPunctuations.mCurrentLanguageHasSpaces) {
                     restartSuggestionsOnWordTouchedByCursor(inputTransaction.getSettingsValues(), currentKeyboardScript);
                 }
-                return;
             }
-            // todo: this is currently disabled, as it causes inconsistencies with textInput, depending whether the end
-            //  is part of a word (where we start composing) or not (where we end in code below)
-            //  see https://github.com/HeliBorg/HeliBoard/issues/1019
-            //  with better emoji detection on backspace (getFullEmojiAtEnd), this functionality might not be necessary
-            //  -> enable again if there are issues, otherwise delete the code, together with mEnteredText
-            if (false && mEnteredText != null && mConnection.sameAsTextBeforeCursor(mEnteredText)) {
-                // Cancel multi-character input: remove the text we just entered.
-                // This is triggered on backspace after a key that inputs multiple characters,
-                // like the smiley key or the .com key.
-                mConnection.deleteTextBeforeCursor(mEnteredText.length());
-                StatsUtils.onDeleteMultiCharInput(mEnteredText.length());
-                mEnteredText = null;
-                // If we have mEnteredText, then we know that mHasUncommittedTypedChars == false.
-                // In addition we know that spaceState is false, and that we should not be
-                // reverting any autocorrect at this point. So we can safely return.
-                return;
-            }
-            if (SpaceState.DOUBLE == inputTransaction.getSpaceState()) {
-                cancelDoubleSpacePeriodCountdown();
-                if (mConnection.revertDoubleSpacePeriod(inputTransaction.getSettingsValues().mSpacingAndPunctuations)) {
-                    // No need to reset mSpaceState, it has already be done (that's why we
-                    // receive it as a parameter)
-                    inputTransaction.setRequiresUpdateSuggestions();
-                    mWordComposer.setCapitalizedModeAtStartComposingTime(CapsMode.OFF);
-                    StatsUtils.onRevertDoubleSpacePeriod();
-                    return;
-                }
-            } else if (SpaceState.SWAP_PUNCTUATION == inputTransaction.getSpaceState()) {
-                if (mConnection.revertSwapPunctuation()) {
-                    StatsUtils.onRevertSwapPunctuation();
-                    // Likewise
-                    return;
-                }
-            }
-
-            boolean hasUnlearnedWordBeingDeleted = false;
-
-            // No cancelling of commit/double space/swap: we have a regular backspace.
-            // We should backspace one char and restart suggestion if at the end of a word.
-            if (mConnection.hasSelection()) {
-                // If there is a selection, remove it.
-                // We also need to unlearn the selected text.
-                final CharSequence selection = mConnection.getSelectedText(0 /* 0 for no styles */);
-                if (!TextUtils.isEmpty(selection)) {
-                    unlearnWord(selection.toString(), inputTransaction.getSettingsValues(), DictionaryFacilitator.UnlearnEvent.BACKSPACE);
-                    hasUnlearnedWordBeingDeleted = true;
-                }
-                final int numCharsDeleted = mConnection.getExpectedSelectionEnd()
-                        - mConnection.getExpectedSelectionStart();
-                mConnection.setSelection(mConnection.getExpectedSelectionEnd(),
-                        mConnection.getExpectedSelectionEnd());
-                mConnection.deleteTextBeforeCursor(numCharsDeleted);
-                StatsUtils.onBackspaceSelectedText(numCharsDeleted);
-            } else {
-                // There is no selection, just delete one character.
-                if (inputTransaction.getSettingsValues().mInputAttributes.isTypeNull()
-                        || Constants.NOT_A_CURSOR_POSITION == mConnection.getExpectedSelectionEnd()) {
-                    // There are three possible reasons to send a key event: either the field has
-                    // type TYPE_NULL, in which case the keyboard should send events, or we are
-                    // running in backward compatibility mode, or we don't know the cursor position.
-                    // Before Jelly bean, the keyboard would simulate a hardware keyboard event on
-                    // pressing enter or delete. This is bad for many reasons (there are race
-                    // conditions with commits) but some applications are relying on this behavior
-                    // so we continue to support it for older apps, so we retain this behavior if
-                    // the app has target SDK < JellyBean.
-                    // As for the case where we don't know the cursor position, it can happen
-                    // because of bugs in the framework. But the framework should know, so the next
-                    // best thing is to leave it to whatever it thinks is best.
-                    sendDownUpKeyEvent(KeyEvent.KEYCODE_DEL);
-                    int totalDeletedLength = 1;
-                    if (mDeleteCount > Constants.DELETE_ACCELERATE_AT) {
-                        // If this is an accelerated (i.e., double) deletion, then we need to
-                        // consider unlearning here because we may have already reached
-                        // the previous word, and will lose it after next deletion.
-                        hasUnlearnedWordBeingDeleted |= unlearnWordBeingDeleted(
-                                inputTransaction.getSettingsValues(), currentKeyboardScript);
-                        sendDownUpKeyEvent(KeyEvent.KEYCODE_DEL);
-                        totalDeletedLength++;
-                    }
-                    StatsUtils.onBackspacePressed(totalDeletedLength);
-                } else {
-                    final int codePointBeforeCursor = mConnection.getCodePointBeforeCursor();
-                    if (codePointBeforeCursor == Constants.NOT_A_CODE) {
-                        // HACK for backward compatibility with broken apps that haven't realized
-                        // yet that hardware keyboards are not the only way of inputting text.
-                        // Nothing to delete before the cursor. We should not do anything, but many
-                        // broken apps expect something to happen in this case so that they can
-                        // catch it and have their broken interface react. If you need the keyboard
-                        // to do this, you're doing it wrong -- please fix your app.
-                        //  To make this more interesting, web browsers, and apps that are basically
-                        // browsers under the hood, in too many cases don't understand "deleteSurroundingText".
-                        // So we try to send a backspace keypress instead.
-                        if ((getCurrentInputEditorInfo().inputType & InputType.TYPE_MASK_VARIATION)
-                                == InputType.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT)
-                            sendDownUpKeyEvent(KeyEvent.KEYCODE_DEL);
-                        else mConnection.deleteTextBeforeCursor(1);
-                        // TODO: Add a new StatsUtils method onBackspaceWhenNoText()
-                        return;
-                    }
-                    int lengthToDelete = mConnection.getCharCountToDeleteBeforeCursor();
-                    mConnection.deleteTextBeforeCursor(lengthToDelete);
-                    int totalDeletedLength = lengthToDelete;
-                    if (mDeleteCount > Constants.DELETE_ACCELERATE_AT) {
-                        // If this is an accelerated (i.e., double) deletion, then we need to
-                        // consider unlearning here because we may have already reached
-                        // the previous word, and will lose it after next deletion.
-                        hasUnlearnedWordBeingDeleted |= unlearnWordBeingDeleted(
-                                inputTransaction.getSettingsValues(), currentKeyboardScript);
-                        final int codePointBeforeCursorToDeleteAgain =
-                                mConnection.getCodePointBeforeCursor();
-                        if (codePointBeforeCursorToDeleteAgain != Constants.NOT_A_CODE) {
-                            int lengthToDeleteAgain = mConnection.getCharCountToDeleteBeforeCursor();
-                            mConnection.deleteTextBeforeCursor(lengthToDeleteAgain);
-                            totalDeletedLength += lengthToDeleteAgain;
-                        }
-                    }
-                    StatsUtils.onBackspacePressed(totalDeletedLength);
-                }
-            }
-            if (!hasUnlearnedWordBeingDeleted) {
-                // Consider unlearning the word being deleted (if we have not done so already).
-                unlearnWordBeingDeleted(
-                        inputTransaction.getSettingsValues(), currentKeyboardScript);
-            }
-            if (mConnection.hasSlowInputConnection()) {
-                mSuggestionStripViewAccessor.setNeutralSuggestionStrip();
-            } else if (inputTransaction.getSettingsValues().needsToLookupSuggestions()
-                    && inputTransaction.getSettingsValues().mSpacingAndPunctuations.mCurrentLanguageHasSpaces) {
-                restartSuggestionsOnWordTouchedByCursor(inputTransaction.getSettingsValues(), currentKeyboardScript);
-            }
+        } finally {
+            mConnection.endBatchEdit();
         }
     }
 
@@ -2115,6 +2151,7 @@ public final class InputLogic {
      * @return whether it's fine to resume suggestions on this word.
      */
     private static boolean isResumableWord(final SettingsValues settings, final String word) {
+        if (TextUtils.isEmpty(word)) return false;
         final int firstCodePoint = word.codePointAt(0);
         return settings.isWordCodePoint(firstCodePoint)
                 && Constants.CODE_SINGLE_QUOTE != firstCodePoint

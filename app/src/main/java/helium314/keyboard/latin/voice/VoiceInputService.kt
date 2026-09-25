@@ -11,7 +11,10 @@ import android.os.Message
 import android.os.Messenger
 import android.os.RemoteException
 import helium314.keyboard.latin.database.VoiceReplacementDao
+import helium314.keyboard.latin.settings.Defaults
+import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.LogCatcher
+import helium314.keyboard.latin.utils.prefs
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -250,8 +253,17 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
                         }
                     }
 
-                    // 2-thread preview inference with dynamic audio_ctx
-                    val rawResult = whisperEngine.transcribe(samples, numThreads = 2)
+                    val prefs = applicationContext.prefs()
+                    val suppressAnnotations = prefs.getBoolean(Settings.PREF_VOICE_SUPPRESS_ANNOTATIONS, true)
+
+                    // 2-thread preview inference with dynamic audio_ctx and fast greedy sampling
+                    val rawResult = whisperEngine.transcribe(
+                        audioSamples = samples,
+                        numThreads = 2,
+                        useBeamSearch = false,
+                        initialPrompt = null,
+                        suppressAnnotations = suppressAnnotations
+                    )
                     if (!rawResult.isNullOrBlank()) {
                         val replacedText = VoiceReplacementDao.getInstance(applicationContext).applyReplacements(rawResult)
                         notifyTranscriptionPreview(replacedText)
@@ -299,10 +311,34 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
                         }
                     }
 
-                    val rawResult = whisperEngine.transcribe(samples)
+                    val prefs = applicationContext.prefs()
+                    val suppressAnnotations = prefs.getBoolean(Settings.PREF_VOICE_SUPPRESS_ANNOTATIONS, Defaults.PREF_VOICE_SUPPRESS_ANNOTATIONS)
+                    val useBeamSearch = prefs.getBoolean(Settings.PREF_VOICE_USE_BEAM_SEARCH, Defaults.PREF_VOICE_USE_BEAM_SEARCH)
+                    val verboseMode = prefs.getBoolean(Settings.PREF_VOICE_VERBOSE_MODE, Defaults.PREF_VOICE_VERBOSE_MODE)
+
+                    // Prompt-based vocabulary boosting from custom replacements
+                    val vocabList = VoiceReplacementDao.getInstance(applicationContext).getAll()
+                    val initialPrompt = if (vocabList.isNotEmpty()) {
+                        vocabList.map { it.replacementWord }.distinct().take(30).joinToString(", ")
+                    } else null
+
+                    if (verboseMode) {
+                        LogCatcher.i(TAG, "Inference telemetry: samples=${samples.size}, durationMs=${samples.size * 1000 / 16000}, beamSearch=$useBeamSearch, suppressAnnotations=$suppressAnnotations, promptVocabCount=${vocabList.size}")
+                    }
+
+                    val rawResult = whisperEngine.transcribe(
+                        audioSamples = samples,
+                        numThreads = minOf(4, Runtime.getRuntime().availableProcessors()),
+                        useBeamSearch = useBeamSearch,
+                        initialPrompt = initialPrompt,
+                        suppressAnnotations = suppressAnnotations
+                    )
                     if (!rawResult.isNullOrBlank()) {
                         val replacedText = VoiceReplacementDao.getInstance(applicationContext).applyReplacements(rawResult)
                         LogCatcher.i(TAG, "Transcription finalized: ${replacedText.length} chars (sanitized)")
+                        if (verboseMode) {
+                            LogCatcher.i(TAG, "Transcription text: \"$replacedText\"")
+                        }
                         notifyFinalTranscription(replacedText)
                     } else {
                         LogCatcher.i(TAG, "Inference returned empty result (silence/noise)")
@@ -351,13 +387,25 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
     }
 
     override fun onAudioChunkAvailable(buffer: ShortArray, readSize: Int) {
+        var bufferFull = false
         synchronized(bufferLock) {
             val maxToAdd = minOf(readSize, MAX_SPEECH_SAMPLES - audioBuffer.size)
             for (i in 0 until maxToAdd) {
                 audioBuffer.add(buffer[i] / 32768.0f)
             }
+            if (audioBuffer.size >= MAX_SPEECH_SAMPLES) {
+                bufferFull = true
+            }
         }
-        if (currentState == VoiceIpcProtocol.ServiceState.RECORDING) {
+
+        if (bufferFull) {
+            val prefs = applicationContext.prefs()
+            val continuous = prefs.getBoolean(Settings.PREF_VOICE_CONTINUOUS_STREAMING, Defaults.PREF_VOICE_CONTINUOUS_STREAMING)
+            if (continuous) {
+                LogCatcher.i(TAG, "Audio buffer reached 30s threshold, auto-chunking continuous speech segment")
+                triggerInference()
+            }
+        } else if (currentState == VoiceIpcProtocol.ServiceState.RECORDING) {
             triggerInterimPreviewInference()
         }
     }

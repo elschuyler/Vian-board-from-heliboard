@@ -61,7 +61,7 @@ fun createInputMethodPickerDialog(latinIme: LatinIME, richImm: RichInputMethodMa
         items.add(SpannableStringBuilder().append(title).append(subtitle))
     }
 
-    val dialog = AlertDialog.Builder(getPlatformDialogThemeContext(latinIme))
+    val builder = AlertDialog.Builder(getPlatformDialogThemeContext(latinIme))
         .setTitle(R.string.select_input_method)
         .setSingleChoiceItems(items.toTypedArray(), currentSubtypeIndex) { di, i ->
             di.dismiss()
@@ -73,7 +73,15 @@ fun createInputMethodPickerDialog(latinIme: LatinIME, richImm: RichInputMethodMa
             else
                 latinIme.switchInputMethod(imi.id)
         }
-        .create()
+
+    if (latinIme.isLiteMode && latinIme.dictionaryFacilitator.isSecondaryDropped) {
+        builder.setPositiveButton(R.string.restore_secondary_language_action) { di, _ ->
+            di.dismiss()
+            latinIme.restoreSecondaryDictionaries()
+        }
+    }
+
+    val dialog = builder.create()
 
     val window = dialog.window
     val layoutParams = window?.attributes

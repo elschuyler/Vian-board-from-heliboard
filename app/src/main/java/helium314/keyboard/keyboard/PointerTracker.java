@@ -1077,7 +1077,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         // Release the last pressed key.
         setReleasedKeyGraphics(currentKey, true);
 
-        if (mInHorizontalSwipe && currentKey.getCode() == KeyCode.DELETE) {
+        if (mInHorizontalSwipe && currentKey != null && currentKey.getCode() == KeyCode.DELETE) {
             sListener.onUpWithDeletePointerActive();
         }
 
@@ -1182,6 +1182,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         }
         if (code == KeyCode.SYMBOL_ALPHA) {
             cancelKeyTracking();
+            mIsTrackingForActionDisabled = true;
             sListener.onReleaseKey(code, false);
             sListener.onLongPressAlphaSymbolForNumpad();
             return;
@@ -1297,8 +1298,8 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     private int getLongPressTimeout(int code) {
         int longpressTimeout = Settings.getValues().mKeyLongpressTimeout;
         return switch (code) {
-            case Constants.CODE_SPACE, KeyCode.SHIFT, KeyCode.SYMBOL_ALPHA
-                // We use slightly longer timeout for space, shift-lock, and the numpad long-press.
+            case Constants.CODE_SPACE, KeyCode.SHIFT
+                // We use slightly longer timeout for space and shift-lock.
                 -> longpressTimeout * 3 / 2
             ;
             default -> mIsInSlidingKeyInput

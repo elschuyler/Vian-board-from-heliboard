@@ -266,6 +266,66 @@
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: Ready for on-device manual QA.
 
+---
+
+### Receipt Entry: Phase 4 - Backspace Word Resumption & Input Race Condition Fix
+- **Timestamp**: 2026-09-19T10:45:00-07:00
+- **Summary of request**: Implement word resumption state machine on backspace, fix "helhello" text duplication race condition, and enforce atomic batch edit transactions on backspace.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/latin/RichInputConnection.java`
+  - `app/src/main/java/helium314/keyboard/latin/inputlogic/InputLogic.java`
+  - `app/src/test/java/helium314/keyboard/latin/InputLogicTest.kt`
+  - `receipts/RECEIPTS_002.md`
+  - `BLUEPRINT.md`
+- **What was actually done**:
+  1. In `RichInputConnection.java`, introduced `mSelectionUpdateGeneration` monotonically incremented across mutating operations (`beginBatchEdit`, `endBatchEdit`, `resetCachesUponCursorMoveAndReturnSuccess`, `commitText`, `deleteTextBeforeCursor`, `setComposingRegion`, `setComposingText`, `setSelection`).
+  2. Added `isBatchEdit()` and `getSelectionUpdateGeneration()` to `RichInputConnection.java`.
+  3. Hardened `isBelatedExpectedUpdate()` with validation to prevent negative or inverted composing spans from improperly invalidating expected updates.
+  4. In `InputLogic.java` (`onUpdateSelection`), added an early return check `if (mConnection.isBatchEdit()) return expectCursorMove;` to prevent intermediary asynchronous selection events dispatched by the system IME connection during active batch operations from triggering premature composing resets or duplicating words.
+  5. In `InputLogic.java` (`handleBackspaceEvent`), enclosed the entire backspace execution pipeline within `mConnection.beginBatchEdit()` and `try { ... } finally { mConnection.endBatchEdit(); }` to guarantee atomicity and prevent race conditions when deleting characters and resuming words.
+  6. In `InputLogic.java` (`isResumableWord`), added a guard for empty strings (`TextUtils.isEmpty(word)`) to prevent `StringIndexOutOfBoundsException`.
+  7. In `InputLogicTest.kt`, added unit test cases `deleteAndContinueDeletingInResumedWord` and `deleteAtEndOfUncomposedWordResumes` verifying backspace resumption and continuous deletion without text duplication or ghost composing states.
+- **How it was verified**: Local build verified via `gradle :app:testDebugUnitTest` and `compile_applet` (succeeded cleanly).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device verification.
+
+---
+
+### Receipt Entry: Phase 23 - Privacy Vault & Dictionary Streamlining
+- **Timestamp**: 2026-09-24T10:36:00-07:00
+- **Summary of request**: Implement isolated Privacy Vault in heliboard.db, prune TYPE_CONTACTS and TYPE_APPS from active dictionary lookups, connect masked typing suggestions and pattern unlock flow, and build full Material 3 Privacy Vault settings screen.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/latin/database/VaultDao.kt`
+  - `app/src/main/java/helium314/keyboard/latin/database/Database.kt`
+  - `app/src/main/java/helium314/keyboard/latin/SuggestedWords.java`
+  - `app/src/main/java/helium314/keyboard/latin/DictionaryFacilitator.java`
+  - `app/src/main/java/helium314/keyboard/latin/DictionaryFacilitatorImpl.kt`
+  - `app/src/main/java/helium314/keyboard/latin/Suggest.kt`
+  - `app/src/main/java/helium314/keyboard/latin/LatinIME.java`
+  - `app/src/main/java/helium314/keyboard/latin/inputlogic/InputLogic.java`
+  - `app/src/main/java/helium314/keyboard/settings/screens/PrivacyVaultScreen.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/PrivacyVaultPlaceholderScreen.kt` (deleted)
+  - `app/src/main/java/helium314/keyboard/settings/SettingsNavHost.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/SecurityScreen.kt`
+  - `app/src/main/res/values/strings.xml`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_002.md`
+- **What was actually done**:
+  1. Created `VaultDao.kt` for `vault_entries` table in `heliboard.db` (`_id`, `SHORTCUT`, `PHRASE`, `NOTES`, `TIMESTAMP`), with fast in-memory RAM cache ($O(1)$) and `maskPhrase` shoulder-surfing protection.
+  2. Bumped `Database.kt` to version 6 with table creation in `onCreate`, migration in `onUpgrade`, and database backup restoration logic.
+  3. Added `SuggestedWordInfo.KIND_VAULT_ENTRY = 11` in `SuggestedWords.java`.
+  4. Streamlined `DictionaryFacilitator.java` and `DictionaryFacilitatorImpl.kt` by permanently removing `TYPE_CONTACTS` and `TYPE_APPS` from active lookup arrays, subdict creation, and settings queries, eliminating redundant background checks and reducing keystroke latency.
+  5. In `Suggest.kt`, integrated instant shortcut matching against `VaultDao` cache and injected masked suggestion pills (`🔒 jo****om`) at top suggestion strip priority.
+  6. In `LatinIME.java`, intercepted vault suggestion clicks to verify active pattern session via `VaultSessionManager.isPrivacySessionValid()`, presenting `mKeyboardSwitcher.showPatternUnlockView` when session is expired.
+  7. In `InputLogic.java`, directly committed vault phrases and bypassed `performAdditionToUserHistoryDictionary` to enforce zero-learning in predictive models.
+  8. Created `PrivacyVaultScreen.kt` with pattern unlock challenge gate, Material 3 search filtering, plaintext peek toggle, shortcut badges, and Add/Edit/Delete dialogs.
+  9. Routed `PrivacyVaultScreen` in `SettingsNavHost.kt`, updated `SecurityScreen.kt` description, and deleted obsolete placeholder screen.
+- **How it was verified**: Local build verified via `compile_applet` (succeeded cleanly).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device testing.
+
+
+
 
 
 

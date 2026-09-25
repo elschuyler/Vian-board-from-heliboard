@@ -14,6 +14,7 @@ import android.view.inputmethod.InputMethodSubtype
 import helium314.keyboard.compat.locale
 import helium314.keyboard.latin.common.Constants
 import helium314.keyboard.latin.common.LocaleUtils.getBestMatch
+import helium314.keyboard.latin.settings.Defaults
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.LanguageOnSpacebarUtils
 import helium314.keyboard.latin.utils.Log
@@ -59,9 +60,9 @@ class RichInputMethodManager private constructor() {
             if (shortcuts.isNotEmpty()) return true
             if (!isInitializedInternal) return false
             return try {
-                context.prefs().getBoolean(Settings.PREF_VOICE_INPUT_ENABLED, false)
+                context.prefs().getBoolean(Settings.PREF_VOICE_INPUT_ENABLED, Defaults.PREF_VOICE_INPUT_ENABLED)
             } catch (_: Exception) {
-                false
+                true
             }
         }
 

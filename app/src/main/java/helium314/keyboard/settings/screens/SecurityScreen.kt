@@ -60,7 +60,7 @@ fun SecurityScreen(
                 PreferenceCategory(title = "Vault Modules")
                 Preference(
                     name = "Privacy Vault",
-                    description = "Quick private phrases & personal dictionary twin (Coming in Phase 23)",
+                    description = "Quick private phrases, shortcuts & credentials (Isolated & Protected)",
                     onClick = onClickPrivacyVault,
                     icon = R.drawable.ic_dictionary
                 ) { NextScreenIcon() }
