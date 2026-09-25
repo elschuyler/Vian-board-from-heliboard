@@ -295,6 +295,21 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
     - Interactive search filtering, masked/plaintext toggle ("Peek" button), shortcut pills, notes display, and Add/Edit/Delete dialogs.
     - Updated `SecurityScreen.kt` description and added string resources.
 
+- **Phase 30 & 31: Input IPC Resilience, Lifecycle Reclamation & ?123 Fix [COMPLETED]**:
+  - **?123 vs ABC Long-Press Inversion Fix (`PointerTracker.java`, `KeyboardSwitcher.java`)**:
+    - Evaluated `key.getLabel()` in `PointerTracker.java` before down-sliding transitions. If the key label contains `"123"`/`"?"`, properly routes to `onLongPressAlphaSymbolForNumpad()`.
+    - Removed faulty `!keyboard.mId.getElement().isAlphabet()` check in `KeyboardSwitcher.java`, allowing `?123` to reliably trigger Security Vault while `ABC` key behaves normally.
+  - **Input IPC Stability & Space/Backspace Hardware Fallback (`RichInputConnection.java`)**:
+    - Added batch edit watchdog timer in `isBatchEdit()` / `forceResetBatchEdit()` to detect and auto-recover from IPC operations stalled > 1000ms.
+    - Added direct hardware key event fallbacks (`sendDownUpKeyEvent` with `KEYCODE_SPACE` and `KEYCODE_DEL`) to guarantee that space and backspace never freeze even if a target app's `InputConnection` hangs or disconnects.
+  - **Log Keeper Active Subsystems Typography Fix (`LogKeeperActivity.kt`)**:
+    - Adjusted row weights (`weight(0.55f)` on title, `weight(0.45f)` on status) and applied `TextOverflow.Ellipsis` with single-line constraint to prevent status strings from crushing component names into 1-character vertical columns.
+  - **Ultra-Lightweight Compose Teardown (`SettingsActivity.kt`, `LogKeeperActivity.kt`, `AndroidManifest.xml`, `LatinIME.java`)**:
+    - Added `onDestroy()` with explicit `composeView.disposeComposition()`, view removal, and `System.gc()` in both `SettingsActivity` and `LogKeeperActivity` to release Compose node trees from RAM immediately upon leaving settings.
+    - Configured `android:excludeFromRecents="true"` and `android:autoRemoveFromRecents="true"` in `AndroidManifest.xml`.
+    - Added `TRIM_MEMORY_UI_HIDDEN` handling in `LatinIME.java` to trim keyboard switcher caches whenever the keyboard window hides.
+
+
 
 
 

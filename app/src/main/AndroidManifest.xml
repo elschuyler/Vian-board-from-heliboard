@@ -55,6 +55,8 @@ SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
                 android:theme="@style/platformActivityTheme"
                 android:icon="@mipmap/ic_launcher"
                 android:windowSoftInputMode="adjustResize"
+                android:excludeFromRecents="true"
+                android:autoRemoveFromRecents="true"
                 android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -67,6 +69,8 @@ SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
             android:theme="@style/platformActivityTheme"
             android:icon="@mipmap/ic_launcher"
             android:windowSoftInputMode="adjustResize"
+            android:excludeFromRecents="true"
+            android:autoRemoveFromRecents="true"
             android:exported="true">
             <!-- intent filter for opening .dict files -->
             <intent-filter>
@@ -99,6 +103,8 @@ SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
         <activity android:name="helium314.keyboard.settings.LogKeeperActivity"
             android:theme="@style/platformActivityTheme"
             android:label="@string/log_keeper"
+            android:excludeFromRecents="true"
+            android:autoRemoveFromRecents="true"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

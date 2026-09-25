@@ -557,7 +557,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             Log.d(TAG, "onLongPressAlphaSymbol");
         }
         final Keyboard keyboard = getKeyboard();
-        if (keyboard == null || !keyboard.mId.getElement().isAlphabet()) {
+        if (keyboard == null) {
             return;
         }
         if (!VaultSessionManager.INSTANCE.isPatternSet(mLatinIME)) {

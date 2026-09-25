@@ -131,6 +131,7 @@ public final class RichInputConnection implements PrivateCommandPerformer {
     private final InputMethodService mParent;
     private InputConnection mIC;
     private int mNestLevel;
+    private long mBatchEditStartTime = 0;
 
     /**
      * The timestamp of the last slow InputConnection operation
@@ -195,6 +196,7 @@ public final class RichInputConnection implements PrivateCommandPerformer {
     public void beginBatchEdit() {
         mSelectionUpdateGeneration++;
         if (++mNestLevel == 1) {
+            mBatchEditStartTime = SystemClock.uptimeMillis();
             mIC = mParent.getCurrentInputConnection();
             if (isConnected()) {
                 mIC.beginBatchEdit();
@@ -210,14 +212,36 @@ public final class RichInputConnection implements PrivateCommandPerformer {
             return;
         }
         mSelectionUpdateGeneration++;
-        if (--mNestLevel == 0 && isConnected()) {
-            mIC.endBatchEdit();
+        if (--mNestLevel == 0) {
+            mBatchEditStartTime = 0;
+            if (isConnected()) {
+                mIC.endBatchEdit();
+            }
         }
         if (DEBUG_PREVIOUS_TEXT) checkConsistencyForDebug();
     }
 
     public boolean isBatchEdit() {
-        return mNestLevel > 0;
+        if (mNestLevel > 0) {
+            if (SystemClock.uptimeMillis() - mBatchEditStartTime > 1000) {
+                Log.w(TAG, "Watchdog: Batch edit hung for " + (SystemClock.uptimeMillis() - mBatchEditStartTime) + " ms (nestLevel=" + mNestLevel + "). Force resetting.");
+                forceResetBatchEdit();
+                return false;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    public void forceResetBatchEdit() {
+        mNestLevel = 0;
+        mBatchEditStartTime = 0;
+        mIC = mParent.getCurrentInputConnection();
+        if (isConnected()) {
+            try {
+                mIC.endBatchEdit();
+            } catch (Throwable ignored) {}
+        }
     }
 
     public int getSelectionUpdateGeneration() {
@@ -370,6 +394,8 @@ public final class RichInputConnection implements PrivateCommandPerformer {
                 }
             }
             mIC.commitText(mTempObjectForCommitText, newCursorPosition);
+        } else if (" ".equals(text != null ? text.toString() : "")) {
+            sendDownUpKeyEvent(KeyEvent.KEYCODE_SPACE);
         }
     }
 
@@ -606,8 +632,18 @@ public final class RichInputConnection implements PrivateCommandPerformer {
         }
         if (isConnected()) {
             mIC.deleteSurroundingText(beforeLength, 0);
+        } else if (beforeLength > 0) {
+            for (int i = 0; i < beforeLength; i++) {
+                sendDownUpKeyEvent(KeyEvent.KEYCODE_DEL);
+            }
         }
         if (DEBUG_PREVIOUS_TEXT) checkConsistencyForDebug();
+    }
+
+    public void sendDownUpKeyEvent(final int keyCode) {
+        if (mParent instanceof InputMethodService) {
+            ((InputMethodService) mParent).sendDownUpKeyEvents(keyCode);
+        }
     }
 
     public void performEditorAction(final int actionId) {

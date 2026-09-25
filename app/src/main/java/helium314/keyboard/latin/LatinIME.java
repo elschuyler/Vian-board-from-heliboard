@@ -1949,6 +1949,9 @@ public class LatinIME extends InputMethodService implements
             mKeyboardSwitcher.trimMemory();
         }
         switch (level) {
+            case TRIM_MEMORY_UI_HIDDEN -> {
+                mKeyboardSwitcher.trimMemory();
+            }
             case TRIM_MEMORY_RUNNING_LOW, TRIM_MEMORY_RUNNING_CRITICAL, TRIM_MEMORY_COMPLETE -> {
                 KeyboardLayoutSet.Companion.onSystemLocaleChanged(); // clears caches, nothing else
                 mKeyboardSwitcher.trimMemory();

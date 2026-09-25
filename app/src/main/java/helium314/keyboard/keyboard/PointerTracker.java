@@ -1181,10 +1181,14 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
             }
         }
         if (code == KeyCode.SYMBOL_ALPHA) {
+            final String label = key.getLabel();
+            final boolean isQuestion123 = label != null && (label.contains("123") || label.contains("?"));
             cancelKeyTracking();
             mIsTrackingForActionDisabled = true;
             sListener.onReleaseKey(code, false);
-            sListener.onLongPressAlphaSymbolForNumpad();
+            if (isQuestion123) {
+                sListener.onLongPressAlphaSymbolForNumpad();
+            }
             return;
         }
 

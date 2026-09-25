@@ -237,6 +237,20 @@ open class SettingsActivity : ComponentActivity(), SharedPreferences.OnSharedPre
     override fun onSharedPreferenceChanged(prefereces: SharedPreferences?, key: String?) {
         prefChanged()
     }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        (findViewById<android.view.View>(android.R.id.content) as? android.view.ViewGroup)?.let { root ->
+            for (i in 0 until root.childCount) {
+                val child = root.getChildAt(i)
+                if (child is androidx.compose.ui.platform.ComposeView) {
+                    child.disposeComposition()
+                }
+            }
+            root.removeAllViews()
+        }
+        System.gc()
+    }
 }
 
 // duplicate of SettingsActivity so we can launch it when the app icon is disabled in Android 9 and older

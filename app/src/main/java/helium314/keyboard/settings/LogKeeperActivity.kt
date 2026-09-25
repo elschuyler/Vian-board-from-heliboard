@@ -90,6 +90,20 @@ class LogKeeperActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        (findViewById<android.view.View>(android.R.id.content) as? android.view.ViewGroup)?.let { root ->
+            for (i in 0 until root.childCount) {
+                val child = root.getChildAt(i)
+                if (child is androidx.compose.ui.platform.ComposeView) {
+                    child.disposeComposition()
+                }
+            }
+            root.removeAllViews()
+        }
+        System.gc()
+    }
 }
 
 enum class TimeFilter(val label: String, val durationMs: Long?) {
@@ -628,7 +642,7 @@ fun ActiveSubsystemsCard(
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                modifier = Modifier.weight(1f, fill = false)
+                                modifier = Modifier.weight(0.55f, fill = false)
                             ) {
                                 Surface(
                                     shape = RoundedCornerShape(6.dp),
@@ -647,7 +661,9 @@ fun ActiveSubsystemsCard(
                                     text = comp.name,
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                             Text(
@@ -657,7 +673,10 @@ fun ActiveSubsystemsCard(
                                 fontSize = 11.sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.padding(start = 8.dp)
+                                textAlign = TextAlign.End,
+                                modifier = Modifier
+                                    .weight(0.45f, fill = false)
+                                    .padding(start = 8.dp)
                             )
                         }
                     }

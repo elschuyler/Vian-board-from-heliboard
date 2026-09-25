@@ -324,6 +324,35 @@
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: Ready for on-device testing.
 
+---
+
+### Receipt Entry: Recommended Bundle - Input IPC Resilience, Lifecycle Memory Reclamation & ?123 Inversion Fix
+- **Timestamp**: 2026-09-25T14:28:00-07:00
+- **Summary of request**: Implement recommended bundle: fix ?123 vs ABC longpress inversion, add batch edit watchdog and key event fallbacks for space and backspace unfreezing, fix Log Keeper subsystem typography wrap glitch, and implement Compose memory teardown with activity lifecycle cleanup.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/keyboard/PointerTracker.java`
+  - `app/src/main/java/helium314/keyboard/keyboard/KeyboardSwitcher.java`
+  - `app/src/main/java/helium314/keyboard/latin/RichInputConnection.java`
+  - `app/src/main/java/helium314/keyboard/settings/LogKeeperActivity.kt`
+  - `app/src/main/java/helium314/keyboard/settings/SettingsActivity.kt`
+  - `app/src/main/AndroidManifest.xml`
+  - `app/src/main/java/helium314/keyboard/latin/LatinIME.java`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_002.md`
+- **What was actually done**:
+  1. In `PointerTracker.java`, added label inspection `key.getLabel().contains("123")` so that holding `?123` properly routes to `onLongPressAlphaSymbolForNumpad()`, and holding `ABC` stays normal.
+  2. In `KeyboardSwitcher.java`, removed the faulty `!keyboard.mId.getElement().isAlphabet()` check in `onLongPressAlphaSymbolForNumpad()`, allowing `?123` long-press to open the pattern unlock view / security vault smoothly.
+  3. In `RichInputConnection.java`, added a 1000ms watchdog timer `mBatchEditStartTime` with auto-recovery in `isBatchEdit()` and `forceResetBatchEdit()` to prevent hung batch edits from deadlocking keystrokes.
+  4. In `RichInputConnection.java`, added hardware key fallbacks (`sendDownUpKeyEvent`) in `commitText` and `deleteTextBeforeCursor` using `((InputMethodService) mParent).sendDownUpKeyEvents(KeyEvent.KEYCODE_SPACE / KEYCODE_DEL)` to ensure Space and Backspace never freeze.
+  5. In `LogKeeperActivity.kt`, fixed the Active Subsystems row weights (`weight(0.55f)` on title, `weight(0.45f)` on status) and applied `TextOverflow.Ellipsis` with single-line constraint to prevent status strings from crushing component names vertically.
+  6. In `SettingsActivity.kt` and `LogKeeperActivity.kt`, implemented `onDestroy()` teardown invoking `composeView.disposeComposition()`, view removal, and `System.gc()`.
+  7. In `AndroidManifest.xml`, added `android:excludeFromRecents="true"` and `android:autoRemoveFromRecents="true"` to settings activities.
+  8. In `LatinIME.java`, added `TRIM_MEMORY_UI_HIDDEN` handling in `onTrimMemory` to trim keyboard switcher caches when the keyboard is hidden.
+- **How it was verified**: Verified via `compile_applet` (build succeeded cleanly on first attempt).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device verification.
+
+
 
 
 
