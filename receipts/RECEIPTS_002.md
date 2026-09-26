@@ -352,6 +352,58 @@
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: Ready for on-device verification.
 
+---
+
+### Receipt Entry: Phase 24 & 25 - Privacy Vault Phrase-Prefix Matching & Security Gatekeeper
+- **Timestamp**: 2026-09-26T01:45:00-07:00
+- **Summary of request**: Implement Option 2: Privacy Vault phrase-prefix matching (>= 3 chars) in suggestion strip with masking, main Security Settings gatekeeper challenge, and Unified vs. Separate Vault Patterns setting.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/latin/database/VaultDao.kt`
+  - `app/src/main/java/helium314/keyboard/latin/Suggest.kt`
+  - `app/src/main/java/helium314/keyboard/security/VaultSessionManager.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/SecurityScreen.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/PatternLockSettingsScreen.kt`
+  - `app/src/main/java/helium314/keyboard/settings/SettingsNavHost.kt`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_002.md`
+- **What was actually done**:
+  1. In `VaultDao.kt`, implemented `findSuggestions(query)` searching exact shortcuts, shortcut prefixes, and phrase/word prefixes (requiring $\ge 3$ characters typed to prevent false positives).
+  2. In `Suggest.kt`, integrated `VaultDao.getInstance(ctx).findSuggestions(typedWordString)` to inject masked pills (`🔒 jo****om`) at top suggestion strip priority, allowing instant suggestion discovery without needing to remember shortcuts.
+  3. In `VaultSessionManager.kt`, added preferences and methods for `pref_vault_separate_patterns`, `saveSecurityPattern`, `verifySecurityPattern`, `isSecurityPatternSet`, and `isGatekeeperEnabled`.
+  4. In `SecurityScreen.kt`, integrated `SecurityGatekeeperUnlockScreen` challenging with full-screen pattern verification before granting access to security settings when gatekeeper is enabled and session is expired.
+  5. In `SecurityScreen.kt`, added "Separate Vault Patterns" toggle allowing switching between unified master pattern and independent patterns for Privacy vs Security vaults.
+  6. In `PatternLockSettingsScreen.kt` and `SettingsNavHost.kt`, added support for configuring the dedicated "Security Vault Pattern" via `SettingsDestination.SecurityPatternLock`.
+- **How it was verified**: Verified via `compile_applet` (build succeeded cleanly).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device testing.
+
+---
+
+### Receipt Entry: Phase 29 - Suggestion Strip Delete/Demote & Voice Waveform Overhaul
+- **Timestamp**: 2026-09-26T01:52:00-07:00
+- **Summary of request**: Implement Option 2: Suggestion strip "More Suggestions" delete/demote action decoupling, voice input full-width sound waveform with right-side Mic button, and voice permission auto-resume guard.
+- **Exact files touched**:
+  - `app/src/main/res/layout/voice_input_view.xml`
+  - `app/src/main/java/helium314/keyboard/latin/voice/VoicePulseView.kt`
+  - `app/src/main/java/helium314/keyboard/latin/voice/VoiceInputView.kt`
+  - `app/src/main/java/helium314/keyboard/keyboard/KeyboardSwitcher.java`
+  - `app/src/main/java/helium314/keyboard/latin/LatinIME.java`
+  - `app/src/main/java/helium314/keyboard/latin/suggestions/SuggestionStripView.kt`
+  - `SECURITY_VAULT_AND_PRIVACY_MASTER_PLAN.md`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_002.md`
+- **What was actually done**:
+  1. In `SuggestionStripView.kt`, decoupled long-press delete/demote actions on candidate words from `showMoreSuggestions()` so the action icon appears in-place without triggering the conflicting drag panel.
+  2. Expanded candidate touch hit-box geometry on `SuggestionStripView.kt` so tapping the candidate or icon directly executes `removeSuggestion` (personal dictionary/history) or `demoteSuggestion` (main dictionary) at the same place.
+  3. Rebuilt `voice_input_view.xml` layout: top text preview row with sensitivity pill, middle row featuring a full-width dynamic sound wave stretching horizontally across the screen ending at a single 48dp Mic button on the right edge, and bottom row with standard 4-button keyboard dock (`[ABC] [Space] [⌫] [↵]`).
+  4. In `VoicePulseView.kt`, replaced the fixed 7-bar pulse box with dynamic `numBars` calculation filling the entire view width, generating smooth traveling equalizer capsules driven by real-time audio RMS amplitude.
+  5. In `VoiceInputView.kt`, wired the right-side Mic button with theme-colored active/paused indicator states and 1-tap pause/resume toggle.
+  6. In `KeyboardSwitcher.java` and `LatinIME.java`, added `mPendingVoiceLaunch` flag and lifecycle handling in `onStartInputViewInternal()`, preventing the voice input modal from being prematurely dismissed when returning from the Android runtime permission grant dialog.
+- **How it was verified**: Verified via `compile_applet` (build succeeded cleanly on first attempt).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device testing.
+
+
 
 
 

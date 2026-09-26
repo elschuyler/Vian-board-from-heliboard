@@ -103,6 +103,15 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     private int mCurrentOrientation;
     private int mCurrentDpi;
     private boolean mThemeNeedsReload;
+    private boolean mPendingVoiceLaunch = false;
+
+    public void setPendingVoiceLaunch(boolean pending) {
+        mPendingVoiceLaunch = pending;
+    }
+
+    public boolean isPendingVoiceLaunch() {
+        return mPendingVoiceLaunch;
+    }
 
     @SuppressLint("StaticFieldLeak") // this is a keyboard, we want to keep it alive in background
     private static final KeyboardSwitcher sInstance = new KeyboardSwitcher();

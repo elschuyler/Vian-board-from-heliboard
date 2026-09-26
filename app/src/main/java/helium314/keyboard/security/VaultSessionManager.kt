@@ -21,6 +21,11 @@ object VaultSessionManager {
     private const val PREF_PATTERN_SALT = "pref_vault_pattern_salt"
     private const val PREF_PATTERN_HASH = "pref_vault_pattern_hash"
 
+    const val PREF_SEPARATE_PATTERNS = "pref_vault_separate_patterns"
+    const val PREF_REQUIRE_GATEKEEPER = "pref_vault_require_gatekeeper"
+    private const val PREF_SECURITY_PATTERN_SALT = "pref_vault_security_pattern_salt"
+    private const val PREF_SECURITY_PATTERN_HASH = "pref_vault_security_pattern_hash"
+
     // Session durations
     const val PRIVACY_SESSION_DURATION_MS = 5 * 60 * 1000L  // 5 minutes
     const val SECURITY_SESSION_DURATION_MS = 3 * 60 * 1000L // 3 minutes
@@ -39,6 +44,87 @@ object VaultSessionManager {
     fun isPatternSet(context: Context): Boolean {
         val sp = context.prefs()
         return sp.contains(PREF_PATTERN_HASH) && sp.contains(PREF_PATTERN_SALT)
+    }
+
+    fun isSeparatePatternsEnabled(context: Context): Boolean {
+        return context.prefs().getBoolean(PREF_SEPARATE_PATTERNS, false)
+    }
+
+    fun setSeparatePatternsEnabled(context: Context, enabled: Boolean) {
+        context.prefs().edit {
+            putBoolean(PREF_SEPARATE_PATTERNS, enabled)
+            if (!enabled) {
+                remove(PREF_SECURITY_PATTERN_SALT)
+                remove(PREF_SECURITY_PATTERN_HASH)
+            }
+        }
+    }
+
+    fun isGatekeeperEnabled(context: Context): Boolean {
+        return context.prefs().getBoolean(PREF_REQUIRE_GATEKEEPER, true)
+    }
+
+    fun setGatekeeperEnabled(context: Context, enabled: Boolean) {
+        context.prefs().edit {
+            putBoolean(PREF_REQUIRE_GATEKEEPER, enabled)
+        }
+    }
+
+    fun isSecurityPatternSet(context: Context): Boolean {
+        if (!isSeparatePatternsEnabled(context)) {
+            return isPatternSet(context)
+        }
+        val sp = context.prefs()
+        return sp.contains(PREF_SECURITY_PATTERN_HASH) && sp.contains(PREF_SECURITY_PATTERN_SALT)
+    }
+
+    fun saveSecurityPattern(context: Context, pattern: List<Int>): Boolean {
+        if (pattern.size < 4) {
+            LogCatcher.log('W', TAG, "saveSecurityPattern: Pattern too short")
+            return false
+        }
+        try {
+            val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
+            val hash = computeHash(pattern, salt)
+
+            context.prefs().edit {
+                putString(PREF_SECURITY_PATTERN_SALT, salt.toHexString())
+                putString(PREF_SECURITY_PATTERN_HASH, hash.toHexString())
+            }
+            LogCatcher.log('I', TAG, "saveSecurityPattern: Dedicated security vault pattern configured")
+            return true
+        } catch (t: Throwable) {
+            LogCatcher.log('E', TAG, "saveSecurityPattern error: ${t.message}", t)
+            return false
+        }
+    }
+
+    fun verifySecurityPattern(context: Context, pattern: List<Int>): Boolean {
+        if (!isSeparatePatternsEnabled(context) || !isSecurityPatternSet(context)) {
+            return verifyPattern(context, pattern)
+        }
+        val sp = context.prefs()
+        val saltHex = sp.getString(PREF_SECURITY_PATTERN_SALT, null)
+        val storedHashHex = sp.getString(PREF_SECURITY_PATTERN_HASH, null)
+
+        if (saltHex == null || storedHashHex == null) {
+            return verifyPattern(context, pattern)
+        }
+
+        try {
+            val salt = saltHex.hexToByteArray()
+            val inputHash = computeHash(pattern, salt).toHexString()
+            val matches = MessageDigest.isEqual(inputHash.toByteArray(), storedHashHex.toByteArray())
+            if (matches) {
+                LogCatcher.log('I', TAG, "verifySecurityPattern: Security verification succeeded")
+            } else {
+                LogCatcher.log('W', TAG, "verifySecurityPattern: Security verification failed")
+            }
+            return matches
+        } catch (t: Throwable) {
+            LogCatcher.log('E', TAG, "verifySecurityPattern error: ${t.message}", t)
+            return false
+        }
     }
 
     /** Saves a new pattern using salted SHA-256 */

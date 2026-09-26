@@ -83,6 +83,56 @@ class VaultDao private constructor(private val db: Database) {
         cache.filter { it.shortcut.startsWith(trimmed, ignoreCase = true) }
     }
 
+    /**
+     * Finds vault suggestions for the typed query:
+     * 1. Exact shortcut match (highest priority, query length >= 1)
+     * 2. Shortcut prefix match (query length >= 1)
+     * 3. Phrase prefix or word-in-phrase prefix match (requires query length >= 3 to avoid false positives)
+     */
+    fun findSuggestions(query: String): List<VaultEntry> = synchronized(this) {
+        if (query.isBlank()) return emptyList()
+        val trimmed = query.trim()
+        val results = mutableListOf<VaultEntry>()
+        val seenIds = mutableSetOf<Long>()
+
+        // 1. Exact shortcut
+        for (entry in cache) {
+            if (entry.shortcut.equals(trimmed, ignoreCase = true)) {
+                results.add(entry)
+                seenIds.add(entry.id)
+            }
+        }
+
+        // 2. Shortcut prefix
+        for (entry in cache) {
+            if (!seenIds.contains(entry.id) && entry.shortcut.startsWith(trimmed, ignoreCase = true)) {
+                results.add(entry)
+                seenIds.add(entry.id)
+            }
+        }
+
+        // 3. Phrase prefix (>= 3 chars)
+        if (trimmed.length >= 3) {
+            for (entry in cache) {
+                if (!seenIds.contains(entry.id)) {
+                    val p = entry.phrase
+                    if (p.startsWith(trimmed, ignoreCase = true)) {
+                        results.add(entry)
+                        seenIds.add(entry.id)
+                    } else {
+                        val parts = p.split(' ', '.', '_', '-', '@')
+                        if (parts.any { it.startsWith(trimmed, ignoreCase = true) }) {
+                            results.add(entry)
+                            seenIds.add(entry.id)
+                        }
+                    }
+                }
+            }
+        }
+
+        results
+    }
+
     fun addOrUpdate(shortcut: String, phrase: String, notes: String = ""): Long = synchronized(this) {
         val trimmedShortcut = shortcut.trim()
         val trimmedPhrase = phrase.trim()

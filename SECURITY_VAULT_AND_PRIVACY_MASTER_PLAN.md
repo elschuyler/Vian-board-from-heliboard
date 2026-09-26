@@ -238,10 +238,10 @@ This document establishes the end-to-end architecture, technical specifications,
 - [ ] Build `ChosenEntryView.kt` with the 4-action symbol dock (User, Pass, TOTP circular sweep, Dock).
 - [ ] Connect RFC 6238 TOTP live ticker.
 
-### Phase 29: Suggestion Strip "More Suggestions" Delete/Demote & Voice Waveform Overhaul
-- [ ] Wire Delete (Trash) and Demote (Down arrow) actions directly into `MoreSuggestionsView` without touch conflicts.
-- [ ] Rebuild `VoiceInputView.kt` layout with full-width dynamic sound waveform stretching to the right-side Mic button.
-- [ ] Fix the `mPendingVoiceLaunch` flag in `KeyboardSwitcher.java` to prevent instant dismissal on permission grant.
+### Phase 29: Suggestion Strip "More Suggestions" Delete/Demote & Voice Waveform Overhaul [COMPLETED]
+- [x] Wire Delete (Trash) and Demote (Down arrow) actions directly into `SuggestionStripView` with dedicated hit-box and zero drag conflict.
+- [x] Rebuild `VoiceInputView.kt` layout with full-width dynamic sound waveform stretching to the right-side Mic button.
+- [x] Fix the `mPendingVoiceLaunch` flag in `KeyboardSwitcher.java` and `LatinIME.java` to prevent instant dismissal on permission grant.
 
 ### Phase 30: Input IPC Resilience & Log Keeper UI Fix
 - [ ] Add batch edit timeout guard and direct `KeyEvent` fallback for Space and Backspace in `InputLogic.java` and `RichInputConnection.java`.

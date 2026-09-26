@@ -4,6 +4,7 @@ package helium314.keyboard.latin.voice
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -41,6 +42,7 @@ class VoiceInputView @JvmOverloads constructor(
     private lateinit var pulseView: VoicePulseView
     private lateinit var streamingText: TextView
     private lateinit var gainPill: TextView
+    private lateinit var micButton: ImageView
     private var bottomRowKeyboard: MainKeyboardView? = null
 
     private var previewStrip: LinearLayout? = null
@@ -187,6 +189,7 @@ class VoiceInputView @JvmOverloads constructor(
         pulseView = findViewById(R.id.voice_pulse_view)
         streamingText = findViewById(R.id.voice_streaming_text)
         gainPill = findViewById(R.id.voice_gain_pill)
+        micButton = findViewById(R.id.voice_mic_button)
         bottomRowKeyboard = findViewById(R.id.bottom_row_keyboard)
 
         setupListeners()
@@ -208,6 +211,7 @@ class VoiceInputView @JvmOverloads constructor(
 
         streamingText.setOnClickListener { togglePause() }
         pulseView.setOnClickListener { togglePause() }
+        micButton.setOnClickListener { togglePause() }
 
         gainPill.setOnClickListener {
             cycleGain()
@@ -307,6 +311,7 @@ class VoiceInputView @JvmOverloads constructor(
         isVoicePaused = false
         pulseView.pulseState = VoicePulseView.PulseState.LISTENING
         streamingText.setText(R.string.voice_status_listening)
+        updateMicButtonState()
         LogCatcher.i(TAG, "Voice input modal presented (gain=${currentGainMultiplier}x)")
         LogCatcher.markComponentActive("VoiceInputModal", "UI", "Active")
 
@@ -314,6 +319,17 @@ class VoiceInputView @JvmOverloads constructor(
             voiceConnection = VoiceInputConnection(context.applicationContext, connectionListener)
         }
         voiceConnection?.connectAndStart(currentGainMultiplier)
+    }
+
+    private fun updateMicButtonState() {
+        val colors = Settings.getValues().mColors
+        if (isVoicePaused) {
+            micButton.setImageResource(R.drawable.sym_keyboard_voice_off_rounded)
+            micButton.setColorFilter(Color.parseColor("#FBBC05"))
+        } else {
+            micButton.setImageResource(R.drawable.sym_keyboard_voice_rounded)
+            micButton.setColorFilter(colors.get(ColorType.ACTION_KEY_BACKGROUND))
+        }
     }
 
     private fun scheduleCommit(text: String) {
@@ -382,6 +398,7 @@ class VoiceInputView @JvmOverloads constructor(
         isVoicePaused = true
         pulseView.pulseState = VoicePulseView.PulseState.PAUSED
         streamingText.setText(R.string.voice_status_paused)
+        updateMicButtonState()
         LogCatcher.i(TAG, "Voice input paused")
         voiceConnection?.pause()
     }
@@ -391,6 +408,7 @@ class VoiceInputView @JvmOverloads constructor(
         isVoicePaused = false
         pulseView.pulseState = VoicePulseView.PulseState.LISTENING
         streamingText.setText(R.string.voice_status_listening)
+        updateMicButtonState()
         LogCatcher.i(TAG, "Voice input resumed")
         voiceConnection?.resume()
     }
@@ -427,10 +445,9 @@ class VoiceInputView @JvmOverloads constructor(
         val res = context.resources
         val width = ResourceUtils.getKeyboardWidth(context, Settings.getValues()) + paddingLeft + paddingRight
         val density = res.displayMetrics.density
-        val rowHeight = ResourceUtils.getKeyboardHeight(res, Settings.getValues()) / 4
-        val topRowMinHeight = (52 * density).toInt()
-        val compactContentHeight = maxOf((116 * density).toInt(), rowHeight + topRowMinHeight)
-        val totalHeight = compactContentHeight + paddingTop + paddingBottom
+        val keyboardHeight = ResourceUtils.getKeyboardHeight(res, Settings.getValues())
+        val minVoiceHeight = (130 * density).toInt()
+        val totalHeight = maxOf(minVoiceHeight, keyboardHeight) + paddingTop + paddingBottom
 
         val exactWidthSpec = MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY)
         val exactHeightSpec = MeasureSpec.makeMeasureSpec(totalHeight, MeasureSpec.EXACTLY)

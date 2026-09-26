@@ -168,20 +168,20 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
             suggestionsContainer.add(0, typedWordInfo)
             val ctx = mDictionaryFacilitator.context
             if (ctx != null) {
-                val vaultEntry = VaultDao.getInstance(ctx).findByShortcut(typedWordString)
-                if (vaultEntry != null) {
+                val matches = VaultDao.getInstance(ctx).findSuggestions(typedWordString)
+                for ((idx, vaultEntry) in matches.take(2).withIndex()) {
                     val maskedLabel = VaultDao.maskPhrase(vaultEntry.phrase)
                     val vaultInfo = SuggestedWordInfo(
                         vaultEntry.phrase,
                         maskedLabel,
                         "",
-                        SuggestedWordInfo.MAX_SCORE - 1,
+                        SuggestedWordInfo.MAX_SCORE - 1 - idx,
                         SuggestedWordInfo.KIND_VAULT_ENTRY,
                         Dictionary.DICTIONARY_USER_TYPED,
                         SuggestedWordInfo.NOT_AN_INDEX,
                         SuggestedWordInfo.NOT_A_CONFIDENCE
                     )
-                    suggestionsContainer.add(1, vaultInfo)
+                    suggestionsContainer.add(1 + idx, vaultInfo)
                 }
             }
         }

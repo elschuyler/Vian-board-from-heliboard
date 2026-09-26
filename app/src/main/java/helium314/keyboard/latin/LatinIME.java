@@ -890,6 +890,11 @@ public class LatinIME extends InputMethodService implements
         }
 
         switcher.updateKeyboardTheme(mDisplayContext);
+        if (switcher.isPendingVoiceLaunch()) {
+            switcher.setPendingVoiceLaunch(false);
+            switcher.setVoiceInputKeyboard();
+            return;
+        }
         MainKeyboardView mainKeyboardView = switcher.getMainKeyboardView();
         currentSettingsValues = mSettings.getCurrent(); // settingsValues may have been reloaded
 
@@ -1460,12 +1465,17 @@ public class LatinIME extends InputMethodService implements
             return;
         }
         if (!VoicePermissionBridge.INSTANCE.hasRecordAudioPermission(this)) {
+            mKeyboardSwitcher.setPendingVoiceLaunch(true);
             VoicePermissionBridge.INSTANCE.requestRecordAudioPermission(this, granted -> {
                 if (granted) {
-                    mHandler.postDelayed(() -> {
+                    mHandler.post(() -> {
                         requestShowSelf(0);
-                        mKeyboardSwitcher.setVoiceInputKeyboard();
-                    }, 250);
+                        if (!mKeyboardSwitcher.isShowingVoiceInput()) {
+                            mKeyboardSwitcher.setVoiceInputKeyboard();
+                        }
+                    });
+                } else {
+                    mKeyboardSwitcher.setPendingVoiceLaunch(false);
                 }
                 return kotlin.Unit.INSTANCE;
             });

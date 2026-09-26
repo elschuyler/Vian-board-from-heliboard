@@ -47,9 +47,15 @@ import helium314.keyboard.settings.preferences.PreferenceCategory
 @Composable
 fun PatternLockSettingsScreen(
     onClickBack: () -> Unit,
+    forSecurityVault: Boolean = false,
 ) {
     val context = LocalContext.current
-    var isPatternSet by remember { mutableStateOf(VaultSessionManager.isPatternSet(context)) }
+    var isPatternSet by remember {
+        mutableStateOf(
+            if (forSecurityVault) VaultSessionManager.isSecurityPatternSet(context)
+            else VaultSessionManager.isPatternSet(context)
+        )
+    }
     var isSettingNewPattern by remember { mutableStateOf(!isPatternSet) }
 
     // Setup state: 0 = Draw initial pattern, 1 = Confirm pattern
@@ -57,14 +63,19 @@ fun PatternLockSettingsScreen(
     var provisionalPattern by remember { mutableStateOf<List<Int>?>(null) }
     var instructionText by remember {
         mutableStateOf(
-            if (!isPatternSet) "Draw pattern to configure (connect at least 4 dots)"
-            else "Master unlock pattern is active"
+            if (!isPatternSet) {
+                if (forSecurityVault) "Draw dedicated security pattern (connect at least 4 dots)"
+                else "Draw master pattern to configure (connect at least 4 dots)"
+            } else {
+                if (forSecurityVault) "Dedicated security unlock pattern is active"
+                else "Master unlock pattern is active"
+            }
         )
     }
 
     SearchSettingsScreen(
         onClickBack = onClickBack,
-        title = "Pattern Lock",
+        title = if (forSecurityVault) "Security Vault Pattern" else "Pattern Lock",
         settings = emptyList(),
     ) {
         Scaffold(contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)) { innerPadding ->
@@ -89,7 +100,12 @@ fun PatternLockSettingsScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = if (isPatternSet) "Status: Pattern Configured" else "Status: Not Configured",
+                            text = if (isPatternSet) {
+                                if (forSecurityVault) "Status: Security Pattern Configured"
+                                else "Status: Master Pattern Configured"
+                            } else {
+                                "Status: Not Configured"
+                            },
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = if (isPatternSet) {
@@ -101,9 +117,11 @@ fun PatternLockSettingsScreen(
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = if (isPatternSet) {
-                                "Vaults are secured with hardware-backed SHA-256 salted pattern authentication."
+                                if (forSecurityVault) "Dedicated SHA-256 pattern protecting Security Vault, KDBX & Gatekeeper."
+                                else "Vaults are secured with hardware-backed SHA-256 salted pattern authentication."
                             } else {
-                                "Configure a 3x3 pattern to unlock Privacy Vault and Security Vault."
+                                if (forSecurityVault) "Configure a dedicated 3x3 pattern for high security isolation."
+                                else "Configure a 3x3 pattern to unlock Privacy Vault and Security Vault."
                             },
                             style = MaterialTheme.typography.bodyMedium,
                             color = if (isPatternSet) {
@@ -157,12 +175,16 @@ fun PatternLockSettingsScreen(
                                             }
                                         } else if (setupStep == 1) {
                                             if (pattern == provisionalPattern) {
-                                                VaultSessionManager.savePattern(ctx, pattern)
+                                                if (forSecurityVault) {
+                                                    VaultSessionManager.saveSecurityPattern(ctx, pattern)
+                                                } else {
+                                                    VaultSessionManager.savePattern(ctx, pattern)
+                                                }
                                                 isPatternSet = true
                                                 isSettingNewPattern = false
                                                 setupStep = 0
                                                 provisionalPattern = null
-                                                instructionText = "Master pattern successfully saved!"
+                                                instructionText = "Pattern successfully saved!"
                                                 Toast.makeText(ctx, "Pattern saved successfully", Toast.LENGTH_SHORT).show()
                                                 clearPattern()
                                             } else {
@@ -179,21 +201,25 @@ fun PatternLockSettingsScreen(
                                         }
                                     } else {
                                         // Pattern is set, test verification
-                                        val valid = VaultSessionManager.verifyPattern(ctx, pattern)
+                                        val valid = if (forSecurityVault) {
+                                            VaultSessionManager.verifySecurityPattern(ctx, pattern)
+                                        } else {
+                                            VaultSessionManager.verifyPattern(ctx, pattern)
+                                        }
                                         if (valid) {
                                             instructionText = "Pattern verified! Session unlocked."
                                             VaultSessionManager.startSecuritySession()
-                                            Toast.makeText(ctx, "Security Vault (Placeholder: Unlocked)", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(ctx, "Security Vault Unlocked", Toast.LENGTH_SHORT).show()
                                             postDelayed({
                                                 clearPattern()
-                                                instructionText = "Master unlock pattern is active"
+                                                instructionText = if (forSecurityVault) "Dedicated security unlock pattern is active" else "Master unlock pattern is active"
                                             }, 800)
                                         } else {
                                             instructionText = "Incorrect pattern. Try again."
                                             setErrorState()
                                             postDelayed({
                                                 clearPattern()
-                                                instructionText = "Master unlock pattern is active"
+                                                instructionText = if (forSecurityVault) "Dedicated security unlock pattern is active" else "Master unlock pattern is active"
                                             }, 600)
                                         }
                                     }
@@ -226,7 +252,11 @@ fun PatternLockSettingsScreen(
                         OutlinedButton(
                             onClick = {
                                 LogCatcher.log('I', "PatternLockSettings", "User initiated pattern removal")
-                                VaultSessionManager.clearPattern(context)
+                                if (forSecurityVault) {
+                                    VaultSessionManager.setSeparatePatternsEnabled(context, false)
+                                } else {
+                                    VaultSessionManager.clearPattern(context)
+                                }
                                 isPatternSet = false
                                 isSettingNewPattern = true
                                 setupStep = 0

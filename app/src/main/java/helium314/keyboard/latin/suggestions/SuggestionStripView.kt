@@ -405,34 +405,42 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
             val icon = KeyboardIconsSet.instance.getNewDrawable(iconName, context)
                 ?: ContextCompat.getDrawable(context, if (isPersonal) R.drawable.ic_bin_rounded else R.drawable.ic_page_down_rounded)!!
             Settings.getValues().mColors.setColor(icon, ColorType.REMOVE_SUGGESTION_ICON)
-            val w = icon.intrinsicWidth
-            val h = icon.intrinsicHeight
             wordView.setCompoundDrawablesWithIntrinsicBounds(icon, null, null, null)
             wordView.ellipsize = TextUtils.TruncateAt.END
+            val density = resources.displayMetrics.density
+            val minTouchWidth = maxOf(icon.intrinsicWidth * 2.5f, 48f * density)
             val downOk = AtomicBoolean(false)
             wordView.setOnTouchListener { _, motionEvent ->
-                if (motionEvent.action == MotionEvent.ACTION_UP && downOk.get()) {
-                    val x = motionEvent.x
-                    val y = motionEvent.y
-                    if (0 < x && x < w && 0 < y && y < h) {
-                        if (isPersonal) {
-                            removeSuggestion(wordView)
-                        } else {
-                            demoteSuggestion(wordView)
-                        }
-                        wordView.cancelLongPress()
-                        wordView.isPressed = false
-                        return@setOnTouchListener true
-                    }
-                } else if (motionEvent.action == MotionEvent.ACTION_DOWN) {
-                    val x = motionEvent.x
-                    val y = motionEvent.y
-                    if (0 < x && x < w && 0 < y && y < h) {
+                when (motionEvent.action) {
+                    MotionEvent.ACTION_DOWN -> {
                         downOk.set(true)
+                        true
                     }
+                    MotionEvent.ACTION_UP -> {
+                        if (downOk.get()) {
+                            val x = motionEvent.x
+                            val y = motionEvent.y
+                            if (x >= 0 && x <= maxOf(wordView.width.toFloat(), minTouchWidth) && y >= 0 && y <= wordView.height.toFloat()) {
+                                if (isPersonal) {
+                                    removeSuggestion(wordView)
+                                } else {
+                                    demoteSuggestion(wordView)
+                                }
+                                wordView.cancelLongPress()
+                                wordView.isPressed = false
+                                return@setOnTouchListener true
+                            }
+                        }
+                        false
+                    }
+                    MotionEvent.ACTION_CANCEL -> {
+                        downOk.set(false)
+                        false
+                    }
+                    else -> false
                 }
-                false
             }
+            return true
         }
         if (DebugFlags.DEBUG_ENABLED && (isShowingMoreSuggestionPanel || !showMoreSuggestions())) {
             showSourceDict(wordView)

@@ -43,9 +43,7 @@ class VoicePulseView @JvmOverloads constructor(
     private var wavePhase: Float = 0f
     private var waveAnimator: ValueAnimator? = null
 
-    // 7 rounded vertical equalizer bars matching reference design
-    private val numBars = 7
-    private val barWeights = floatArrayOf(0.35f, 0.60f, 0.90f, 1.0f, 0.90f, 0.60f, 0.35f)
+    // Dynamic bar drawing
     private val barRect = RectF()
 
     // Color definitions
@@ -110,25 +108,29 @@ class VoicePulseView @JvmOverloads constructor(
         barPaint.color = barColor
 
         val density = resources.displayMetrics.density
-        val barWidth = 3.2f * density
-        val barSpacing = 2.6f * density
+        val barWidth = 3.5f * density
+        val barSpacing = 3.0f * density
+        val availableWidth = (w - paddingLeft - paddingRight).coerceAtLeast(barWidth)
+        val numBars = maxOf(7, ((availableWidth + barSpacing) / (barWidth + barSpacing)).toInt())
         val totalBarsWidth = numBars * barWidth + (numBars - 1) * barSpacing
-        val startX = (w - totalBarsWidth) / 2f
+        val startX = paddingLeft + (availableWidth - totalBarsWidth) / 2f
         val centerY = h / 2f
         val minBarHeight = barWidth // Pill dot when silent
-        val maxAdditionalHeight = (h * 0.78f) - minBarHeight
+        val maxAdditionalHeight = (h * 0.82f) - minBarHeight
 
         for (i in 0 until numBars) {
             val barX = startX + i * (barWidth + barSpacing)
-            val weight = barWeights[i]
+            val normalizedPos = if (numBars > 1) i.toFloat() / (numBars - 1) else 0.5f
+            val envelope = sin(normalizedPos * Math.PI).toFloat()
+            val weight = 0.4f + 0.6f * envelope
 
             val currentHeight = if (isListening) {
-                // Combine real-time RMS with subtle ambient phase ripple
-                val ambientRipple = (sin(wavePhase + i * 1.1) * 0.15f + 0.15f).toFloat()
+                // Combine real-time RMS with traveling ambient phase ripple
+                val ambientRipple = (sin(wavePhase + i * 0.38) * 0.18f + 0.18f).toFloat()
                 val activeHeightFraction = (smoothedRms * weight + ambientRipple * (1f - smoothedRms)).coerceIn(0f, 1f)
                 minBarHeight + maxAdditionalHeight * activeHeightFraction
             } else if (pulseState == PulseState.PAUSED) {
-                minBarHeight + maxAdditionalHeight * 0.25f * weight
+                minBarHeight + maxAdditionalHeight * 0.22f * weight
             } else {
                 minBarHeight
             }

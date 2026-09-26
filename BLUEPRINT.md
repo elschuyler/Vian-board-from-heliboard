@@ -309,6 +309,35 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
     - Configured `android:excludeFromRecents="true"` and `android:autoRemoveFromRecents="true"` in `AndroidManifest.xml`.
     - Added `TRIM_MEMORY_UI_HIDDEN` handling in `LatinIME.java` to trim keyboard switcher caches whenever the keyboard window hides.
 
+- **Phase 24 & 25: Privacy Vault Phrase-Prefix Matching & Security Gatekeeper [COMPLETED]**:
+  - **Privacy Vault Phrase-Prefix Matching (`VaultDao.kt`, `Suggest.kt`)**:
+    - Implemented `findSuggestions(query)` in `VaultDao.kt` supporting exact shortcuts, shortcut prefixes, and phrase/word prefixes ($\ge 3$ characters typed).
+    - Injected multiple masked pills (`🔒 jo****om`) at top suggestion strip priority in `Suggest.kt`, allowing instant typing discovery without needing to remember exact shortcuts.
+    - Preserved complete zero-learning isolation and shoulder-surfing protection.
+  - **Main Security Settings Gatekeeper (`SecurityScreen.kt`, `VaultSessionManager.kt`)**:
+    - Embedded `SecurityGatekeeperUnlockScreen` into `SecurityScreen.kt`. If a master pattern is configured and gatekeeper is enabled, prompts for a full-screen pattern verification challenge before granting access to security settings.
+    - Added functional toggle "Require unlock for Security Settings" in `SecurityScreen.kt`.
+  - **Unified vs. Separate Vault Patterns (`VaultSessionManager.kt`, `SecurityScreen.kt`, `PatternLockSettingsScreen.kt`, `SettingsNavHost.kt`)**:
+    - Added `pref_vault_separate_patterns`, `pref_vault_security_pattern_salt`, and `pref_vault_security_pattern_hash` to `VaultSessionManager.kt`.
+    - Added "Separate Vault Patterns" switch in `SecurityScreen.kt`, allowing users to toggle between a single unified master pattern and dual independent patterns (Privacy Vault vs Security Vault/Settings).
+    - Enabled `PatternLockSettingsScreen` to configure the dedicated "Security Vault Pattern" via `SettingsDestination.SecurityPatternLock`.
+
+- **Phase 29: Suggestion Strip "More Suggestions" Delete/Demote & Voice Waveform Overhaul [COMPLETED]**:
+  - **Suggestion Strip Delete & Demote Optimization (`SuggestionStripView.kt`)**:
+    - Decoupled long-press candidate action from `MoreSuggestionsView` sliding panel: when long-pressing a word with delete/demote, the icon is displayed in-place on the candidate and `onLongClickSuggestion` returns `true` immediately without launching `showMoreSuggestions()`.
+    - Expanded touch hit-box geometry to support direct, natural single-tap deletion/demotion anywhere on the active candidate.
+    - Preserved `MoreSuggestionsView` invocation on strip swipe up and empty space long-press.
+  - **Voice Input Full-Width Waveform & Mic Button Overhaul (`voice_input_view.xml`, `VoicePulseView.kt`, `VoiceInputView.kt`)**:
+    - Replaced the tiny 52dp box and dead space with a full-width dynamic sound wave stretching horizontally across the entire middle row.
+    - Updated `VoicePulseView.kt` to dynamically calculate `numBars` based on available view width, generating a fluid equalizer sinusoidal ripple driven by real-time audio RMS amplitude.
+    - Anchored a dedicated 48dp Mic button at the far right edge of the waveform for 1-tap pause/resume/mute with theme-colored active/amber indicators.
+    - Reorganized top row for compact streaming transcription text and bottom row for standard 4-button dock (`[ABC] [Space] [⌫] [↵]`).
+  - **Voice Permission Auto-Resume Guard (`KeyboardSwitcher.java`, `LatinIME.java`)**:
+    - Added `mPendingVoiceLaunch` flag in `KeyboardSwitcher.java`.
+    - Set pending flag in `LatinIME.onVoiceInputTriggered()` upon requesting `RECORD_AUDIO` permission.
+    - Intercepted input restart in `LatinIME.onStartInputViewInternal()`: if `isPendingVoiceLaunch()` is true, immediately and cleanly launches `setVoiceInputKeyboard()`, eliminating premature modal dismissal and race conditions.
+
+
 
 
 

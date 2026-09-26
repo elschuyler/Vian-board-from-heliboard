@@ -95,13 +95,17 @@ fun SettingsNavHost(
         composable(SettingsDestination.Security) {
             SecurityScreen(
                 onClickPatternLock = { navController.navigate(SettingsDestination.PatternLock) },
+                onClickSecurityPatternLock = { navController.navigate(SettingsDestination.SecurityPatternLock) },
                 onClickPrivacyVault = { navController.navigate(SettingsDestination.PrivacyVault) },
                 onClickSecurityVault = { navController.navigate(SettingsDestination.SecurityVault) },
                 onClickBack = ::goBack
             )
         }
         composable(SettingsDestination.PatternLock) {
-            PatternLockSettingsScreen(onClickBack = ::goBack)
+            PatternLockSettingsScreen(onClickBack = ::goBack, forSecurityVault = false)
+        }
+        composable(SettingsDestination.SecurityPatternLock) {
+            PatternLockSettingsScreen(onClickBack = ::goBack, forSecurityVault = true)
         }
         composable(SettingsDestination.PrivacyVault) {
             PrivacyVaultScreen(onClickBack = ::goBack)
@@ -207,6 +211,7 @@ object SettingsDestination {
     const val Debug = "debug"
     const val Security = "security"
     const val PatternLock = "pattern_lock"
+    const val SecurityPatternLock = "security_pattern_lock"
     const val PrivacyVault = "privacy_vault"
     const val SecurityVault = "security_vault"
     const val Appearance = "appearance"
