@@ -173,4 +173,31 @@ object VoiceModelManager {
         val value = sizeBytes / Math.pow(1024.0, digitGroups.toDouble())
         return DecimalFormat("#,##0.#").format(value) + " " + units[digitGroups]
     }
+
+    fun getArchitectureName(): String {
+        val abi = android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: "unknown"
+        return when {
+            abi.contains("arm64") -> "ARMv8 (64-bit)"
+            abi.contains("armeabi") || abi.contains("armv7") -> "ARMv7 (32-bit)"
+            else -> abi
+        }
+    }
+
+    fun is32BitArm(): Boolean {
+        val abi = android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: ""
+        return abi.contains("armeabi") || abi.contains("armv7")
+    }
+
+    fun is64BitArm(): Boolean {
+        val abi = android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: ""
+        return abi.contains("arm64")
+    }
+
+    fun getRecommendedModelTip(): String {
+        return if (is32BitArm()) {
+            "Recommended for 32-bit ARM: ggml-tiny.en-q5_1.bin (~31 MB) from Hugging Face for optimal RAM performance."
+        } else {
+            "Recommended for 64-bit ARM: ggml-tiny.en-q5_1.bin (~31 MB) or ggml-base.en-q5_1.bin (~57 MB) from Hugging Face."
+        }
+    }
 }

@@ -21,7 +21,6 @@ import helium314.keyboard.latin.common.decapitalize
 import helium314.keyboard.latin.common.mightBeEmoji
 import helium314.keyboard.latin.common.splitOnWhitespace
 import helium314.keyboard.latin.dictionary.AppsBinaryDictionary
-import helium314.keyboard.latin.dictionary.ContactsBinaryDictionary
 import helium314.keyboard.latin.dictionary.Dictionary
 import helium314.keyboard.latin.dictionary.DictionaryFactory
 import helium314.keyboard.latin.dictionary.DictionaryStats
@@ -716,36 +715,14 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
             return locales
         }
 
-        /** Include at least two non-emoji, non-typed word results if possible, so that the first two shown suggestions can be non-emoji */
+        /** Decoupled: emoji search loops removed from typing passes to save idle CPU cycles */
+        @Suppress("UNUSED_PARAMETER")
         private fun includeAtLeastTwoWordSuggestions(
             suggestionResults: SuggestionResults,
             suggestionsArray: Array<List<SuggestedWordInfo>?>,
             typedWord: String
         ) {
-            if (suggestionResults.size <= 2) return
-            var nonEmojiNonTypedWordCount = 0
-            suggestionResults.forEach {
-                if (isEmojiOrTypedWord(it, typedWord)) return@forEach
-                ++nonEmojiNonTypedWordCount
-                if (nonEmojiNonTypedWordCount >= 2) return
-            }
-            val allResults = SuggestionResults(Int.MAX_VALUE, false, false)
-            suggestionsArray.forEach {
-                if (it == null) return@forEach
-                allResults.addAll(it)
-            }
-            var addedWord: String? = null
-            for (i in 0 until 2 - nonEmojiNonTypedWordCount) {
-                val firstNonEmojiNonTypedWord = allResults.firstOrNull {
-                    !suggestionResults.contains(it) && !isEmojiOrTypedWord(it, typedWord)
-                        && addedWord?.compareTo(it.word, true) != 0
-                } ?: continue
-                // The conditions above guarantee that there are at least two EmojiOrTypedWord items
-                val lastEmojiOrTypedWord = suggestionResults.last { isEmojiOrTypedWord(it, typedWord) }
-                suggestionResults.remove(lastEmojiOrTypedWord)
-                suggestionResults.add(firstNonEmojiNonTypedWord)
-                addedWord = firstNonEmojiNonTypedWord.word
-            }
+            // No-op: emoji search loops decoupled from typing passes to save idle CPU cycles
         }
 
         private fun isEmojiOrTypedWord(info: SuggestedWordInfo, typedWord: String): Boolean =

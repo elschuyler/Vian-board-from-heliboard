@@ -18,7 +18,8 @@ android {
 
     resourceConfigurations += listOf("en", "fr")
     ndk {
-      abiFilters.addAll(listOf("arm64-v8a", "armeabi-v7a", "x86_64"))
+      abiFilters.clear()
+      abiFilters.addAll(listOf("arm64-v8a", "armeabi-v7a"))
     }
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

@@ -1143,7 +1143,9 @@ public final class InputLogic {
             resetComposingState(false /* alsoResetLastComposedWord */);
         }
 
-        enterInlineEmojiSearchIfNeeded(codePoint, settingsValues);
+        if (mEmojiDictionaryFacilitator != null) {
+            enterInlineEmojiSearchIfNeeded(codePoint, settingsValues);
+        }
 
         if (isComposingWord) {
             mWordComposer.applyProcessedEvent(event);
@@ -1284,7 +1286,9 @@ public final class InputLogic {
                 }
             }
 
-            enterInlineEmojiSearchIfNeeded(codePoint, settingsValues);
+            if (mEmojiDictionaryFacilitator != null) {
+                enterInlineEmojiSearchIfNeeded(codePoint, settingsValues);
+            }
 
             mConnection.commitCodePoint(codePoint);
 
@@ -1355,7 +1359,9 @@ public final class InputLogic {
                 } else {
                     mConnection.commitText("", 1);
                 }
-                updateInlineEmojiSearch();
+                if (mEmojiDictionaryFacilitator != null) {
+                    updateInlineEmojiSearch();
+                }
                 inputTransaction.setRequiresUpdateSuggestions();
             } else {
                 if (mLastComposedWord.canRevertCommit() && inputTransaction.getSettingsValues().mBackspaceRevertsAutocorrect) {
@@ -1875,11 +1881,13 @@ public final class InputLogic {
             return;
         }
 
-        updateInlineEmojiSearch();
-        if (isInlineEmojiSearchAction()) {
-            mInputLogicHandler.getSuggestedWords(() -> getSuggestedWords(SuggestedWords.INPUT_STYLE_TYPING,
-                SuggestedWords.NOT_A_SEQUENCE_NUMBER, this::doShowSuggestionsAndClearAutoCorrectionIndicator));
-            return;
+        if (mEmojiDictionaryFacilitator != null) {
+            updateInlineEmojiSearch();
+            if (isInlineEmojiSearchAction()) {
+                mInputLogicHandler.getSuggestedWords(() -> getSuggestedWords(SuggestedWords.INPUT_STYLE_TYPING,
+                    SuggestedWords.NOT_A_SEQUENCE_NUMBER, this::doShowSuggestionsAndClearAutoCorrectionIndicator));
+                return;
+            }
         }
 
         if (!mConnection.isCursorTouchingWord(settingsValues.mSpacingAndPunctuations, true /* checkTextAfter */)) {
@@ -1945,6 +1953,9 @@ public final class InputLogic {
         mWordComposer.setCursorPositionWithinWord(typedWordString.codePointCount(0, numberOfCharsInWordBeforeCursor));
         mConnection.setComposingRegion(expectedCursorPosition - numberOfCharsInWordBeforeCursor,
                 expectedCursorPosition + range.getNumberOfCharsInWordAfterCursor());
+        if (range.getNumberOfCharsInWordAfterCursor() == 0) {
+            setComposingTextInternal(getTextWithUnderline(typedWordString), 1);
+        }
         if (suggestions.size() <= 1) {
             // If there weren't any suggestion spans on this word, suggestions#size() will be 1
             // if shouldIncludeResumedWordInSuggestions is true, 0 otherwise. In this case, we
@@ -2381,7 +2392,9 @@ public final class InputLogic {
             mSpaceState = SpaceState.NONE;
         }
         mWordComposer.setBatchInputWord(batchInputText);
-        enterInlineEmojiSearchIfNeeded(batchInputText.codePointAt(0), settingsValues);
+        if (mEmojiDictionaryFacilitator != null) {
+            enterInlineEmojiSearchIfNeeded(batchInputText.codePointAt(0), settingsValues);
+        }
         setComposingTextInternal(batchInputText, 1);
         mConnection.endBatchEdit();
         // Space state must be updated before calling updateShiftState
@@ -2746,6 +2759,7 @@ public final class InputLogic {
     }
 
     private void updateInlineEmojiSearch() {
+        if (mEmojiDictionaryFacilitator == null) return;
         setInlineEmojiSearchAction(getInlineEmojiSearchString() != null);
     }
 

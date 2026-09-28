@@ -943,6 +943,10 @@ public final class RichInputConnection implements PrivateCommandPerformer {
             // a composing region should always count as a word
             return true;
         }
+        final CharSequence textBeforeCursor = getTextBeforeCursor(NUM_CHARS_TO_GET_BEFORE_CURSOR, 0);
+        if (!TextUtils.isEmpty(textBeforeCursor)) {
+            return StringUtilsKt.endsWithWordCodepoint(textBeforeCursor.toString(), spacingAndPunctuations);
+        }
         return StringUtilsKt.endsWithWordCodepoint(mCommittedTextBeforeComposingText.toString(), spacingAndPunctuations);
     }
 

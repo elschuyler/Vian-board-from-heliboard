@@ -19,12 +19,17 @@ class WhisperEngine {
         @Volatile
         private var isLibraryLoaded: Boolean = false
 
+        val primaryAbi: String = android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: "unknown"
+        val isArm64: Boolean = primaryAbi.contains("arm64")
+        val isArmV7: Boolean = primaryAbi.contains("armeabi") || primaryAbi.contains("armv7")
+
         init {
+            LogCatcher.i(TAG, "Initializing WhisperEngine (Architecture: $primaryAbi, 64-bit=$isArm64, 32-bit=$isArmV7)")
             try {
                 System.loadLibrary("whisper")
                 isLibraryLoaded = true
                 LogCatcher.i(TAG, "Native whisper library (libwhisper.so) loaded successfully")
-                LogCatcher.markComponentActive(COMPONENT_NAME, "VoiceEngine", "Native Library Ready")
+                LogCatcher.markComponentActive(COMPONENT_NAME, "VoiceEngine", "Native Library Ready ($primaryAbi)")
             } catch (e: UnsatisfiedLinkError) {
                 isLibraryLoaded = false
                 LogCatcher.w(TAG, "libwhisper.so not loaded (requires CI compilation): ${e.message}")
@@ -72,10 +77,14 @@ class WhisperEngine {
             release()
         }
 
+        if (isArmV7 && modelFile.length() > 80 * 1024 * 1024) {
+            LogCatcher.w(TAG, "High memory risk on 32-bit ARM: Model size (${modelFile.length() / (1024 * 1024)}MB) > 80MB. Recommend ggml-tiny.en-q5_1.bin (~31MB) to prevent OOM.")
+        }
+
         return try {
             val startTime = System.currentTimeMillis()
             LogCatcher.i(TAG, "Initializing Whisper context from file (size: ${modelFile.length()} bytes)")
-            val ptr = initContext(modelFile.absolutePath)
+            val ptr = safeInitContext(modelFile.absolutePath)
             val elapsed = System.currentTimeMillis() - startTime
 
             if (ptr != 0L) {
@@ -118,11 +127,12 @@ class WhisperEngine {
             LogCatcher.markComponentActive(COMPONENT_NAME, "VoiceEngine", "Transcribing (${"%.1f".format(durationSec)}s, $modeStr)")
 
             val startTime = System.currentTimeMillis()
-            val rawResult = fullTranscribe(contextPtr, numThreads, useBeamSearch, initialPrompt, audioSamples)
+            val rawResult = safeFullTranscribe(contextPtr, numThreads, useBeamSearch, initialPrompt, audioSamples)
             val elapsed = System.currentTimeMillis() - startTime
+            val rtf = if (durationSec > 0f) elapsed / (durationSec * 1000f) else 0f
 
-            LogCatcher.i(TAG, "Inference completed in ${elapsed}ms")
-            LogCatcher.markComponentActive(COMPONENT_NAME, "VoiceEngine", "Idle (Last inference: ${elapsed}ms)")
+            LogCatcher.i(TAG, "Inference completed in ${elapsed}ms (RTF: ${"%.2f".format(rtf)}x realtime)")
+            LogCatcher.markComponentActive(COMPONENT_NAME, "VoiceEngine", "Idle (Last inference: ${elapsed}ms, ${"%.2f".format(rtf)}x RTF)")
 
             if (rawResult != null) {
                 val cleaned = cleanWhisperOutput(rawResult, suppressAnnotations)
@@ -143,13 +153,48 @@ class WhisperEngine {
         if (contextPtr != 0L) {
             try {
                 LogCatcher.i(TAG, "Releasing Whisper context (ptr=$contextPtr)")
-                freeContext(contextPtr)
+                safeFreeContext(contextPtr)
             } catch (t: Throwable) {
                 LogCatcher.e(TAG, "Exception releasing Whisper context", t)
             } finally {
                 contextPtr = 0L
                 LogCatcher.markComponentInactive(COMPONENT_NAME, "Released")
             }
+        }
+    }
+
+    private fun safeInitContext(modelPath: String): Long {
+        return try {
+            initContext(modelPath)
+        } catch (e: UnsatisfiedLinkError) {
+            LogCatcher.i(TAG, "Delegating initContext to FUTO bridge: ${e.message}")
+            org.futo.voiceinput.whisper.WhisperEngine.initContext(modelPath)
+        }
+    }
+
+    private fun safeFreeContext(ptr: Long) {
+        try {
+            freeContext(ptr)
+        } catch (e: UnsatisfiedLinkError) {
+            LogCatcher.i(TAG, "Delegating freeContext to FUTO bridge")
+            org.futo.voiceinput.whisper.WhisperEngine.freeContext(ptr)
+        }
+    }
+
+    private fun safeFullTranscribe(
+        contextPtr: Long,
+        numThreads: Int,
+        useBeamSearch: Boolean,
+        initialPrompt: String?,
+        audioData: FloatArray
+    ): String? {
+        return try {
+            fullTranscribe(contextPtr, numThreads, useBeamSearch, initialPrompt, audioData)
+        } catch (e: UnsatisfiedLinkError) {
+            LogCatcher.i(TAG, "Delegating fullTranscribe to FUTO bridge")
+            org.futo.voiceinput.whisper.WhisperEngine.fullTranscribe(
+                contextPtr, numThreads, useBeamSearch, initialPrompt, audioData
+            )
         }
     }
 

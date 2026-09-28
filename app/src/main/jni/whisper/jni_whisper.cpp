@@ -145,4 +145,28 @@ Java_helium314_keyboard_latin_voice_WhisperEngine_fullTranscribe(
     return env->NewStringUTF(resultText.c_str());
 }
 
+// -----------------------------------------------------------------------------------------
+// FUTO Voice Input JNI Aliases
+// Provides seamless binary interoperability when called from org.futo.voiceinput package
+// -----------------------------------------------------------------------------------------
+JNIEXPORT jlong JNICALL
+Java_org_futo_voiceinput_whisper_WhisperEngine_initContext(
+        JNIEnv *env, jobject thiz, jstring jModelPath) {
+    return Java_helium314_keyboard_latin_voice_WhisperEngine_initContext(env, thiz, jModelPath);
+}
+
+JNIEXPORT void JNICALL
+Java_org_futo_voiceinput_whisper_WhisperEngine_freeContext(
+        JNIEnv *env, jobject thiz, jlong contextPtr) {
+    Java_helium314_keyboard_latin_voice_WhisperEngine_freeContext(env, thiz, contextPtr);
+}
+
+JNIEXPORT jstring JNICALL
+Java_org_futo_voiceinput_whisper_WhisperEngine_fullTranscribe(
+        JNIEnv *env, jobject thiz, jlong contextPtr, jint numThreads,
+        jboolean useBeamSearch, jstring jInitialPrompt, jfloatArray audioData) {
+    return Java_helium314_keyboard_latin_voice_WhisperEngine_fullTranscribe(
+            env, thiz, contextPtr, numThreads, useBeamSearch, jInitialPrompt, audioData);
+}
+
 } // extern "C"

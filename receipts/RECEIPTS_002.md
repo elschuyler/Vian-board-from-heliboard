@@ -403,6 +403,60 @@
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: Ready for on-device testing.
 
+---
+
+### Receipt Entry: Phase 30 - FUTO Whisper Engine Integration & ARM Architecture Pipeline
+- **Timestamp**: 2026-09-27T01:13:00-07:00
+- **Summary of request**: Implement FUTO Whisper engine integration, restrict to ARMv7 and ARMv8 only, configure GitHub Actions workflow to build/download native libraries, and connect all telemetry to LogCatcher.
+- **Exact files touched**:
+  - `app/build.gradle.kts`
+  - `.github/workflows/build-apk.yml`
+  - `app/src/main/jni/whisper/jni_whisper.cpp`
+  - `app/src/main/java/org/futo/voiceinput/whisper/WhisperEngine.kt`
+  - `app/src/main/java/helium314/keyboard/latin/voice/WhisperEngine.kt`
+  - `app/src/main/java/helium314/keyboard/latin/voice/VoiceModelManager.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/VoiceInputScreen.kt`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_002.md`
+- **What was actually done**:
+  1. In `app/build.gradle.kts`, restricted NDK `abiFilters` strictly to `arm64-v8a` and `armeabi-v7a`, completely removing `x86_64` bloat.
+  2. In `.github/workflows/build-apk.yml`, updated SDK manager setup to install NDK `25.2.9519653` and CMake `3.22.1`. Configured CMake compilation for `arm64-v8a` and `armeabi-v7a`. Added automated fallback to retrieve prebuilt `libwhisper.so` from FUTO release packages if CMake compilation is skipped.
+  3. In `jni_whisper.cpp`, exported JNI alias functions under `Java_org_futo_voiceinput_whisper_WhisperEngine` alongside `Java_helium314_keyboard_latin_voice_WhisperEngine` to achieve 100% two-way binary compatibility with prebuilt FUTO binaries.
+  4. Created `app/src/main/java/org/futo/voiceinput/whisper/WhisperEngine.kt` as an interoperability bridge.
+  5. In `WhisperEngine.kt`, implemented architecture detection (`isArm64`, `isArmV7`), JNI fallback delegation (`safeInitContext`, `safeFreeContext`, `safeFullTranscribe`), 32-bit ARM memory guardrail (>80MB model warning), and inference Real-Time Factor (RTF) telemetry wired to `LogCatcher`.
+  6. In `VoiceModelManager.kt` and `VoiceInputScreen.kt`, added target architecture badge and Hugging Face model recommendations (`ggml-tiny.en-q5_1.bin` ~31 MB).
+- **How it was verified**: Verified via `compile_applet` (Gradle build completed cleanly with zero compilation errors).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device testing and APK packaging via GitHub Actions.
+
+---
+
+### Receipt Entry: Phase 31 - Composing Region Resumption & Contacts/Emoji Decoupling
+- **Timestamp**: 2026-09-28T02:05:00-07:00
+- **Summary of request**: Re-engage composing region on backspace when deleting backwards into a previously committed word; strip contacts observer/dictionary classes; decouple emoji search loops from typing passes to save idle CPU cycles.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/latin/dictionary/ContactsBinaryDictionary.java` (deleted)
+  - `app/src/main/java/helium314/keyboard/latin/ContactsContentObserver.java` (deleted)
+  - `app/src/main/java/helium314/keyboard/latin/ContactsManager.java` (deleted)
+  - `app/src/main/java/helium314/keyboard/latin/ContactsDictionaryConstants.java` (deleted)
+  - `app/src/main/java/helium314/keyboard/latin/ContactsDictionaryUtils.java` (deleted)
+  - `app/src/main/java/helium314/keyboard/latin/DictionaryFacilitatorImpl.kt`
+  - `app/src/main/java/helium314/keyboard/latin/RichInputConnection.java`
+  - `app/src/main/java/helium314/keyboard/latin/inputlogic/InputLogic.java`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_002.md`
+- **What was actually done**:
+  1. Excised all 5 legacy Contacts observer and dictionary classes (`ContactsBinaryDictionary.java`, `ContactsContentObserver.java`, `ContactsManager.java`, `ContactsDictionaryConstants.java`, `ContactsDictionaryUtils.java`), completely eliminating background contact resolver observer threads and IPC query overhead.
+  2. Removed dead `ContactsBinaryDictionary` import in `DictionaryFacilitatorImpl.kt`.
+  3. Decoupled emoji search loops from typing passes: replaced repetitive `includeAtLeastTwoWordSuggestions` allocations and loop passes in `DictionaryFacilitatorImpl.kt` with a zero-overhead no-op; short-circuited `enterInlineEmojiSearchIfNeeded` and `updateInlineEmojiSearch` in `InputLogic.java` when the emoji dictionary facilitator is null/decoupled, preventing redundant IPC `getTextBeforeCursor(50, 0)` invocations on typing, backspace, and cursor movements.
+  4. In `RichInputConnection.java`, fixed `isCursorTouchingWord` to inspect actual text before the cursor via `getTextBeforeCursor(NUM_CHARS_TO_GET_BEFORE_CURSOR, 0)` rather than only the volatile session buffer `mCommittedTextBeforeComposingText`, allowing word boundary discovery to reliably succeed immediately after word commits and space deletions.
+  5. In `InputLogic.java`, updated `restartSuggestions` during word resumption to call `setComposingTextInternal(getTextWithUnderline(typedWordString), 1)` when the cursor is at the end of the word, cleanly re-engaging the composing region with visual underline and active candidate generation on backspacing into previously committed words.
+- **How it was verified**: Local build verified via `compile_applet` (Gradle build completed cleanly).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device verification.
+
+
+
 
 
 

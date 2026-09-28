@@ -27,14 +27,14 @@ jobs:
           java-version: '21'
           cache: 'gradle'
 
-      - name: Install Android 16 SDK & Accept Licenses
+      - name: Install Android 16 SDK, NDK & Accept Licenses
         run: |
           SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
           if [ ! -f "$SDKMANAGER" ]; then
             SDKMANAGER=$(which sdkmanager 2>/dev/null || true)
           fi
           yes | $SDKMANAGER --licenses || true
-          $SDKMANAGER "platforms;android-36" "platforms;android-36.1" "build-tools;36.0.0" "platform-tools"
+          $SDKMANAGER "platforms;android-36" "platforms;android-36.1" "build-tools;36.0.0" "platform-tools" "ndk;25.2.9519653" "cmake;3.22.1"
 
       - name: Grant Execute Permission for Gradlew
         run: chmod +x gradlew
@@ -43,21 +43,21 @@ jobs:
         run: |
           NDK_DIR="${ANDROID_NDK_HOME:-${ANDROID_NDK_LATEST_HOME:-$(find $ANDROID_HOME/ndk -maxdepth 1 -mindepth 1 2>/dev/null | sort -V | tail -n 1)}}"
           if [ -n "$NDK_DIR" ] && [ -f "$NDK_DIR/ndk-build" ]; then
-            echo "Compiling libjni_latinime.so using NDK at $NDK_DIR..."
-            $NDK_DIR/ndk-build -C app/src/main/jni NDK_APPLICATION_MK=Application.mk NDK_LIBS_OUT=$GITHUB_WORKSPACE/app/src/main/jniLibs APP_ABI="armeabi-v7a arm64-v8a x86_64"
+            echo "Compiling libjni_latinime.so using NDK at $NDK_DIR for ARMv7 and ARMv8..."
+            $NDK_DIR/ndk-build -C app/src/main/jni NDK_APPLICATION_MK=Application.mk NDK_LIBS_OUT=$GITHUB_WORKSPACE/app/src/main/jniLibs APP_ABI="armeabi-v7a arm64-v8a"
           elif command -v ndk-build &> /dev/null; then
             echo "Compiling libjni_latinime.so using ndk-build in PATH..."
-            ndk-build -C app/src/main/jni NDK_APPLICATION_MK=Application.mk NDK_LIBS_OUT=$GITHUB_WORKSPACE/app/src/main/jniLibs APP_ABI="armeabi-v7a arm64-v8a x86_64"
+            ndk-build -C app/src/main/jni NDK_APPLICATION_MK=Application.mk NDK_LIBS_OUT=$GITHUB_WORKSPACE/app/src/main/jniLibs APP_ABI="armeabi-v7a arm64-v8a"
           else
             echo "NDK not present in environment; skipping native pre-build"
           fi
 
-      - name: Build Native Whisper Library (CMake)
+      - name: Build / Download Native Whisper Library (arm64-v8a & armeabi-v7a)
         run: |
           NDK_DIR="${ANDROID_NDK_HOME:-${ANDROID_NDK_LATEST_HOME:-$(find $ANDROID_HOME/ndk -maxdepth 1 -mindepth 1 2>/dev/null | sort -V | tail -n 1)}}"
           if [ -n "$NDK_DIR" ] && [ -f "$NDK_DIR/build/cmake/android.toolchain.cmake" ]; then
-            echo "Compiling libwhisper.so using CMake and NDK at $NDK_DIR..."
-            for ABI in armeabi-v7a arm64-v8a x86_64; do
+            echo "Compiling libwhisper.so using CMake and NDK at $NDK_DIR for ARMv7 and ARMv8..."
+            for ABI in armeabi-v7a arm64-v8a; do
               mkdir -p app/src/main/jniLibs/$ABI
               cmake -B /tmp/build-whisper-$ABI \
                 -S app/src/main/jni/whisper \
@@ -71,9 +71,22 @@ jobs:
                 echo "Built and copied libwhisper.so for $ABI"
               fi
             done
-          else
-            echo "NDK CMake toolchain not present; skipping native whisper compilation"
           fi
+
+          # Fallback: If libwhisper.so is not present for either ARM ABI, fetch FUTO prebuilt binary
+          if [ ! -f "app/src/main/jniLibs/arm64-v8a/libwhisper.so" ] || [ ! -f "app/src/main/jniLibs/armeabi-v7a/libwhisper.so" ]; then
+            echo "Attempting to retrieve FUTO prebuilt libwhisper.so binaries..."
+            curl -sL "https://github.com/futo-org/voice-input/releases/latest/download/app-standalone-release.apk" -o /tmp/futo-voice.apk || true
+            if [ -f "/tmp/futo-voice.apk" ]; then
+              mkdir -p app/src/main/jniLibs/arm64-v8a app/src/main/jniLibs/armeabi-v7a
+              unzip -q -o -j /tmp/futo-voice.apk "lib/arm64-v8a/libwhisper.so" -d app/src/main/jniLibs/arm64-v8a/ || true
+              unzip -q -o -j /tmp/futo-voice.apk "lib/armeabi-v7a/libwhisper.so" -d app/src/main/jniLibs/armeabi-v7a/ || true
+              rm -f /tmp/futo-voice.apk
+            fi
+          fi
+
+          echo "Verifying native libraries in jniLibs:"
+          find app/src/main/jniLibs -name "*.so" || echo "No .so found"
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace

@@ -337,6 +337,28 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
     - Set pending flag in `LatinIME.onVoiceInputTriggered()` upon requesting `RECORD_AUDIO` permission.
     - Intercepted input restart in `LatinIME.onStartInputViewInternal()`: if `isPendingVoiceLaunch()` is true, immediately and cleanly launches `setVoiceInputKeyboard()`, eliminating premature modal dismissal and race conditions.
 
+- **Phase 30: FUTO Whisper Engine Integration & ARM Architecture Pipeline [COMPLETED]**:
+  - **ARMv7 & ARMv8 ABI Enforcement (`app/build.gradle.kts`, `.github/workflows/build-apk.yml`)**:
+    - Restricted NDK `abiFilters` exclusively to `arm64-v8a` (64-bit ARM) and `armeabi-v7a` (32-bit ARM with NEON), dropping unnecessary `x86_64` bloat.
+    - Updated `.github/workflows/build-apk.yml` to install NDK `25.2.9519653` and CMake `3.22.1` via `sdkmanager`.
+    - Configured CI native builds for both `libjni_latinime.so` and `libwhisper.so` targeting `armeabi-v7a` and `arm64-v8a`.
+    - Added automated FUTO prebuilt `.so` binary fallback in GitHub Actions: if local CMake compilation is bypassed, extracts `libwhisper.so` for `arm64-v8a` and `armeabi-v7a` directly from FUTO's release packages.
+  - **JNI Dual-Namespace Interoperability (`jni_whisper.cpp`, `org.futo.voiceinput.whisper.WhisperEngine`)**:
+    - Exported JNI symbol aliases in `jni_whisper.cpp` under both `Java_helium314_keyboard_latin_voice_WhisperEngine` and `Java_org_futo_voiceinput_whisper_WhisperEngine`.
+    - Created companion Kotlin bridge in package `org.futo.voiceinput.whisper` to guarantee 100% binary linking compatibility whether using in-tree or FUTO prebuilt libraries.
+    - Implemented safe JNI fallback delegation in `WhisperEngine.kt` to catch `UnsatisfiedLinkError` and gracefully route calls.
+- **Phase 31: Composing Region Resumption & Contacts/Emoji Decoupling [COMPLETED]**:
+  - **Composing Region Resumption on Backspace (`RichInputConnection.java`, `InputLogic.java`)**:
+    - Fixed `RichInputConnection.isCursorTouchingWord()` to inspect actual text before the cursor via `getTextBeforeCursor(NUM_CHARS_TO_GET_BEFORE_CURSOR, 0)` rather than relying only on the in-memory typed text buffer, allowing word boundary discovery to reliably find the preceding word immediately after word commit and space deletion.
+    - Updated `InputLogic.restartSuggestions()` during word resumption to call `setComposingTextInternal(getTextWithUnderline(typedWordString), 1)` when the cursor is at the word end, guaranteeing that deleting backwards into a previously committed word re-engages an active, underlined composing span across all editors and resumes suggestions and autocorrect.
+  - **Complete Contacts Stripping (`ContactsBinaryDictionary`, `ContactsContentObserver`, `ContactsManager`, `ContactsDictionaryConstants`, `ContactsDictionaryUtils`)**:
+    - Deleted all 5 legacy Contacts observer and dictionary classes, completely removing background contact resolver observer threads and IPC query overhead from the application lifecycle.
+    - Removed unused `ContactsBinaryDictionary` import in `DictionaryFacilitatorImpl.kt`.
+  - **Emoji Search Loop Decoupling (`DictionaryFacilitatorImpl.kt`, `InputLogic.java`)**:
+    - Decoupled `includeAtLeastTwoWordSuggestions` in `DictionaryFacilitatorImpl.kt`, replacing repetitive candidate scanning loops and allocations with a zero-overhead pass.
+    - Short-circuited `enterInlineEmojiSearchIfNeeded` and `updateInlineEmojiSearch` in `InputLogic.java` when the emoji dictionary facilitator is null/decoupled, eliminating redundant IPC `getTextBeforeCursor(50, 0)` calls on typing passes, backspace, and cursor navigation to save idle CPU cycles.
+
+
 
 
 
