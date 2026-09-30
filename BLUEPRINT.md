@@ -357,6 +357,40 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
   - **Emoji Search Loop Decoupling (`DictionaryFacilitatorImpl.kt`, `InputLogic.java`)**:
     - Decoupled `includeAtLeastTwoWordSuggestions` in `DictionaryFacilitatorImpl.kt`, replacing repetitive candidate scanning loops and allocations with a zero-overhead pass.
     - Short-circuited `enterInlineEmojiSearchIfNeeded` and `updateInlineEmojiSearch` in `InputLogic.java` when the emoji dictionary facilitator is null/decoupled, eliminating redundant IPC `getTextBeforeCursor(50, 0)` calls on typing passes, backspace, and cursor navigation to save idle CPU cycles.
+- **Phase 32: System-Wide Lite Mode & Strict Single-Modal Lifecycle [COMPLETED]**:
+  - **Thread-Safe Core Layout Caching (`KeyboardLayoutSet.kt`)**:
+    - Updated `clearNonCoreCache()` with thread-safe synchronized locking on `keyboardCache`.
+    - Protected Main Alphabet (`isAlphabet`), Symbols (`?123` / `SYMBOLS`), and Number pad/numeric (`NUMPAD`, `NUMBER`) from eviction, keeping them warm and instantly accessible.
+    - Evicted secondary symbol variants (`=<\` / `SYMBOLS_SHIFTED`), phone layouts, and auxiliary layouts from memory whenever returning to typing.
+  - **Strict Single-Modal Lifecycle Enforcement (`KeyboardSwitcher.java`)**:
+    - Implemented `enforceLiteModeSingleModal(@Nullable View activeModalView)` helper in `KeyboardSwitcher.java`.
+    - Unloaded and stopped inactive secondary modals (`mEmojiPalettesView`, `mClipboardHistoryView`, `mDesktopShortcutsView`, `mPatternUnlockView`, `mVoiceInputView`) whenever any modal opens or when returning to typing.
+    - For inactive emoji modal, triggers `clearKeyboardCache()` to purge cached emoji layouts and close the emoji dictionary facilitator from RAM.
+    - Integrated single-modal enforcement across `setMainKeyboardFrame`, `setEmojiKeyboard`, `setClipboardKeyboard`, `setPromptKeyboard`, `setDesktopShortcutsKeyboard`, `showPatternUnlockView`, and `setVoiceInputKeyboard`.
+    - Updated `deallocateMemory()` and `trimMemory()` to comprehensively include `mDesktopShortcutsView`, `mPatternUnlockView`, and `mVoiceInputView`.
+  - **View Teardown & Touch Overhead Elimination (`DesktopShortcutsView.kt`, `LatinIME.java`)**:
+    - Updated `stopDesktopShortcuts()` in `DesktopShortcutsView.kt` to strip row child views and nullify listener/connection references in Lite Mode, freeing button view trees and memory allocations when inactive.
+    - Bypassed gesture touch tracking and native trail sampling in `LatinIME.java` when Lite Mode is active (`!currentSettingsValues.mLiteMode && currentSettingsValues.mGestureInputEnabled`) to eliminate background touch sampling and native path tracing overhead.
+    - Preserved Clipboard and Prompt List modals warm and intact as is even in Lite Mode per user specification.
+- **Phase 33: Voice Input Modal Stabilization, Dynamic Equalizer & Direct Raw Recording [COMPLETED]**:
+  - **Permission Flow & Layout Unbreaking (`LatinIME.java`)**:
+    - Added immediate early return in `onEvent` when `KeyCode.VOICE_INPUT` is handled to prevent spurious code input transactions and state machine interference.
+    - Updated `onFinishInputView` and `onFinishInput` to guard against dismissing voice launch while `isPendingVoiceLaunch()` is true during the permission dialog lifecycle.
+    - Handled permission grant/denial callback smoothly: on grant, launches voice modal post-init; on denial, cleanly restores alphabet layout (`ShiftMode.UNSHIFT`) without leaving the keyboard blank.
+  - **Dynamic Music Equalizer Sound Wave (`VoicePulseView.kt`)**:
+    - Replaced the static wave with a 21-band dynamic music system sound wave equalizer.
+    - Implemented multi-band acoustic physics: fast attack (instant upward punch on voice audio), smooth gravity decay (analog VU meter falloff), frequency-weighted bar amplitudes, and organic ambient micro-bouncing during speech pauses.
+    - Rendered high-framerate Canvas graphics with cyan-to-purple LinearGradient in listening state, warm amber in paused state, and alert styling in error state.
+  - **Direct Raw Audio Recording & Non-Blocking Modal (`VoiceInputView.kt`, `VoiceInputService.kt`)**:
+    - Removed modal startup block on missing model file: switching to voice input modal now immediately starts microphone capture and streams live RMS energy to the bouncing visualizer.
+    - If a Whisper model is loaded, speech inference transcribes text; if no model is installed yet, raw audio recording continues seamlessly with real-time equalizer feedback and a non-intrusive status directing the user to Settings on tap.
+    - Streamlined `VoiceInputService` inference executor to avoid reporting errors or halting capture when models are absent or still initializing.
+  - **Compact Modal Height (`VoiceInputView.kt`)**:
+    - Decreased modal height from full keyboard height (~250dp) to a compact, sleek profile (~140dp-148dp, ~60% of keyboard height), giving an unobstructed view of the host application.
+  - **Robust Model Discovery (`VoiceModelManager.kt`)**:
+    - Added multi-file model discovery in `getActiveModelFile()` to automatically detect any valid `.bin` or `.gguf` Whisper speech model file in `voice_models/`.
+    - Relaxed header validation to accommodate custom and quantized model binaries (>1MB).
+
 
 
 

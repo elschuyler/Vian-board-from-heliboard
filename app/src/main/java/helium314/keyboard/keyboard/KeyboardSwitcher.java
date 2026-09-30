@@ -358,12 +358,30 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mVoiceInputView.setVisibility(View.GONE);
             mVoiceInputView.stopVoiceInput();
         }
-        if (settingsValues.mLiteMode) {
-            if (mEmojiPalettesView != null) {
-                mEmojiPalettesView.clearKeyboardCache();
-            }
-            KeyboardLayoutSet.Companion.clearNonCoreCache();
+        enforceLiteModeSingleModal(null);
+    }
+
+    private void enforceLiteModeSingleModal(@Nullable final View activeModalView) {
+        if (!Settings.getValues().mLiteMode) {
+            return;
         }
+        if (activeModalView != mEmojiPalettesView && mEmojiPalettesView != null) {
+            mEmojiPalettesView.stopEmojiPalettes();
+            mEmojiPalettesView.clearKeyboardCache();
+        }
+        if (activeModalView != mClipboardHistoryView && mClipboardHistoryView != null) {
+            mClipboardHistoryView.stopClipboardHistory();
+        }
+        if (activeModalView != mDesktopShortcutsView && mDesktopShortcutsView != null) {
+            mDesktopShortcutsView.stopDesktopShortcuts();
+        }
+        if (activeModalView != mPatternUnlockView && mPatternUnlockView != null) {
+            mPatternUnlockView.stopPatternUnlock();
+        }
+        if (activeModalView != mVoiceInputView && mVoiceInputView != null) {
+            mVoiceInputView.stopVoiceInput();
+        }
+        KeyboardLayoutSet.Companion.clearNonCoreCache();
     }
 
     // Implements {@link KeyboardState.SwitchActions}.
@@ -407,6 +425,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         mEmojiPalettesView.startEmojiPalettes(mKeyboardView.getKeyVisualAttribute(),
                 mLatinIME.getCurrentInputEditorInfo(), mLatinIME.mKeyboardActionListener);
         mEmojiPalettesView.setVisibility(View.VISIBLE);
+        enforceLiteModeSingleModal(mEmojiPalettesView);
     }
 
     // Implements {@link KeyboardState.SwitchActions}.
@@ -450,6 +469,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mVoiceInputView.setVisibility(View.GONE);
             mVoiceInputView.stopVoiceInput();
         }
+        enforceLiteModeSingleModal(mClipboardHistoryView);
     }
 
     @Override
@@ -494,6 +514,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             );
             mClipboardHistoryView.setVisibility(View.VISIBLE);
         }
+        enforceLiteModeSingleModal(mClipboardHistoryView);
     }
 
     @Override
@@ -537,6 +558,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             );
             mDesktopShortcutsView.setVisibility(View.VISIBLE);
         }
+        enforceLiteModeSingleModal(mDesktopShortcutsView);
     }
 
     @Override
@@ -623,6 +645,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                 }
         );
         mPatternUnlockView.setVisibility(View.VISIBLE);
+        enforceLiteModeSingleModal(mPatternUnlockView);
     }
 
     public void setVoiceInputKeyboard() {
@@ -660,6 +683,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mVoiceInputView.startVoiceInput(mLatinIME.getCurrentInputEditorInfo(), mLatinIME.mKeyboardActionListener);
             mVoiceInputView.setVisibility(View.VISIBLE);
         }
+        enforceLiteModeSingleModal(mVoiceInputView);
     }
 
     public enum KeyboardSwitchState {
@@ -1058,9 +1082,14 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         }
         if (mEmojiPalettesView != null) {
             mEmojiPalettesView.stopEmojiPalettes();
+            mEmojiPalettesView.clearKeyboardCache();
         }
         if (mClipboardHistoryView != null) {
             mClipboardHistoryView.stopClipboardHistory();
+        }
+        if (mDesktopShortcutsView != null) {
+            mDesktopShortcutsView.stopDesktopShortcuts();
+            mDesktopShortcutsView.setVisibility(View.GONE);
         }
         if (mPatternUnlockView != null) {
             mPatternUnlockView.stopPatternUnlock();
@@ -1070,11 +1099,21 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mVoiceInputView.stopVoiceInput();
             mVoiceInputView.setVisibility(View.GONE);
         }
+        KeyboardLayoutSet.Companion.clearNonCoreCache();
     }
 
     public void trimMemory() {
         if (mEmojiPalettesView != null) {
             mEmojiPalettesView.clearKeyboardCache();
+        }
+        if (mDesktopShortcutsView != null) {
+            mDesktopShortcutsView.stopDesktopShortcuts();
+        }
+        if (mPatternUnlockView != null) {
+            mPatternUnlockView.stopPatternUnlock();
+        }
+        if (mVoiceInputView != null) {
+            mVoiceInputView.stopVoiceInput();
         }
         KeyboardLayoutSet.Companion.clearNonCoreCache();
     }

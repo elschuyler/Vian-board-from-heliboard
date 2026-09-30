@@ -275,12 +275,19 @@ class KeyboardLayoutSet internal constructor(private val mContext: Context, priv
         }
 
         fun clearNonCoreCache() {
-            val iterator = keyboardCache.entries.iterator()
-            while (iterator.hasNext()) {
-                val entry = iterator.next()
-                val element = entry.key.element
-                if (!element.isAlphabet && !element.isNumberLayout) {
-                    iterator.remove()
+            synchronized(keyboardCache) {
+                val iterator = keyboardCache.entries.iterator()
+                while (iterator.hasNext()) {
+                    val entry = iterator.next()
+                    val element = entry.key.element
+                    // Keep warm: Main Alphabet, Symbol layout (?123), and Number pad/layout (NUMPAD, NUMBER)
+                    val isCore = element.isAlphabet ||
+                            element == KeyboardElement.SYMBOLS ||
+                            element == KeyboardElement.NUMPAD ||
+                            element == KeyboardElement.NUMBER
+                    if (!isCore) {
+                        iterator.remove()
+                    }
                 }
             }
         }

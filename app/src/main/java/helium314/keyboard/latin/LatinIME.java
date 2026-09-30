@@ -799,7 +799,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onFinishInputView(final boolean finishingInput) {
-        if (mKeyboardSwitcher.isShowingVoiceInput()) {
+        if (!mKeyboardSwitcher.isPendingVoiceLaunch() && mKeyboardSwitcher.isShowingVoiceInput()) {
             mKeyboardSwitcher.setAlphabetKeyboard(ShiftMode.UNSHIFT);
         }
         StatsUtils.onFinishInputView();
@@ -811,7 +811,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onFinishInput() {
-        if (mKeyboardSwitcher.isShowingVoiceInput()) {
+        if (!mKeyboardSwitcher.isPendingVoiceLaunch() && mKeyboardSwitcher.isShowingVoiceInput()) {
             mKeyboardSwitcher.setAlphabetKeyboard(ShiftMode.UNSHIFT);
         }
         mHandler.onFinishInput();
@@ -890,11 +890,6 @@ public class LatinIME extends InputMethodService implements
         }
 
         switcher.updateKeyboardTheme(mDisplayContext);
-        if (switcher.isPendingVoiceLaunch()) {
-            switcher.setPendingVoiceLaunch(false);
-            switcher.setVoiceInputKeyboard();
-            return;
-        }
         MainKeyboardView mainKeyboardView = switcher.getMainKeyboardView();
         currentSettingsValues = mSettings.getCurrent(); // settingsValues may have been reloaded
 
@@ -1014,12 +1009,24 @@ public class LatinIME extends InputMethodService implements
         mainKeyboardView.setMainDictionaryAvailability(mDictionaryFacilitator.hasAtLeastOneInitializedMainDictionary());
         mainKeyboardView.setKeyPreviewPopupEnabled(currentSettingsValues.mKeyPreviewPopupOn);
         mainKeyboardView.setSlidingKeyInputPreviewEnabled(currentSettingsValues.mSlidingKeyInputPreviewEnabled);
+        final boolean isGestureAllowed = !currentSettingsValues.mLiteMode && currentSettingsValues.mGestureInputEnabled;
         mainKeyboardView.setGestureHandlingEnabledByUser(
-                currentSettingsValues.mGestureInputEnabled,
-                currentSettingsValues.mGestureTrailEnabled,
-                currentSettingsValues.mGestureFloatingPreviewTextEnabled);
+                isGestureAllowed,
+                isGestureAllowed && currentSettingsValues.mGestureTrailEnabled,
+                isGestureAllowed && currentSettingsValues.mGestureFloatingPreviewTextEnabled);
 
         if (TRACE) Debug.startMethodTracing("/data/trace/latinime");
+
+        if (mKeyboardSwitcher.isPendingVoiceLaunch()) {
+            mKeyboardSwitcher.setPendingVoiceLaunch(false);
+            if (VoicePermissionBridge.INSTANCE.hasRecordAudioPermission(this)) {
+                mHandler.post(() -> {
+                    mKeyboardSwitcher.setVoiceInputKeyboard();
+                });
+            } else {
+                mKeyboardSwitcher.setAlphabetKeyboard(ShiftMode.UNSHIFT);
+            }
+        }
     }
 
     @Override
@@ -1038,6 +1045,9 @@ public class LatinIME extends InputMethodService implements
         super.onWindowHidden();
         Log.i(TAG, "onWindowHidden");
         TempIncognitoManager.onKeyboardClosed();
+        if (!mKeyboardSwitcher.isPendingVoiceLaunch() && mKeyboardSwitcher.isShowingVoiceInput()) {
+            mKeyboardSwitcher.closeSecondaryKeyboard();
+        }
         final MainKeyboardView mainKeyboardView = mKeyboardSwitcher.getMainKeyboardView();
         if (mainKeyboardView != null) {
             mainKeyboardView.closing();
@@ -1449,6 +1459,7 @@ public class LatinIME extends InputMethodService implements
     public void onEvent(@NonNull final Event event) {
         if (KeyCode.VOICE_INPUT == event.getKeyCode()) {
             onVoiceInputTriggered();
+            return;
         }
         final InputTransaction completeInputTransaction =
                 mInputLogic.onCodeInput(mSettings.getCurrent(), event,
@@ -1467,16 +1478,15 @@ public class LatinIME extends InputMethodService implements
         if (!VoicePermissionBridge.INSTANCE.hasRecordAudioPermission(this)) {
             mKeyboardSwitcher.setPendingVoiceLaunch(true);
             VoicePermissionBridge.INSTANCE.requestRecordAudioPermission(this, granted -> {
-                if (granted) {
-                    mHandler.post(() -> {
+                mHandler.post(() -> {
+                    if (granted) {
                         requestShowSelf(0);
-                        if (!mKeyboardSwitcher.isShowingVoiceInput()) {
-                            mKeyboardSwitcher.setVoiceInputKeyboard();
-                        }
-                    });
-                } else {
-                    mKeyboardSwitcher.setPendingVoiceLaunch(false);
-                }
+                        mKeyboardSwitcher.setVoiceInputKeyboard();
+                    } else {
+                        mKeyboardSwitcher.setPendingVoiceLaunch(false);
+                        mKeyboardSwitcher.setAlphabetKeyboard(ShiftMode.UNSHIFT);
+                    }
+                });
                 return kotlin.Unit.INSTANCE;
             });
             return;

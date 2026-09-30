@@ -45,7 +45,18 @@ object VoiceModelManager {
     }
 
     fun getActiveModelFile(context: Context): File {
-        return File(getModelDirectory(context), ACTIVE_MODEL_FILE_NAME)
+        val defaultFile = File(getModelDirectory(context), ACTIVE_MODEL_FILE_NAME)
+        if (defaultFile.exists() && defaultFile.length() > 1024 * 1024) {
+            return defaultFile
+        }
+        val modelDir = getModelDirectory(context)
+        val files = modelDir.listFiles { f ->
+            f.isFile && (f.name.endsWith(".bin", ignoreCase = true) || f.name.endsWith(".gguf", ignoreCase = true)) && f.length() > 1024 * 1024
+        }
+        if (!files.isNullOrEmpty()) {
+            return files[0]
+        }
+        return defaultFile
     }
 
     fun hasActiveModel(context: Context): Boolean {
@@ -152,7 +163,7 @@ object VoiceModelManager {
         }
     }
 
-    private fun validateModelHeader(file: File): Boolean {
+    fun validateModelHeader(file: File): Boolean {
         if (!file.exists() || file.length() < 4) return false
         return try {
             val header = ByteArray(4)
@@ -160,7 +171,8 @@ object VoiceModelManager {
             header.contentEquals(GGML_MAGIC) ||
                     header.contentEquals(GGMF_MAGIC) ||
                     header.contentEquals(GGJT_MAGIC) ||
-                    header.contentEquals(GGUF_MAGIC)
+                    header.contentEquals(GGUF_MAGIC) ||
+                    file.length() > 1024 * 1024 // Permissive for custom quantized models
         } catch (e: Exception) {
             false
         }

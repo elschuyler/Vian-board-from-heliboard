@@ -205,7 +205,15 @@ class DesktopShortcutsView @JvmOverloads constructor(
     }
 
     fun stopDesktopShortcuts() {
-        // Cleanup if needed
+        if (Settings.getValues().mLiteMode) {
+            if (this::fatRow1.isInitialized) fatRow1.removeAllViews()
+            if (this::fatRow2.isInitialized) fatRow2.removeAllViews()
+            if (this::fatRow3.isInitialized) fatRow3.removeAllViews()
+            if (this::arrowRow1.isInitialized) arrowRow1.removeAllViews()
+            if (this::arrowRow2.isInitialized) arrowRow2.removeAllViews()
+            keyboardActionListener = null
+            inputConnection = null
+        }
     }
 
     private fun buildFatButtons(params: KeyDrawParams) {

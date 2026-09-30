@@ -158,8 +158,12 @@ class VoiceInputView @JvmOverloads constructor(
         override fun onError(message: String) {
             post {
                 LogCatcher.w(TAG, "Voice input connection error: $message")
-                pulseView.pulseState = VoicePulseView.PulseState.ERROR
-                streamingText.text = message
+                if (!VoiceModelManager.hasActiveModel(context)) {
+                    streamingText.text = "Recording raw audio (Tap to import model in Settings)"
+                } else {
+                    pulseView.pulseState = VoicePulseView.PulseState.ERROR
+                    streamingText.text = message
+                }
             }
         }
 
@@ -197,19 +201,23 @@ class VoiceInputView @JvmOverloads constructor(
 
     private fun setupListeners() {
         val togglePause = {
-            if (!VoiceModelManager.hasActiveModel(context)) {
-                val intent = Intent(context, SettingsActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                }
-                context.startActivity(intent)
-            } else if (isVoicePaused) {
+            if (isVoicePaused) {
                 resumeVoiceInput()
             } else {
                 pauseVoiceInput()
             }
         }
 
-        streamingText.setOnClickListener { togglePause() }
+        streamingText.setOnClickListener {
+            if (!VoiceModelManager.hasActiveModel(context)) {
+                val intent = Intent(context, SettingsActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                context.startActivity(intent)
+            } else {
+                togglePause()
+            }
+        }
         pulseView.setOnClickListener { togglePause() }
         micButton.setOnClickListener { togglePause() }
 
@@ -297,23 +305,19 @@ class VoiceInputView @JvmOverloads constructor(
         if (currentGainMultiplier !in listOf(1, 2, 4)) currentGainMultiplier = 1
         gainPill.text = "${currentGainMultiplier}x"
 
-        if (!VoiceModelManager.hasActiveModel(context)) {
-            pulseView.pulseState = VoicePulseView.PulseState.ERROR
-            streamingText.setText(R.string.voice_status_no_model)
-            isVoiceActive = false
-            isVoicePaused = false
-            LogCatcher.w(TAG, "Voice input modal started without active model installed")
-            LogCatcher.markComponentActive("VoiceInputModal", "UI", "No Model")
-            return
-        }
-
+        val hasModel = VoiceModelManager.hasActiveModel(context)
         isVoiceActive = true
         isVoicePaused = false
         pulseView.pulseState = VoicePulseView.PulseState.LISTENING
-        streamingText.setText(R.string.voice_status_listening)
+
+        if (hasModel) {
+            streamingText.setText(R.string.voice_status_listening)
+        } else {
+            streamingText.text = "Recording raw audio (Tap to import Whisper model)"
+        }
         updateMicButtonState()
-        LogCatcher.i(TAG, "Voice input modal presented (gain=${currentGainMultiplier}x)")
-        LogCatcher.markComponentActive("VoiceInputModal", "UI", "Active")
+        LogCatcher.i(TAG, "Voice input modal presented (hasModel=$hasModel, gain=${currentGainMultiplier}x)")
+        LogCatcher.markComponentActive("VoiceInputModal", "UI", if (hasModel) "Active (Whisper)" else "Active (Raw Audio)")
 
         if (voiceConnection == null) {
             voiceConnection = VoiceInputConnection(context.applicationContext, connectionListener)
@@ -446,8 +450,10 @@ class VoiceInputView @JvmOverloads constructor(
         val width = ResourceUtils.getKeyboardWidth(context, Settings.getValues()) + paddingLeft + paddingRight
         val density = res.displayMetrics.density
         val keyboardHeight = ResourceUtils.getKeyboardHeight(res, Settings.getValues())
-        val minVoiceHeight = (130 * density).toInt()
-        val totalHeight = maxOf(minVoiceHeight, keyboardHeight) + paddingTop + paddingBottom
+        // Compact modal height (~60% of keyboard height, clamped between 135dp and 155dp)
+        val compactTargetDp = (keyboardHeight / density * 0.60f).coerceIn(135f, 155f)
+        val modalHeight = (compactTargetDp * density).toInt()
+        val totalHeight = modalHeight + paddingTop + paddingBottom
 
         val exactWidthSpec = MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY)
         val exactHeightSpec = MeasureSpec.makeMeasureSpec(totalHeight, MeasureSpec.EXACTLY)
