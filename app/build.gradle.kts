@@ -100,6 +100,7 @@ dependencies {
   implementation(libs.androidx.navigation.compose)
   implementation(libs.reorderable)
   implementation(libs.colorpicker.compose)
+  implementation(libs.kotpass)
   debugImplementation(libs.androidx.compose.ui.tooling)
   debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

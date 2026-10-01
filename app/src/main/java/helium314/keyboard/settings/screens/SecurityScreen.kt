@@ -150,7 +150,7 @@ fun SecurityScreen(
 
                 Preference(
                     name = "Security Vault",
-                    description = "KeePass KDBX & TOTP credentials (Coming in Phase 27)",
+                    description = "KeePass KDBX file onboarding, 1:1 folders, credentials & 2-way sync",
                     onClick = onClickSecurityVault,
                     icon = R.drawable.ic_setup_key
                 ) { NextScreenIcon() }

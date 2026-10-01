@@ -65,6 +65,9 @@ import helium314.keyboard.latin.utils.ToolbarMode;
 import helium314.keyboard.latin.voice.VoiceInputView;
 import helium314.keyboard.security.PatternUnlockView;
 import helium314.keyboard.security.VaultSessionManager;
+import helium314.keyboard.security.vault.data.VaultEntryEntity;
+import helium314.keyboard.security.vault.ui.ChosenEntryView;
+import helium314.keyboard.security.vault.ui.SecurityVaultExplorerView;
 
 public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     private static final String TAG = KeyboardSwitcher.class.getSimpleName();
@@ -86,6 +89,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     private ClipboardHistoryView mClipboardHistoryView;
     private DesktopShortcutsView mDesktopShortcutsView;
     private PatternUnlockView mPatternUnlockView;
+    private SecurityVaultExplorerView mSecurityVaultExplorerView;
+    private ChosenEntryView mChosenEntryView;
     private VoiceInputView mVoiceInputView;
     private TextView mFakeToastView;
     private ImageView mBackgroundGatheringIndicator;
@@ -358,6 +363,14 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mVoiceInputView.setVisibility(View.GONE);
             mVoiceInputView.stopVoiceInput();
         }
+        if (mSecurityVaultExplorerView != null) {
+            mSecurityVaultExplorerView.setVisibility(View.GONE);
+            mSecurityVaultExplorerView.stopExplorer();
+        }
+        if (mChosenEntryView != null) {
+            mChosenEntryView.setVisibility(View.GONE);
+            mChosenEntryView.stopChosenEntry();
+        }
         enforceLiteModeSingleModal(null);
     }
 
@@ -380,6 +393,12 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         }
         if (activeModalView != mVoiceInputView && mVoiceInputView != null) {
             mVoiceInputView.stopVoiceInput();
+        }
+        if (activeModalView != mSecurityVaultExplorerView && mSecurityVaultExplorerView != null) {
+            mSecurityVaultExplorerView.stopExplorer();
+        }
+        if (activeModalView != mChosenEntryView && mChosenEntryView != null) {
+            mChosenEntryView.stopChosenEntry();
         }
         KeyboardLayoutSet.Companion.clearNonCoreCache();
     }
@@ -596,12 +615,12 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             return;
         }
         if (VaultSessionManager.INSTANCE.isSecuritySessionValid()) {
-            showFakeToast("Security Vault (Placeholder: Unlocked)", 2000);
+            setSecurityVaultExplorerKeyboard();
             return;
         }
         showPatternUnlockView(() -> {
             VaultSessionManager.INSTANCE.startSecuritySession();
-            showFakeToast("Security Vault (Placeholder: Unlocked)", 2000);
+            setSecurityVaultExplorerKeyboard();
         });
     }
 
@@ -622,6 +641,14 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         if (mPatternUnlockStrip != null) {
             mPatternUnlockStrip.setVisibility(View.VISIBLE);
         }
+        if (mSecurityVaultExplorerView != null) {
+            mSecurityVaultExplorerView.stopExplorer();
+            mSecurityVaultExplorerView.setVisibility(View.GONE);
+        }
+        if (mChosenEntryView != null) {
+            mChosenEntryView.stopChosenEntry();
+            mChosenEntryView.setVisibility(View.GONE);
+        }
         mEmojiPalettesView.setVisibility(View.GONE);
         mClipboardHistoryView.setVisibility(View.GONE);
         mClipboardHistoryView.stopClipboardHistory();
@@ -639,13 +666,128 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                 () -> {
                     if (onUnlockSuccess != null) {
                         onUnlockSuccess.run();
+                    } else {
+                        setAlphabetKeyboard(ShiftMode.UNSHIFT);
                     }
-                    setAlphabetKeyboard(ShiftMode.UNSHIFT);
                     return kotlin.Unit.INSTANCE;
                 }
         );
         mPatternUnlockView.setVisibility(View.VISIBLE);
         enforceLiteModeSingleModal(mPatternUnlockView);
+    }
+
+    public void setSecurityVaultExplorerKeyboard() {
+        if (DEBUG_ACTION) {
+            Log.d(TAG, "setSecurityVaultExplorerKeyboard");
+        }
+        mMainKeyboardFrame.setVisibility(View.VISIBLE);
+        mKeyboardView.setVisibility(View.GONE);
+        mEmojiTabStripView.setVisibility(View.GONE);
+        mSuggestionStripView.setVisibility(View.GONE);
+        mStripContainer.setVisibility(View.GONE);
+        mClipboardStripScrollView.setVisibility(View.GONE);
+        if (mDesktopShortcutsStripScrollView != null) {
+            mDesktopShortcutsStripScrollView.setVisibility(View.GONE);
+        }
+        if (mVoicePreviewStrip != null) {
+            mVoicePreviewStrip.setVisibility(View.GONE);
+        }
+        if (mPatternUnlockStrip != null) {
+            mPatternUnlockStrip.setVisibility(View.GONE);
+        }
+        mEmojiPalettesView.setVisibility(View.GONE);
+        mEmojiPalettesView.stopEmojiPalettes();
+        mClipboardHistoryView.setVisibility(View.GONE);
+        mClipboardHistoryView.stopClipboardHistory();
+        if (mDesktopShortcutsView != null) {
+            mDesktopShortcutsView.setVisibility(View.GONE);
+            mDesktopShortcutsView.stopDesktopShortcuts();
+        }
+        if (mPatternUnlockView != null) {
+            mPatternUnlockView.setVisibility(View.GONE);
+            mPatternUnlockView.stopPatternUnlock();
+        }
+        if (mVoiceInputView != null) {
+            mVoiceInputView.setVisibility(View.GONE);
+            mVoiceInputView.stopVoiceInput();
+        }
+        if (mChosenEntryView != null) {
+            mChosenEntryView.setVisibility(View.GONE);
+            mChosenEntryView.stopChosenEntry();
+        }
+        if (mSecurityVaultExplorerView != null) {
+            mSecurityVaultExplorerView.startExplorer(mLatinIME.mKeyboardActionListener);
+            mSecurityVaultExplorerView.setVisibility(View.VISIBLE);
+        }
+        enforceLiteModeSingleModal(mSecurityVaultExplorerView);
+    }
+
+    public void setChosenEntryKeyboard(@NonNull VaultEntryEntity entry) {
+        if (DEBUG_ACTION) {
+            Log.d(TAG, "setChosenEntryKeyboard");
+        }
+        mMainKeyboardFrame.setVisibility(View.VISIBLE);
+        mKeyboardView.setVisibility(View.GONE);
+        mEmojiTabStripView.setVisibility(View.GONE);
+        mSuggestionStripView.setVisibility(View.GONE);
+        mStripContainer.setVisibility(View.GONE);
+        mClipboardStripScrollView.setVisibility(View.GONE);
+        if (mDesktopShortcutsStripScrollView != null) {
+            mDesktopShortcutsStripScrollView.setVisibility(View.GONE);
+        }
+        if (mVoicePreviewStrip != null) {
+            mVoicePreviewStrip.setVisibility(View.GONE);
+        }
+        if (mPatternUnlockStrip != null) {
+            mPatternUnlockStrip.setVisibility(View.GONE);
+        }
+        mEmojiPalettesView.setVisibility(View.GONE);
+        mEmojiPalettesView.stopEmojiPalettes();
+        mClipboardHistoryView.setVisibility(View.GONE);
+        mClipboardHistoryView.stopClipboardHistory();
+        if (mDesktopShortcutsView != null) {
+            mDesktopShortcutsView.setVisibility(View.GONE);
+            mDesktopShortcutsView.stopDesktopShortcuts();
+        }
+        if (mPatternUnlockView != null) {
+            mPatternUnlockView.setVisibility(View.GONE);
+            mPatternUnlockView.stopPatternUnlock();
+        }
+        if (mVoiceInputView != null) {
+            mVoiceInputView.setVisibility(View.GONE);
+            mVoiceInputView.stopVoiceInput();
+        }
+        if (mSecurityVaultExplorerView != null) {
+            mSecurityVaultExplorerView.setVisibility(View.GONE);
+            mSecurityVaultExplorerView.stopExplorer();
+        }
+        if (mChosenEntryView != null) {
+            mChosenEntryView.bindEntry(entry, mLatinIME.mKeyboardActionListener);
+            mChosenEntryView.setVisibility(View.VISIBLE);
+        }
+        enforceLiteModeSingleModal(mChosenEntryView);
+    }
+
+    public void closeSecurityVaultExplorer(boolean lock) {
+        if (lock) {
+            VaultSessionManager.INSTANCE.lockSecurity();
+        }
+        if (mSecurityVaultExplorerView != null) {
+            mSecurityVaultExplorerView.stopExplorer();
+            mSecurityVaultExplorerView.setVisibility(View.GONE);
+        }
+        setAlphabetKeyboard(ShiftMode.UNSHIFT);
+    }
+
+    public void closeChosenEntry(boolean lock) {
+        if (lock) {
+            VaultSessionManager.INSTANCE.lockSecurity();
+        }
+        if (mChosenEntryView != null) {
+            mChosenEntryView.stopChosenEntry();
+            mChosenEntryView.setVisibility(View.GONE);
+        }
+        setAlphabetKeyboard(ShiftMode.UNSHIFT);
     }
 
     public void setVoiceInputKeyboard() {
@@ -704,7 +846,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     }
 
     public KeyboardSwitchState getKeyboardSwitchState() {
-        boolean hidden = !isShowingEmojiPalettes() && !isShowingClipboardHistory() && !isShowingPromptHistory() && !isShowingDesktopShortcuts() && !isShowingPatternUnlock() && !isShowingVoiceInput()
+        boolean hidden = !isShowingEmojiPalettes() && !isShowingClipboardHistory() && !isShowingPromptHistory() && !isShowingDesktopShortcuts() && !isShowingPatternUnlock() && !isShowingVoiceInput() && !isShowingSecurityVaultExplorer() && !isShowingChosenEntry()
                 && (mKeyboardLayoutSet == null
                 || mKeyboardView == null
                 || !mKeyboardView.isShown());
@@ -1007,12 +1149,20 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         return mVoiceInputView != null && mVoiceInputView.isShown();
     }
 
+    public boolean isShowingSecurityVaultExplorer() {
+        return mSecurityVaultExplorerView != null && mSecurityVaultExplorerView.isShown();
+    }
+
+    public boolean isShowingChosenEntry() {
+        return mChosenEntryView != null && mChosenEntryView.isShown();
+    }
+
     public VoiceInputView getVoiceInputView() {
         return mVoiceInputView;
     }
 
     public boolean isShowingPopupKeysPanel() {
-        if (isShowingEmojiPalettes() || isShowingClipboardHistory() || isShowingPromptHistory() || isShowingDesktopShortcuts() || isShowingPatternUnlock() || isShowingVoiceInput()) {
+        if (isShowingEmojiPalettes() || isShowingClipboardHistory() || isShowingPromptHistory() || isShowingDesktopShortcuts() || isShowingPatternUnlock() || isShowingVoiceInput() || isShowingSecurityVaultExplorer() || isShowingChosenEntry()) {
             return false;
         }
         return mKeyboardView.isShowingPopupKeysPanel();
@@ -1037,6 +1187,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             return mDesktopShortcutsView;
         } else if (isShowingPatternUnlock()) {
             return mPatternUnlockView;
+        } else if (isShowingSecurityVaultExplorer()) {
+            return mSecurityVaultExplorerView;
+        } else if (isShowingChosenEntry()) {
+            return mChosenEntryView;
         }
         return mKeyboardView;
     }
@@ -1115,6 +1269,12 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         if (mVoiceInputView != null) {
             mVoiceInputView.stopVoiceInput();
         }
+        if (mSecurityVaultExplorerView != null) {
+            mSecurityVaultExplorerView.stopExplorer();
+        }
+        if (mChosenEntryView != null) {
+            mChosenEntryView.stopChosenEntry();
+        }
         KeyboardLayoutSet.Companion.clearNonCoreCache();
     }
 
@@ -1140,6 +1300,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         mClipboardHistoryView = mCurrentInputView.findViewById(R.id.clipboard_history_view);
         mDesktopShortcutsView = mCurrentInputView.findViewById(R.id.desktop_shortcuts_view);
         mPatternUnlockView = mCurrentInputView.findViewById(R.id.pattern_unlock_view);
+        mSecurityVaultExplorerView = mCurrentInputView.findViewById(R.id.security_vault_explorer_view);
+        mChosenEntryView = mCurrentInputView.findViewById(R.id.chosen_entry_view);
         mVoiceInputView = mCurrentInputView.findViewById(R.id.voice_input_view);
         if (mVoiceInputView != null) {
             mVoiceInputView.setHardwareAcceleratedDrawingEnabled(isHardwareAcceleratedDrawingEnabled);

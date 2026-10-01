@@ -42,6 +42,12 @@
             android:id="@+id/pattern_unlock_view"
             layout="@layout/pattern_unlock_view" />
         <include
+            android:id="@+id/security_vault_explorer_view"
+            layout="@layout/security_vault_explorer_view" />
+        <include
+            android:id="@+id/chosen_entry_view"
+            layout="@layout/chosen_entry_view" />
+        <include
             android:id="@+id/voice_input_view"
             layout="@layout/voice_input_view" />
 

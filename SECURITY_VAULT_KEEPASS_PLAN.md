@@ -4,7 +4,7 @@
 
 This specification defines the complete technical architecture for VianBoard's **Security Vault**, designed on the **KeePassDX Magikeyboard** pattern. The subsystem provides an offline, encrypted, hardware-isolated credential repository with dual ingress:
 
-1. **In-Board Security Vault (Keyboard Interface)**: Purely a **View & Paste Engine** (zero CRUD). It does **NOT** bundle or run the heavy KDBX engine (keeps keyboard process <35MB RAM). It contains only a fast read-only SQLite cache helper, lightweight context heuristics, a pure Kotlin RFC 6238 TOTP generator, a full-height scrollable **Vault Explorer** with foldable accordion folders, and a compact **Chosen Entry Modal** (~140dp–150dp) with persistent multi-field filling, an anchored Note/Attachment drop-up menu with direct clipboard copy, vertically stacked lock/back buttons, and a 4-button bottom utility dock.
+1. **In-Board Security Vault (Keyboard Interface)**: Purely a **View & Paste Engine** (zero CRUD). It does **NOT** bundle or run the heavy KDBX engine (keeps keyboard process <35MB RAM). It contains only a fast read-only SQLite cache helper, lightweight context heuristics, a pure Kotlin RFC 6238 TOTP generator, a full-height scrollable **Vault Explorer** with foldable accordion folders, and a compact **Chosen Entry Modal** (~140dp–150dp) with persistent multi-field filling, a dedicated 5-button action row separating Notes and Attachments, vertically stacked lock/back buttons, and a 4-button bottom utility dock.
 2. **Settings Vault Manager (Compose Interface)**: The exclusive host for the **Full KDBX Engine** (Kotpass parser/serializer, Argon2id KDF, SAF file I/O), **Full CRUD** (creating, editing, deleting, moving, and organizing entries and hierarchical folder groups), the **2-Way Sync Engine with Visual Diff & Conflict Detection**, and the standalone **Password Generator & Entropy Strength Meter**.
 
 ---
@@ -18,7 +18,9 @@ This specification defines the complete technical architecture for VianBoard's *
 ├────────────────────────────────────────────────────────────────────────┤
 │ • SecurityVaultExplorerView: Full-height, foldable tree, sort/filters  │
 │ • ChosenEntryView: Compact ~140dp, bottom-up dock, stays open for input│
-│ • Note & Attachment Drop-Up: Anchored menu with Copy to Clipboard      │
+│ • 5-Action Row: [📝 Note] [👤 User] [🔑 Pass] [⏱️ TOTP] [📎 Attach]    │
+│ • Note Drop-Up: Anchored popup with Note text & Copy to Clipboard      │
+│ • Attachment Drop-Up: Anchored list of attached binary files           │
 │ • SuggestionStrip: Lightweight [🔑 user] / [🔑 dropdown] pills         │
 │ • StealthPatternOverlay: 9 QWERTY keys (E,T,U / D,G,J / C,B,M)         │
 │ • In-Board Engine: Fast SQLite read-only query + RFC 6238 TOTP ONLY    │
@@ -109,27 +111,27 @@ The Security Vault and Privacy Vault maintain completely independent hardware Ke
 ### 4.2 Modal 2: Chosen Entry Modal (`ChosenEntryView`) & Persistent Flow
 * **Height**: **Smaller than normal keyboard** (~140dp–150dp compact profile, ~60% height). Keeps host app input fields visible.
 * **Persistent Input Workflow (No Auto-Dismiss)**:
-  * Tapping `[👤 Username]`, `[🔑 Password]`, `[⏱️ TOTP]`, or Note/Attachment **does NOT close the modal**.
+  * Tapping `[👤 Username]`, `[🔑 Password]`, `[⏱️ TOTP]`, `[📝 Note]`, or `[📎 Attachment]` directly commits text to the active field or opens drop-ups, but **does NOT close the modal**.
   * Enables seamless multi-field form completion (Username $\rightarrow$ Next Field $\rightarrow$ Password $\rightarrow$ TOTP) without re-opening the vault.
   * Modal closes **only** when user explicitly taps `[ ABC ]` on the bottom dock (returns to normal typing) or `[ 🔒 Lock ]` (locks vault and closes).
 * **Layout Structure**: Constructed strictly **from the bottom up**:
 
 ```
-                                          ┌────────────────────────┐
-                                          │ 📝 Secure Note Content │
-                                          │ ────────────────────── │
-                                          │ 📋 Copy to Clipboard   │
-                                          └───────────▲────────────┘
-┌─────────────────────────────────────────────────────┼──────────────────┐
-│ [🔒 Lock]   GitHub                                  │                  │
-│ [↩ Back]   alice-dev                                │ (Drop-Up Menu)   │
-├─────────────────────────────────────────────────────┴──────────────────┤
-│ ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐ │
-│ │      👤      │  │      🔑      │  │     ⏱️       │  │    📝 / 📎    │ │
-│ │  (Username)  │  │  (Password)  │  │ (Live TOTP)  │  │ (Note / Att) │ │
-│ └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘ │
+                       ┌────────────────────────┐
+                       │ 📝 Note: PIN is 4821   │
+                       │ ────────────────────── │
+                       │ 📋 Copy to Clipboard   │
+                       └──────────▲─────────────┘
+┌─────────────────────────────────┼──────────────────────────────────────┐
+│ [🔒 Lock]   GitHub              │                                      │
+│ [↩ Back]   alice-dev           │ (Note Drop-Up)                       │
+├─────────────────────────────────┴──────────────────────────────────────┤
+│ ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
+│ │    📝    │  │    👤    │  │    🔑    │  │   ⏱️     │  │    📎    │   │
+│ │  (Note)  │  │  (User)  │  │  (Pass)  │  │  (TOTP)  │  │ (Attach) │   │
+│ └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │
 ├────────────────────────────────────────────────────────────────────────┤
-│ [   ABC   ]     [      Space      ]     [     ⌫     ]     [    ↵    ] │
+│ [   ABC   ]     [      Space      ]     [     ⌫     ]     [    ↵    ]   │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -139,11 +141,15 @@ The Security Vault and Privacy Vault maintain completely independent hardware Ke
     * `[ Space ]`: Inputs a space character.
     * `[ ⌫ Backspace ]`: Deletes previous character.
     * `[ ↵ Enter ]`: Advances to next field or submits form.
-* **Row 2 (Middle - 4 Action Buttons with Note Drop-Up)**:
-  1. `[ 👤 ]` (Username Symbol): Injects username directly via `InputConnection.commitText()`.
-  2. `[ 🔑 ]` (Password Symbol): Injects password directly without clipboard reliance.
-  3. `[ ⏱️ ]` (TOTP Symbol with Live Animated Ring): Encircles icon with live 30s countdown sweep; tapping injects current 6-digit TOTP code.
-  4. `[ 📝 / 📎 ]` (Note & Attachment Drop-Up Menu): Tapping opens an anchored drop-up menu displaying entry notes and attached files with a direct **`[ 📋 Copy to Clipboard ]`** button (notes are safe for standard clipboard copy).
+* **Row 2 (Middle - 5 Action Buttons with Separate Note & Attachment)**:
+  1. `[ 📝 Note ]` **(In front of Username)**:
+     * Tapping opens an anchored drop-up popup displaying the entry's `<Key>Notes</Key>` multi-line text (scrollable if long) with a direct **`[ 📋 Copy to Clipboard ]`** button (notes are safe for standard clipboard copy).
+     * Dimmed (50% opacity) if entry has no notes.
+  2. `[ 👤 Username ]`: Injects username directly via `InputConnection.commitText()`. Modal stays open.
+  3. `[ 🔑 Password ]`: Injects password directly without clipboard reliance. Modal stays open.
+  4. `[ ⏱️ TOTP ]`: Encircles icon with live 30s countdown ring; tapping injects current 6-digit TOTP code. Modal stays open.
+  5. `[ 📎 Attachment ]`: Tapping opens an anchored drop-up menu listing attached binary files (e.g. `id_rsa.pub`, `cert.pem`) with direct copy/view options. Dimmed (50% opacity) if entry has no file attachments.
+  * **Touch Target Ergonomics**: Width is distributed evenly across 5 buttons (~72dp–84dp per button), well exceeding the Material Design 3 minimum 48dp target.
 * **Row 3 (Top Row - Header & Controls)**:
   * **Left Side (2 Tiny Buttons Vertically Stacked)**:
     * Top Button: `[ 🔒 Lock ]` -> Immediate vault lock, closes modal, purges memory.
@@ -195,11 +201,12 @@ All heavy operations and file mutations are sequestered in `SettingsActivity2` u
 * **Folder (Group) Management**: Create, rename, move, and delete hierarchical folders (1:1 native KDBX UUIDs).
 * **Entry Management**: Create, edit, duplicate, and delete entries (Title, Username, Password, URL / Package, TOTP Secret String, Notes, Attachments).
 
-### 5.3 Password Generator & Strength Meter (Settings Only)
-* Sequestered strictly in Settings (zero keyboard RAM bloat):
+### 5.3 Password Generator & Strength Meter (Settings CRUD Only)
+* Embedded directly inside the New/Edit Entry CRUD dialog under the Password field (zero keyboard RAM bloat):
+  * Direct `[ 🎲 Generate ]` button that rolls a fresh password straight into the active field.
   * Toggles: Uppercase (`A-Z`), Lowercase (`a-z`), Digits (`0-9`), Special Characters (`!@#$%^&*`).
   * Length Slider (8 to 64 characters) & Ambiguity Filter (`1, l, I, 0, O`).
-  * Multi-word passphrase generator.
+  * Multi-word passphrase generator with word count slider.
   * Real-time bit-entropy calculation and NIST rating (Weak, Fair, Strong, Unbreakable).
 
 ### 5.4 2-Way Sync Engine with Visual Diff & Conflict Detection

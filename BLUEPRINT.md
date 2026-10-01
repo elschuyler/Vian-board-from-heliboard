@@ -390,6 +390,47 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
   - **Robust Model Discovery (`VoiceModelManager.kt`)**:
     - Added multi-file model discovery in `getActiveModelFile()` to automatically detect any valid `.bin` or `.gguf` Whisper speech model file in `voice_models/`.
     - Relaxed header validation to accommodate custom and quantized model binaries (>1MB).
+- **Phase 34: Security Vault Core Data & Crypto Foundation [COMPLETED]**:
+  - **Component 1: Sandbox Database & 1:1 Entity Hierarchy (`SecurityVaultDatabase.kt`, `VaultEntities.kt`, `SecurityVaultDao.kt`)**:
+    - Created isolated SQLite sandbox database `no_backup/security_vault.db` inside `context.noBackupFilesDir`, completely excluded from Android Auto-Backup and third-party backup scanners.
+    - Defined `VaultGroupEntity` (mirroring KDBX folders/groups 1:1 via native 16-byte UUIDs), `VaultEntryEntity` (mirroring KDBX entries 1:1 with encrypted credential blobs), and `VaultAttachmentEntity` (mirroring KDBX binary file attachments).
+    - Built thread-safe `SecurityVaultDao` supporting group/entry/attachment CRUD, batch bulk replacement (`replaceAllWith`), fast indexed queries (`findByPackageOrUrl`, `getRecentEntries`), and listener change dispatch.
+  - **Component 2: Hardware Keystore AES-256-GCM Escrow (`VaultCryptoManager.kt`)**:
+    - Implemented hardware-backed authenticated encryption using Android's `AndroidKeyStore` provider under key alias `"vianboard_security_vault_master"`.
+    - Protected all sensitive fields (passwords, TOTP seeds, notes, attachments) with a 12-byte random cryptographic IV and a 128-bit authentication tag.
+    - Implemented `decryptToCharArray()` for direct, zero-leakage field injection via `commitText()` and strict memory zeroization routines (`zeroize(charArray)` / `zeroize(byteArray)`).
+  - **Component 3: Pure Kotlin RFC 6238 TOTP Engine (`TotpGenerator.kt`)**:
+    - Pure Kotlin implementation of RFC 6238 Time-Based One-Time Passwords supporting HMAC-SHA1, HMAC-SHA256, and HMAC-SHA512 with 6 or 8 digits.
+    - Robust Base32 decoding (RFC 4648) with padding tolerance, space/dash stripping, and URI parsing for standard `otpauth://totp/...` strings.
+    - Dynamic timing helpers computing live 30s countdown seconds and fractional progress for driving circular animated timer rings.
+  - **Component 4: Telemetry Sanitization (`LogCatcher`)**:
+    - Connected event status codes to `LogCatcher` with verified zero logging of passwords, usernames, secret keys, or PII.
+    - Verified compilation cleanly via `compile_applet`.
+- **Phase 35: Security Vault Settings Hub & KDBX Onboarding Engine [COMPLETED]**:
+  - **Component 1: Kotpass KDBX Parser & Serializer (`KdbxRepository.kt`)**:
+    - Integrated pure-Kotlin Kotpass KDBX 3.1 & 4.x parser/serializer running strictly inside Settings (0% keyboard IME overhead).
+    - Unpacks KDBX groups and entries into local SQLite sandbox (`no_backup/security_vault.db`) while sealing sensitive secrets (passwords, TOTP seeds, notes) via hardware AES-256-GCM.
+    - Implemented full reverse serialization via `KeePassDatabase.Ver4x.create()` and `encode(outputStream)`.
+  - **Component 2: KDBX Onboarding & Settings Screen (`SecurityVaultScreen.kt`, `SettingsNavHost.kt`)**:
+    - Connected `SettingsDestination.SecurityVault` from `SecurityScreen.kt` to the full Compose-powered `SecurityVaultScreen.kt`.
+    - Integrated SAF file picker using `ActivityResultContracts.OpenDocument()` with persistent URI read/write permissions.
+    - Master password unlock dialog with toggleable visibility, real-time error handling, and asynchronous loading.
+    - Header status card displaying database name, entry count, folder count, last sync timestamp, and `[Sync]` trigger.
+  - **Component 3: Hierarchical Group Accordion & Full Entry CRUD**:
+    - Foldable accordion folder tree mirroring native KDBX groups 1:1 with tap expand/collapse.
+    - Full entry CRUD editor supporting Title, Username, Password (visibility toggle), URL / Package Name, TOTP secret string, and multiline Notes.
+    - Added instant entry duplication, deletion, group creation dialog, and real-time vault search filter.
+  - **Component 4: Inline Password Generator & NIST Entropy Meter in Entry CRUD (`PasswordGenerator.kt`, `SecurityVaultScreen.kt`)**:
+    - Embedded high-entropy cryptographic generator directly inside the Add/Edit Entry CRUD dialog under the Password field.
+    - Features direct `[ 🎲 Generate ]` button that rolls fresh passwords straight into the active entry field, real-time bit-entropy progress meter with NIST strength categorization (Weak, Fair, Strong, Unbreakable), expandable `[ Options ]` tray with length slider (8–64 chars), character set toggles (A-Z, a-z, 0-9, special), ambiguity filter (`1, l, I, 0, O`), and memorable passphrase mode. Removed redundant standalone overview generator.
+  - **Component 5: 2-Way Sync Engine & Interactive Visual Diff Sheet (`KdbxSyncManager.kt`)**:
+    - Timestamp conflict detection auditing external modifications from desktop KeePassXC or mobile KeePassDX.
+    - Computes field-level differences: `+ Added`, `~ Modified`, `- Deleted`, `⚠️ Conflict`.
+    - Interactive `ModalBottomSheet` reviewing exact changes before committing any SAF file write.
+  - **Component 6: Telemetry & Safety Verification**:
+    - All telemetry operations routed through `LogCatcher` with verified zero logging of plaintext secrets or PII.
+    - Verified compilation cleanly via `compile_applet`.
+
 
 
 

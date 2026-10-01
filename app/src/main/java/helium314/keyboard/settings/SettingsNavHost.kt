@@ -33,7 +33,7 @@ import helium314.keyboard.settings.screens.PatternLockSettingsScreen
 import helium314.keyboard.settings.screens.PrivacyVaultScreen
 import helium314.keyboard.settings.screens.SecondaryLayoutScreen
 import helium314.keyboard.settings.screens.SecurityScreen
-import helium314.keyboard.settings.screens.SecurityVaultPlaceholderScreen
+import helium314.keyboard.settings.screens.SecurityVaultScreen
 import helium314.keyboard.settings.screens.SubtypeScreen
 import helium314.keyboard.settings.screens.TextCorrectionScreen
 import helium314.keyboard.settings.screens.ToolbarScreen
@@ -111,7 +111,7 @@ fun SettingsNavHost(
             PrivacyVaultScreen(onClickBack = ::goBack)
         }
         composable(SettingsDestination.SecurityVault) {
-            SecurityVaultPlaceholderScreen(onClickBack = ::goBack)
+            SecurityVaultScreen(onClickBack = ::goBack)
         }
         composable(SettingsDestination.WordEngine) {
             WordEngineScreen(
