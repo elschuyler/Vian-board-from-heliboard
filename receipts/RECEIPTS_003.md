@@ -241,3 +241,53 @@
 - **How it was verified**: Verified via `compile_applet` (Gradle build completed cleanly with zero compilation errors).
 - **Deviation from requested**: None. Strictly incorporated the new top-right Close and Lock buttons in `SecurityVaultExplorerView` exactly as specified.
 - **Known issue or follow-up needed**: Ready for on-device manual QA testing and Phase 4: Stealth Gatekeeper & Context Suggestion Pills.
+
+### Receipt Entry: Phase 4 Stealth Gatekeeper, Context Suggestion Pills & Backup/Restore Integration
+- **Timestamp**: 2026-10-02T10:46:00-07:00
+- **Summary of request**: Implement Phase 4: Stealth Gatekeeper pattern unlock overlay, independent dual-vault session clocks, context suggestion strip auto-fill pills, and full connection of LogCatcher and Backup/Restore.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/security/vault/data/SecurityVaultDatabase.kt`
+  - `app/src/main/java/helium314/keyboard/security/vault/data/SecurityVaultDao.kt`
+  - `app/src/main/java/helium314/keyboard/settings/backup/ModularBackupEngine.kt`
+  - `app/src/main/java/helium314/keyboard/security/vault/ui/StealthPatternKeyboardOverlay.kt`
+  - `app/src/main/java/helium314/keyboard/security/vault/context/SecurityVaultContextSniffer.kt`
+  - `app/src/main/res/layout/main_keyboard_frame.xml`
+  - `app/src/main/java/helium314/keyboard/keyboard/KeyboardSwitcher.java`
+  - `app/src/main/java/helium314/keyboard/latin/LatinIME.java`
+  - `app/src/main/res/values/strings.xml`
+  - `app/src/main/java/helium314/keyboard/settings/screens/SecurityScreen.kt`
+  - `SECURITY_VAULT_EXECUTION_PLAN.md`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_003.md`
+- **What was actually done**:
+  1. Connected `ModularBackupEngine.kt` with `security_vault.db` sandbox export and restoration, preserving encrypted credentials and pattern salt/hash when `BackupModule.SECURITY_VAULT` is selected. Added `resetInstance()` in `SecurityVaultDao.kt` and `SecurityVaultDatabase.kt` for clean post-restore connection renewal.
+  2. Verified independent dual-vault session clocks in `VaultSessionManager.kt` (Privacy Vault: 5 min, Security Vault: 3 min) operating strictly with independent expiry timestamps and zero cross-leakage.
+  3. Created `StealthPatternKeyboardOverlay.kt` providing transparent gesture interception directly atop the standard QWERTY keyboard with zero visual lines, zero glowing trails, zero modal shift, tactile clock ticks on each node (E, T, U, D, G, J, C, B, M), and silent unlock on success.
+  4. Created `SecurityVaultContextSniffer.kt` analyzing package names, clean app keywords, and input hints on `onStartInputView` to generate responsive context pills (`[🔑 user@example.com]` or expandable `[🔑 2 Accounts ▼]`). Tapping auto-authenticates via stealth pattern overlay if locked and injects credentials directly into the active field (with zeroized password buffers).
+  5. Included `StealthPatternKeyboardOverlay` in `main_keyboard_frame.xml` and wired `KeyboardSwitcher.java` with `showStealthPatternUnlock()`, `stopStealthPatternUnlock()`, `isShowingStealthPatternUnlock()`, and single-modal Lite Mode lifecycle enforcement.
+  6. Connected `LatinIME.java` `setNeutralSuggestionStrip()` with `tryShowVaultSuggestion()`.
+  7. Added settings toggles for Stealth Gatekeeper and Context Suggestion Pills in `SecurityScreen.kt`.
+  8. Verified clean build with `compile_applet` (zero errors).
+- **How it was verified**: Verified via `compile_applet` (Gradle build completed cleanly with zero compilation errors).
+- **Deviation from requested**: None. Maintained 100% adherence to zero-visual-tell stealth gesture requirements and modular backup isolation.
+- **Known issue or follow-up needed**: Ready for Phase 5: Hardening, Telemetry Audit & Memory Reclamation.
+
+### Receipt Entry: Security Vault Explorer View Empty Modal Layout Fix
+- **Timestamp**: 2026-10-02T11:08:00-07:00
+- **Summary of request**: Fix issue where KDBX is loaded and visible in Settings, but the in-keyboard Security Vault Explorer modal displays as empty.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/security/vault/ui/SecurityVaultExplorerView.kt`
+  - `app/src/main/res/layout/security_vault_explorer_view.xml`
+  - `app/src/main/java/helium314/keyboard/security/vault/ui/AccordionFolderAdapter.kt`
+  - `receipts/RECEIPTS_003.md`
+- **What was actually done**:
+  1. Identified root cause: `SecurityVaultExplorerView` extended `FrameLayout` in Kotlin, despite its layout `security_vault_explorer_view.xml` defining a vertical orientation with a 48dp header strip, 1dp divider, and child `FrameLayout` (containing the `RecyclerView` and empty text) configured with `layout_height="0dp"` and `layout_weight="1"`. In Android, `FrameLayout` ignores `layout_weight` and collapses `0dp` height children to `0px`, causing the entire items list to measure and draw at zero height.
+  2. Changed `SecurityVaultExplorerView` to extend `LinearLayout` and explicitly set `orientation = VERTICAL`.
+  3. Added `layout_gravity="bottom"` and `layout_height="wrap_content"` to `security_vault_explorer_view.xml` consistent with sibling modal layouts (`clipboard_history_view.xml` and `chosen_entry_view.xml`).
+  4. Added `onAttachedToWindow` and `onDetachedFromWindow` lifecycle registration for `SecurityVaultDao.Listener` in `SecurityVaultExplorerView.kt`.
+  5. Updated `loadData()` to toggle both `emptyText` and `recyclerView` visibility explicitly based on whether entries/groups exist.
+  6. Added recursive entry counting in `AccordionFolderAdapter.kt` so parent folders accurately reflect the total number of credentials contained within their nested hierarchy.
+  7. Verified compilation cleanly with `compile_applet`.
+- **How it was verified**: Verified via `compile_applet` (Gradle build completed cleanly with zero compilation errors).
+- **Deviation from requested**: None. Root cause surgically identified and resolved.
+- **Known issue or follow-up needed**: Ready for on-device manual QA testing.

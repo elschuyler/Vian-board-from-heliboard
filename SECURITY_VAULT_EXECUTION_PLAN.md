@@ -182,7 +182,7 @@ Build the two in-keyboard modals (full-height Explorer and compact Chosen Entry 
 Implement the stealth pattern unlock disguised over normal QWERTY keys, independent session timers, and lightweight context-aware suggestion strip pills.
 
 ### Tasks
-- [ ] **Stealth Disguise Pattern Unlock (`StealthPatternKeyboardOverlay.kt`)**:
+- [x] **Stealth Disguise Pattern Unlock (`StealthPatternKeyboardOverlay.kt`)**:
   - Intercepts touch events on standard QWERTY alphabet keyboard when an unlock challenge is triggered.
   - Maps 3x3 pattern matrix to 9 tactile anchor keys:
     ```
@@ -194,17 +194,20 @@ Implement the stealth pattern unlock disguised over normal QWERTY keys, independ
   - Dispatches `HapticFeedbackConstants.CLOCK_TICK` on each node entered.
   - Zero visual lines, zero glowing trails, zero modal shift.
   - Silent unlock on success; muted vibration on failure.
-- [ ] **Independent Dual-Vault Session Clocks**:
+- [x] **Independent Dual-Vault Session Clocks**:
   - In `VaultSessionManager.kt`:
     - Privacy Vault session clock: 5 minutes.
     - Security Vault session clock: 3 minutes.
     - Strictly independent: Unlocking Privacy Vault never unlocks Security Vault, and vice versa.
-- [ ] **Lightweight Context Sniffer & Suggestion Strip Pills**:
-  - In `SuggestionStripView.kt` and `Suggest.java`:
+- [x] **Lightweight Context Sniffer & Suggestion Strip Pills**:
+  - In `SecurityVaultContextSniffer.kt`, `SuggestionStripView.kt`, and `LatinIME.java`:
     - Evaluates `editorInfo.packageName` (native apps) and `editorInfo.hintText` / browser hints on `onStartInputView`.
     - Single match: Displays direct `[🔑 alice@example.com]` pill at strip index 0.
     - Multiple matches: Displays dropdown `[🔑 2 Accounts ▼]` pill; tap reveals horizontal account list.
     - Tapping pill checks session validity $\rightarrow$ triggers Stealth Pattern Unlock if locked $\rightarrow$ commits credential directly into the active field.
+- [x] **Backup & Restore and LogCatcher Integration**:
+  - `ModularBackupEngine.kt` fully connected to `security_vault.db` sandbox export and restoration with clean instance resetting.
+  - Full diagnostic logging via `LogCatcher` with strict zero-PII sanitization.
 
 ### Verification Milestone
 - Focusing on a known app (e.g. GitHub, Twitter) immediately displays the matching account pill on the suggestion strip.

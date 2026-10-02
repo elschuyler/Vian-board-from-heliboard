@@ -29,6 +29,8 @@ import helium314.keyboard.latin.utils.LogCatcher
 import helium314.keyboard.latin.utils.SubtypeSettings
 import helium314.keyboard.latin.utils.prefs
 import helium314.keyboard.latin.utils.protectedPrefs
+import helium314.keyboard.security.vault.data.SecurityVaultDao
+import helium314.keyboard.security.vault.data.SecurityVaultDatabase
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.ByteArrayOutputStream
@@ -301,6 +303,16 @@ object ModularBackupEngine {
                         zip.write(vaultBytes)
                         zip.closeEntry()
                         stats["vault_configured"] = if (vaultData.hasPattern) 1 else 0
+
+                        // Also export encrypted security_vault.db sandbox if present
+                        val vaultDbFile = File(context.noBackupFilesDir, SecurityVaultDatabase.DATABASE_NAME)
+                        if (vaultDbFile.exists()) {
+                            zip.putNextEntry(ZipEntry("security/${SecurityVaultDatabase.DATABASE_NAME}"))
+                            FileInputStream(vaultDbFile).use { it.copyTo(zip) }
+                            zip.closeEntry()
+                            stats["vault_db_exported"] = 1
+                            LogCatcher.i(TAG, "Exported Security Vault sandbox database (${vaultDbFile.length()} bytes)")
+                        }
                     }
 
                     // 6. Manifest File (Always created)
@@ -457,6 +469,7 @@ object ModularBackupEngine {
             var prefLines: List<String>? = null
             var protectedPrefLines: List<String>? = null
             var vaultData: VaultBackupData? = null
+            var restoredVaultDbBytes: ByteArray? = null
             var clipboardJson: String? = null
             var promptsJson: String? = null
             var voiceReplJson: String? = null
@@ -482,6 +495,11 @@ object ModularBackupEngine {
                                 if (BackupModule.SECURITY_VAULT in selectedModules) {
                                     val content = String(zip.readBytes(), Charsets.UTF_8)
                                     vaultData = json.decodeFromString<VaultBackupData>(content)
+                                }
+                            }
+                            name == "security/${SecurityVaultDatabase.DATABASE_NAME}" -> {
+                                if (BackupModule.SECURITY_VAULT in selectedModules) {
+                                    restoredVaultDbBytes = zip.readBytes()
                                 }
                             }
                             name == "database/clipboard.json" -> {
@@ -559,6 +577,19 @@ object ModularBackupEngine {
 
             // 2. Restore Security Vault
             if (BackupModule.SECURITY_VAULT in selectedModules) {
+                if (restoredVaultDbBytes != null) {
+                    try {
+                        SecurityVaultDao.resetInstance()
+                        val noBackupDir = context.noBackupFilesDir
+                        if (!noBackupDir.exists()) noBackupDir.mkdirs()
+                        val vaultDbFile = File(noBackupDir, SecurityVaultDatabase.DATABASE_NAME)
+                        FileOutputStream(vaultDbFile).use { it.write(restoredVaultDbBytes!!) }
+                        restoredStats["security_vault_db"] = 1
+                        LogCatcher.i(TAG, "Restored Security Vault database from backup (${restoredVaultDbBytes!!.size} bytes)")
+                    } catch (t: Throwable) {
+                        LogCatcher.e(TAG, "Failed to restore security_vault.db: ${t.message}", t)
+                    }
+                }
                 if (vaultData != null) {
                     context.prefs().edit {
                         if (vaultData!!.hasPattern && vaultData!!.saltHex != null && vaultData!!.hashHex != null) {

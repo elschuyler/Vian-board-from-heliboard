@@ -93,6 +93,8 @@ import helium314.keyboard.latin.utils.SubtypeState;
 import helium314.keyboard.latin.utils.TempIncognitoManager;
 import helium314.keyboard.latin.utils.ToolbarMode;
 import helium314.keyboard.security.VaultSessionManager;
+import helium314.keyboard.security.vault.context.SecurityVaultContextSniffer;
+import helium314.keyboard.security.vault.data.VaultEntryEntity;
 import helium314.keyboard.settings.SettingsActivity2;
 import kotlin.Unit;
 
@@ -1626,6 +1628,31 @@ public class LatinIME extends InputMethodService implements
     }
 
     /**
+     *  Checks if matching vault credentials exist for the focused application/URL.
+     *  If available, renders stealth context pills directly on the suggestion strip.
+     */
+    public boolean tryShowVaultSuggestion() {
+        if (!hasSuggestionStripView()) return false;
+        final EditorInfo editorInfo = getCurrentInputEditorInfo();
+        if (editorInfo == null) return false;
+        final List<VaultEntryEntity> matches = SecurityVaultContextSniffer.INSTANCE.findMatchingEntries(this, editorInfo);
+        if (matches.isEmpty()) return false;
+
+        final View pillView = SecurityVaultContextSniffer.INSTANCE.createSuggestionPillView(
+            this,
+            editorInfo,
+            matches,
+            () -> {
+                setNeutralSuggestionStrip();
+                mHandler.postResumeSuggestions(false);
+                return kotlin.Unit.INSTANCE;
+            }
+        );
+        mSuggestionStripView.setExternalSuggestionView(pillView, false);
+        return true;
+    }
+
+    /**
      *  Checks if a recent clipboard suggestion is available. If available, it is set in suggestion strip.
      *  returns whether a clipboard suggestion has been set.
      */
@@ -1646,6 +1673,12 @@ public class LatinIME extends InputMethodService implements
     @Override
     public void setNeutralSuggestionStrip() {
         final SettingsValues currentSettings = mSettings.getCurrent();
+        if (tryShowVaultSuggestion()) {
+            // vault auto-fill context pill has been set
+            if (hasSuggestionStripView() && currentSettings.mAutoHideToolbar)
+                mSuggestionStripView.setToolbarVisibility(false);
+            return;
+        }
         if (tryShowClipboardSuggestion()) {
             // clipboard suggestion has been set
             if (hasSuggestionStripView() && currentSettings.mAutoHideToolbar)

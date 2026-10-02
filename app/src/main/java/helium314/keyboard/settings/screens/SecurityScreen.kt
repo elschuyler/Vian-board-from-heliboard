@@ -2,6 +2,8 @@
 package helium314.keyboard.settings.screens
 
 import android.widget.Toast
+import androidx.core.content.edit
+import helium314.keyboard.latin.utils.prefs
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -59,6 +61,12 @@ fun SecurityScreen(
     var isGatekeeperEnabled by remember { mutableStateOf(VaultSessionManager.isGatekeeperEnabled(context)) }
     var isSeparatePatterns by remember { mutableStateOf(VaultSessionManager.isSeparatePatternsEnabled(context)) }
     var isSecurityPatternSet by remember { mutableStateOf(VaultSessionManager.isSecurityPatternSet(context)) }
+    var isStealthGatekeeper by remember {
+        mutableStateOf(context.prefs().getBoolean("pref_vault_stealth_gatekeeper", true))
+    }
+    var isContextSuggestions by remember {
+        mutableStateOf(context.prefs().getBoolean("pref_vault_context_suggestions", true))
+    }
     var isUnlocked by remember {
         mutableStateOf(
             !isPatternConfigured ||
@@ -185,6 +193,52 @@ fun SecurityScreen(
                             }
                         },
                         enabled = isPatternConfigured
+                    )
+                }
+
+                Preference(
+                    name = "Stealth Gatekeeper",
+                    description = if (isStealthGatekeeper) {
+                        "Disguised pattern unlock over standard QWERTY keys with zero visual tell"
+                    } else {
+                        "Standard tactile pattern unlock screen"
+                    },
+                    onClick = {
+                        val next = !isStealthGatekeeper
+                        context.prefs().edit { putBoolean("pref_vault_stealth_gatekeeper", next) }
+                        isStealthGatekeeper = next
+                    },
+                    icon = R.drawable.ic_settings_security
+                ) {
+                    Switch(
+                        checked = isStealthGatekeeper,
+                        onCheckedChange = { checked ->
+                            context.prefs().edit { putBoolean("pref_vault_stealth_gatekeeper", checked) }
+                            isStealthGatekeeper = checked
+                        }
+                    )
+                }
+
+                Preference(
+                    name = "Context Suggestion Pills",
+                    description = if (isContextSuggestions) {
+                        "Display matching account auto-fill pills on suggestion strip"
+                    } else {
+                        "Auto-fill pills disabled"
+                    },
+                    onClick = {
+                        val next = !isContextSuggestions
+                        context.prefs().edit { putBoolean("pref_vault_context_suggestions", next) }
+                        isContextSuggestions = next
+                    },
+                    icon = R.drawable.ic_vpn_key
+                ) {
+                    Switch(
+                        checked = isContextSuggestions,
+                        onCheckedChange = { checked ->
+                            context.prefs().edit { putBoolean("pref_vault_context_suggestions", checked) }
+                            isContextSuggestions = checked
+                        }
                     )
                 }
 

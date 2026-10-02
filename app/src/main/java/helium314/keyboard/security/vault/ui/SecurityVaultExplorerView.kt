@@ -34,7 +34,7 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyle: Int = R.attr.clipboardHistoryViewStyle
-) : FrameLayout(context, attrs, defStyle), SecurityVaultDao.Listener {
+) : LinearLayout(context, attrs, defStyle), SecurityVaultDao.Listener {
 
     private lateinit var topBar: LinearLayout
     private lateinit var chipAll: TextView
@@ -53,6 +53,10 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
 
     companion object {
         private const val TAG = "SecurityVaultExplorerView"
+    }
+
+    init {
+        orientation = VERTICAL
     }
 
     override fun onFinishInflate() {
@@ -105,6 +109,16 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
         SecurityVaultDao.getInstance(context).addListener(this)
     }
 
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        SecurityVaultDao.getInstance(context).addListener(this)
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        SecurityVaultDao.getInstance(context).removeListener(this)
+    }
+
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val res = context.resources
         val width = ResourceUtils.getKeyboardWidth(context, Settings.getValues())
@@ -154,7 +168,9 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
             val recent = withContext(Dispatchers.IO) { dao.getRecentEntries(15) }
 
             adapter.setData(groups, entries, recent)
-            emptyText.visibility = if (entries.isEmpty() && groups.isEmpty()) View.VISIBLE else View.GONE
+            val isEmpty = entries.isEmpty() && groups.isEmpty()
+            emptyText.visibility = if (isEmpty) View.VISIBLE else View.GONE
+            recyclerView.visibility = if (isEmpty) View.GONE else View.VISIBLE
         }
     }
 

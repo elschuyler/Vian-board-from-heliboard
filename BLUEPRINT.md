@@ -430,6 +430,45 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
   - **Component 6: Telemetry & Safety Verification**:
     - All telemetry operations routed through `LogCatcher` with verified zero logging of plaintext secrets or PII.
     - Verified compilation cleanly via `compile_applet`.
+- **Phase 36: Security Vault In-Board Explorer & Compact Paste Deck [COMPLETED]**:
+  - **Component 1: In-Board Vault Explorer (`SecurityVaultExplorerView.kt`, `security_vault_explorer_view.xml`)**:
+    - Full-keyboard-height modal matching native keyboard theme colors (`MAIN_BACKGROUND`, `STRIP_BACKGROUND`, `KEY_TEXT`, `KEY_HINT_TEXT`, `KEY_ICON`).
+    - Standardized `LinearLayout` inheritance with `orientation = VERTICAL`, resolving a layout collapse issue where `FrameLayout` previously caused 0dp weight-based child elements to collapse to 0px height.
+    - Top-right dual buttons: `[🔒 Lock]` (instantly close modal and purge session) and `[✕ Close]` (close modal while preserving active session).
+    - Category filter chips (`All`, `Recent`, `Folders`), alphabetical / recency sorting toggle, recursive folder count badges, and empty state affordances.
+    - Integrated `AccordionFolderAdapter.kt` displaying collapsible folder tree and credential entries with entry count badges.
+  - **Component 2: Compact Chosen Entry Paste Deck (`ChosenEntryView.kt`, `chosen_entry_view.xml`)**:
+    - Compact profile (~140dp–150dp height, ~60% of keyboard) via custom `onMeasure()` to keep underlying application visible.
+    - 3-row layout:
+      - Row 1 (Bottom utility row): `[ABC]` (return without lock), `[Space]`, `[⌫]`, and `[↵ Enter/Next]`.
+      - Row 2 (Action buttons): `[👤 Username]` (direct injection), `[🔑 Password]` (direct injection with immediate memory zeroization), `[⏱️ TOTP]` (live 30s countdown circle with `TotpCircleProgressView.kt`), `[📝 Note]` (anchored drop-up), and `[📎 Attachment]` (anchored drop-up).
+      - Row 3 (Top header): `[🔒 Lock]`, `[↩ Back]`, title, and username.
+    - Text injection executes directly via `KeyboardActionListener` without clipboard reliance or modal dismissal for sequential multi-field filling.
+  - **Component 3: KeyboardSwitcher Wiring**:
+    - Integrated `setSecurityVaultExplorerKeyboard()`, `setChosenEntryKeyboard()`, and single-modal Lite Mode lifecycle.
+    - Connected `?123` long-press pattern challenge to open Explorer.
+- **Phase 37: Security Vault Stealth Gatekeeper, Context Suggestion Pills & Backup/Restore Integration [COMPLETED]**:
+  - **Component 1: Stealth Disguise Pattern Unlock (`StealthPatternKeyboardOverlay.kt`)**:
+    - Transparent touch interception overlay directly atop the standard QWERTY alphabet keyboard.
+    - Maps 3x3 pattern matrix to 9 tactile anchor keys: E (0), T (1), U (2), D (3), G (4), J (5), C (6), B (7), M (8) with 28dp catchment radius.
+    - Dispatches subtle tactile clock ticks on each node entered.
+    - Zero visual lines, zero glowing trails, zero modal shift. Silent unlock on success; muted vibration on failure.
+  - **Component 2: Independent Dual-Vault Session Clocks (`VaultSessionManager.kt`)**:
+    - Privacy Vault: 5-minute session duration (`PRIVACY_SESSION_DURATION_MS`).
+    - Security Vault: 3-minute session duration (`SECURITY_SESSION_DURATION_MS`).
+    - Strictly independent session clocks: unlocking one never unlocks the other.
+  - **Component 3: Lightweight Context Sniffer & Suggestion Strip Pills (`SecurityVaultContextSniffer.kt`, `LatinIME.java`)**:
+    - Detects `editorInfo.packageName`, extracted app keyword, and hint text / URL on `onStartInputView`.
+    - Single match: Displays direct `[🔑 alice@example.com]` chip at strip index 0.
+    - Multiple matches: Displays dropdown `[🔑 2 Accounts ▼]` chip; expands into horizontal scrollable account chips.
+    - Tapping pill checks session validity $\rightarrow$ triggers Stealth Pattern Unlock if locked $\rightarrow$ directly commits credential into active field (auto-zeroed password if password field, username if text field).
+  - **Component 4: Backup & Restore and LogCatcher Integration (`ModularBackupEngine.kt`, `SecurityVaultDao.kt`)**:
+    - Fully connected `security_vault.db` sandbox database export and restore in `ModularBackupEngine.kt` when `BackupModule.SECURITY_VAULT` is selected.
+    - Added `resetInstance()` in `SecurityVaultDao` and `SecurityVaultDatabase` for clean connection recovery after selective restore.
+    - Full telemetry sanitization and diagnostics routed through `LogCatcher`.
+  - **Component 5: Settings Preferences (`SecurityScreen.kt`)**:
+    - Added user switches for Stealth Gatekeeper (`pref_vault_stealth_gatekeeper`) and Context Suggestion Pills (`pref_vault_context_suggestions`).
+
 
 
 

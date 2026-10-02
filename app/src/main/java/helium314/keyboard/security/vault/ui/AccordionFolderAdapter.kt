@@ -77,6 +77,18 @@ class AccordionFolderAdapter(
         return this.sortMode
     }
 
+    private fun getRecursiveEntryCount(
+        groupUuid: String,
+        entriesByGroup: Map<String, List<VaultEntryEntity>>
+    ): Int {
+        var count = entriesByGroup[groupUuid]?.size ?: 0
+        val directChildren = allGroups.filter { it.parentGroupUuid == groupUuid }
+        for (child in directChildren) {
+            count += getRecursiveEntryCount(child.groupUuid, entriesByGroup)
+        }
+        return count
+    }
+
     private fun rebuildDisplayItems() {
         displayItems.clear()
         when (filterMode) {
@@ -102,8 +114,9 @@ class AccordionFolderAdapter(
 
                 for (group in sortedGroups) {
                     val groupEntries = entriesByGroup[group.groupUuid].orEmpty()
+                    val totalCount = getRecursiveEntryCount(group.groupUuid, entriesByGroup)
                     val isExpanded = expandedGroupUuids.contains(group.groupUuid) || filterMode == FilterMode.ALL
-                    displayItems.add(ListItem.Folder(group, groupEntries.size, isExpanded))
+                    displayItems.add(ListItem.Folder(group, totalCount, isExpanded))
 
                     if (isExpanded) {
                         val sortedEntries = if (sortMode == SortMode.NAME) {

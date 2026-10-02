@@ -555,5 +555,12 @@ class SecurityVaultDao private constructor(private val dbHelper: SecurityVaultDa
                 }
             }
         }
+
+        fun resetInstance() {
+            synchronized(this) {
+                SecurityVaultDatabase.resetInstance()
+                instance = null
+            }
+        }
     }
 }

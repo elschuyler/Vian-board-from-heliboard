@@ -68,6 +68,7 @@ import helium314.keyboard.security.VaultSessionManager;
 import helium314.keyboard.security.vault.data.VaultEntryEntity;
 import helium314.keyboard.security.vault.ui.ChosenEntryView;
 import helium314.keyboard.security.vault.ui.SecurityVaultExplorerView;
+import helium314.keyboard.security.vault.ui.StealthPatternKeyboardOverlay;
 
 public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     private static final String TAG = KeyboardSwitcher.class.getSimpleName();
@@ -91,6 +92,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     private PatternUnlockView mPatternUnlockView;
     private SecurityVaultExplorerView mSecurityVaultExplorerView;
     private ChosenEntryView mChosenEntryView;
+    private StealthPatternKeyboardOverlay mStealthPatternKeyboardOverlay;
     private VoiceInputView mVoiceInputView;
     private TextView mFakeToastView;
     private ImageView mBackgroundGatheringIndicator;
@@ -371,12 +373,18 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mChosenEntryView.setVisibility(View.GONE);
             mChosenEntryView.stopChosenEntry();
         }
+        if (mStealthPatternKeyboardOverlay != null) {
+            mStealthPatternKeyboardOverlay.stopStealthUnlock();
+        }
         enforceLiteModeSingleModal(null);
     }
 
     private void enforceLiteModeSingleModal(@Nullable final View activeModalView) {
         if (!Settings.getValues().mLiteMode) {
             return;
+        }
+        if (mStealthPatternKeyboardOverlay != null && activeModalView != mStealthPatternKeyboardOverlay) {
+            mStealthPatternKeyboardOverlay.stopStealthUnlock();
         }
         if (activeModalView != mEmojiPalettesView && mEmojiPalettesView != null) {
             mEmojiPalettesView.stopEmojiPalettes();
@@ -618,10 +626,50 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             setSecurityVaultExplorerKeyboard();
             return;
         }
-        showPatternUnlockView(() -> {
-            VaultSessionManager.INSTANCE.startSecuritySession();
-            setSecurityVaultExplorerKeyboard();
-        });
+        final boolean stealthEnabled = KtxKt.prefs(mLatinIME).getBoolean("pref_vault_stealth_gatekeeper", true);
+        if (stealthEnabled) {
+            showStealthPatternUnlock(
+                () -> {
+                    VaultSessionManager.INSTANCE.startSecuritySession();
+                    setSecurityVaultExplorerKeyboard();
+                },
+                () -> {}
+            );
+        } else {
+            showPatternUnlockView(() -> {
+                VaultSessionManager.INSTANCE.startSecuritySession();
+                setSecurityVaultExplorerKeyboard();
+            });
+        }
+    }
+
+    public void showStealthPatternUnlock(@NonNull final Runnable onUnlockSuccess, @Nullable final Runnable onCancel) {
+        if (mStealthPatternKeyboardOverlay == null) {
+            showPatternUnlockView(onUnlockSuccess);
+            return;
+        }
+        // Ensure standard alphabet keyboard is displayed underneath with zero modal shift
+        setAlphabetKeyboard(ShiftMode.UNSHIFT);
+        mStealthPatternKeyboardOverlay.startStealthUnlock(
+            () -> {
+                onUnlockSuccess.run();
+                return kotlin.Unit.INSTANCE;
+            },
+            () -> {
+                if (onCancel != null) onCancel.run();
+                return kotlin.Unit.INSTANCE;
+            }
+        );
+    }
+
+    public void stopStealthPatternUnlock() {
+        if (mStealthPatternKeyboardOverlay != null) {
+            mStealthPatternKeyboardOverlay.stopStealthUnlock();
+        }
+    }
+
+    public boolean isShowingStealthPatternUnlock() {
+        return mStealthPatternKeyboardOverlay != null && mStealthPatternKeyboardOverlay.getVisibility() == View.VISIBLE;
     }
 
     public void showPatternUnlockView(Runnable onUnlockSuccess) {
@@ -1302,6 +1350,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         mPatternUnlockView = mCurrentInputView.findViewById(R.id.pattern_unlock_view);
         mSecurityVaultExplorerView = mCurrentInputView.findViewById(R.id.security_vault_explorer_view);
         mChosenEntryView = mCurrentInputView.findViewById(R.id.chosen_entry_view);
+        mStealthPatternKeyboardOverlay = mCurrentInputView.findViewById(R.id.stealth_pattern_keyboard_overlay);
         mVoiceInputView = mCurrentInputView.findViewById(R.id.voice_input_view);
         if (mVoiceInputView != null) {
             mVoiceInputView.setHardwareAcceleratedDrawingEnabled(isHardwareAcceleratedDrawingEnabled);

@@ -139,5 +139,14 @@ class SecurityVaultDatabase private constructor(
                 }
             }
         }
+
+        fun resetInstance() {
+            synchronized(this) {
+                try {
+                    instance?.close()
+                } catch (_: Throwable) {}
+                instance = null
+            }
+        }
     }
 }
