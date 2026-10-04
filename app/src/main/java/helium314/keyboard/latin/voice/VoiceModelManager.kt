@@ -51,7 +51,11 @@ object VoiceModelManager {
         }
         val modelDir = getModelDirectory(context)
         val files = modelDir.listFiles { f ->
-            f.isFile && (f.name.endsWith(".bin", ignoreCase = true) || f.name.endsWith(".gguf", ignoreCase = true)) && f.length() > 1024 * 1024
+            f.isFile &&
+                !f.name.startsWith("import_", ignoreCase = true) &&
+                !f.name.endsWith(".tmp", ignoreCase = true) &&
+                (f.name.endsWith(".bin", ignoreCase = true) || f.name.endsWith(".gguf", ignoreCase = true)) &&
+                f.length() > 1024 * 1024
         }
         if (!files.isNullOrEmpty()) {
             return files[0]
@@ -85,6 +89,7 @@ object VoiceModelManager {
     }
 
     fun importModel(context: Context, sourceUri: Uri): Result<VoiceModelInfo> {
+        val tempFile = File(context.cacheDir, "voice_model_import_${System.currentTimeMillis()}.tmp")
         return try {
             val contentResolver = context.contentResolver
             var originalName = "model.bin"
@@ -96,10 +101,6 @@ object VoiceModelManager {
                 }
             }
 
-            val targetDir = getModelDirectory(context)
-            val tempFile = File(targetDir, "import_temp.bin")
-            if (tempFile.exists()) tempFile.delete()
-
             contentResolver.openInputStream(sourceUri)?.use { input ->
                 FileOutputStream(tempFile).use { output ->
                     input.copyTo(output, bufferSize = 64 * 1024)
@@ -107,7 +108,6 @@ object VoiceModelManager {
             } ?: return Result.failure(IllegalStateException("Unable to open input stream for selected model"))
 
             if (tempFile.length() < 1024 * 1024) {
-                tempFile.delete()
                 return Result.failure(IllegalArgumentException("File too small to be a valid Whisper speech model (< 1MB)"))
             }
 
@@ -116,14 +116,14 @@ object VoiceModelManager {
                 LogCatcher.w(TAG, "Imported file does not have standard GGML header, but proceeding as custom binary")
             }
 
-            val finalFile = getActiveModelFile(context)
+            val targetDir = getModelDirectory(context)
+            val finalFile = File(targetDir, ACTIVE_MODEL_FILE_NAME)
             if (finalFile.exists()) {
                 finalFile.delete()
             }
             if (!tempFile.renameTo(finalFile)) {
-                // Fallback copy if rename fails across mounts
+                // Fallback copy across filesystem boundaries (cacheDir -> noBackupFilesDir)
                 tempFile.copyTo(finalFile, overwrite = true)
-                tempFile.delete()
             }
 
             context.prefs().edit {
@@ -144,6 +144,10 @@ object VoiceModelManager {
         } catch (t: Throwable) {
             LogCatcher.e(TAG, "Failed to import voice model", t)
             Result.failure(t)
+        } finally {
+            if (tempFile.exists()) {
+                tempFile.delete()
+            }
         }
     }
 
@@ -151,6 +155,8 @@ object VoiceModelManager {
         return try {
             val file = getActiveModelFile(context)
             val deleted = if (file.exists()) file.delete() else true
+            val legacyTemp = File(getModelDirectory(context), "import_temp.bin")
+            if (legacyTemp.exists()) legacyTemp.delete()
             context.prefs().edit {
                 remove(Settings.PREF_VOICE_MODEL_NAME)
             }

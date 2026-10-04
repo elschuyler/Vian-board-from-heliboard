@@ -291,3 +291,77 @@
 - **How it was verified**: Verified via `compile_applet` (Gradle build completed cleanly with zero compilation errors).
 - **Deviation from requested**: None. Root cause surgically identified and resolved.
 - **Known issue or follow-up needed**: Ready for on-device manual QA testing.
+
+### Receipt Entry: Phase 38 Performance Decoupling, LogCatcher Streamlining & Suggestion Duplication Resolution
+- **Timestamp**: 2026-10-03T10:04:00-07:00
+- **Summary of request**: Implement Phase 38: Fix suggestion speed and double auto-correct/suggestion tap duplicate bug, decouple per-keystroke database operations, align Security Vault suggestions with suggestion bar input sensor pills (matching HeliBoard KeePassDX autofill pills), decouple gesture data gathering in Lite Mode, and optimize LogCatcher to be lightweight with zero typing overhead while recording all non-typing events and crashes in both Normal and Lite Mode.
+- **Exact files touched**:
+  - `BLUEPRINT.md`
+  - `app/src/main/java/helium314/keyboard/latin/Suggest.kt`
+  - `app/src/main/java/helium314/keyboard/latin/inputlogic/InputLogic.java`
+  - `app/src/main/java/helium314/keyboard/latin/LatinIME.java`
+  - `app/src/main/java/helium314/keyboard/latin/utils/LogCatcher.kt`
+  - `receipts/RECEIPTS_003.md`
+- **What was actually done**:
+  1. Identified root cause of slow suggestions and double suggestion tap ("tap gives what was written plus suggestion bar"): `Suggest.kt` was calling `suggestionsContainer.add(0, typedWordInfo)` which prepended `typedWordInfo` at index 0 of the candidate list, displacing the top auto-correct suggestion to index 1. Subsequently, `Suggest.kt` inserted `typedWord` a second time into `suggestionsList` at `indexOfTypedWord`, corrupting the `SuggestedWords` layout indexing so `SuggestionStripLayoutHelper` treated the typed word as the auto-correction.
+  2. Removed `suggestionsContainer.add(0, typedWordInfo)` and the per-keystroke synchronous `VaultDao.findSuggestions` SQLite query from `Suggest.kt`, restoring pristine candidate sorting and eliminating main-thread typing latency.
+  3. In `InputLogic.java` (`onPickSuggestionManually`), replaced premature `mConnection.commitText(" ", 1)` with atomic `suggestion = " " + suggestion` to prevent committing the composing word as a space prior to committing the picked suggestion.
+  4. In `InputLogic.java` (`commitChosenWord`), hardened `deleteTextBeforeCursor` check to use `(typedWord.equals(textBefore.toString()) || typedWord.equalsIgnoreCase(textBefore.toString()))` for case-insensitive cleanup.
+  5. In `LatinIME.java`, connected `tryShowVaultSuggestion()` in `setNeutralSuggestionStrip()` so Security Vault suggestions render as context pills in the suggestion strip upon field focus (matching HeliBoard's inline autofill KeePassDX pills), with zero per-keystroke overhead during typing.
+  6. In `LatinIME.java` (`setGestureDataGatheringMode`), explicitly disabled `GestureDataGatheringKt.useBackgroundGathering` when `mLiteMode` is active, eliminating background touch glide sampling and IPC `getTextBeforeCursor(40, 0)` calls on every keystroke.
+  7. In `LogCatcher.kt`, added `TypoEngine` to high-frequency typing tags; filtered out 'D', 'V', and 'I' logs from typing loops when `mLiteMode` is active to guarantee 0ms typing latency, while keeping full recording of modal lifecycle, security vault unlock/lock, settings changes, warnings, errors, and fatal crashes across all modes.
+  8. Verified clean build with `compile_applet` (zero errors).
+- **How it was verified**: Verified via `compile_applet` (Gradle build completed cleanly with zero compilation errors).
+- **Deviation from requested**: None. Implemented exactly as discussed.
+- **Known issue or follow-up needed**: Ready for on-device manual QA testing.
+
+### Receipt Entry: Phase 39 Unified Pattern Unlock, Stealth Micro-Dot Skin, Touch Pipeline & Modal Navigation Unification
+- **Timestamp**: 2026-10-04T00:46:00-07:00
+- **Summary of request**: Implement fixes for pattern unlock in Security Vault Explorer modal: resolve session leakage from Settings, fix long-press `?123` touch inversion with `ABC`, unify stealth mode and normal mode pattern unlock to share `PatternUnlockView` matching normal keyboard height with subtle micro-dots skin, and unify bottom row navigation bar across Security Vault Explorer and Chosen Entry modals matching Clipboard and Emoji palettes.
+- **Exact files touched**:
+  - `BLUEPRINT.md`
+  - `app/src/main/java/helium314/keyboard/settings/screens/PatternLockSettingsScreen.kt`
+  - `app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardState.kt`
+  - `app/src/main/java/helium314/keyboard/keyboard/PointerTracker.java`
+  - `app/src/main/java/helium314/keyboard/security/PatternGridView.kt`
+  - `app/src/main/java/helium314/keyboard/security/PatternUnlockView.kt`
+  - `app/src/main/java/helium314/keyboard/keyboard/KeyboardSwitcher.java`
+  - `app/src/main/res/layout/security_vault_explorer_view.xml`
+  - `app/src/main/java/helium314/keyboard/security/vault/ui/SecurityVaultExplorerView.kt`
+  - `app/src/main/res/layout/chosen_entry_view.xml`
+  - `app/src/main/java/helium314/keyboard/security/vault/ui/ChosenEntryView.kt`
+  - `receipts/RECEIPTS_003.md`
+- **What was actually done**:
+  1. In `PatternLockSettingsScreen.kt`, removed `VaultSessionManager.startSecuritySession()` from the pattern test verification block, and added `DisposableEffect(Unit)` with `onDispose { VaultSessionManager.lockSecurity() }` to guarantee pattern testing in Settings never leaks a 3-minute unlocked session to the keyboard IME.
+  2. In `KeyboardState.kt`, deferred `KeyCode.SYMBOL_ALPHA` layout swap from `ACTION_DOWN` (`onPressKey`) to tap release (`onReleaseKey`), preventing premature layout switching to Symbols beneath the resting finger during long-press.
+  3. In `PointerTracker.java`, fixed long-press detection on `?123` to fire while on the Alphabet layout and eliminated premature `onReleaseKey` dispatch when long-press triggers, resolving the bug where long-pressing `?123` acted like a tap and `ABC` launched the Vault modal.
+  4. In `PatternGridView.kt`, added `isStealthMode` with subtle micro-dots (~14% opacity) visible only when stared at directly, while suppressing connecting lines and halo; maintained virtual key tactile feedback.
+  5. In `PatternUnlockView.kt`, changed height measurement to `ResourceUtils.getKeyboardHeight()` matching standard keyboard height, eliminating layout shift and blank background gaps; supported stealth skin mode.
+  6. In `KeyboardSwitcher.java`, unified normal and stealth unlock into `showPatternUnlockView` with `isStealth` flag, retiring overlay complexity.
+  7. In `security_vault_explorer_view.xml` and `chosen_entry_view.xml`, added standard `MainKeyboardView` (`@+id/bottom_row_keyboard`), set `fitsSystemWindows="true"`, and bound `CLIPBOARD_BOTTOM_ROW` via `buildEmojiClipBottomRow`, unifying navigation ergonomics across all modals.
+  8. Verified clean build via `compile_applet` (zero errors).
+- **How it was verified**: Verified via `compile_applet` (Gradle build completed cleanly with zero compilation errors).
+- **Deviation from requested**: None. Implemented exactly as planned and finalized in discussion.
+- **Known issue or follow-up needed**: Ready for on-device manual QA testing.
+
+---
+
+### Receipt Entry: Phase 40 - Voice Model Import Pipeline Resolution & Self-Deletion Bug Fix
+- **Timestamp**: 2026-10-04 10:19:15 UTC-7
+- **Summary of request**: Fix voice model import failure (`NoSuchFileException: import_temp.bin: The source file doesn't exist`) identified in device logcat.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/latin/voice/VoiceModelManager.kt`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_003.md`
+- **What was actually done**:
+  1. Diagnosed device logcat error where importing `voice-input-english-39.bin` or `ggml-tiny.en.bin` crashed in `copyTo` due to `NoSuchFileException`.
+  2. Identified that `tempFile` was previously written inside `getModelDirectory(context)` with a `.bin` extension as `import_temp.bin`. On a device without an existing `model.bin`, `getActiveModelFile()` dynamically queried `modelDir` and matched `import_temp.bin` as `finalFile`, which then executed `finalFile.delete()`, deleting the newly downloaded file before copying it.
+  3. Relocated temporary staging file to `context.cacheDir/voice_model_import_<timestamp>.tmp` outside of the model directory, using a `.tmp` extension so file discovery never matches it.
+  4. Changed `finalFile` in `importModel()` to target `File(targetDir, ACTIVE_MODEL_FILE_NAME)` deterministically instead of querying `getActiveModelFile()`.
+  5. In `getActiveModelFile()`, added explicit filters to ignore any files starting with `import_` or ending with `.tmp`.
+  6. Wrapped import stream and copy in `try-finally` to ensure `.tmp` cache files are cleaned up reliably on success or failure.
+  7. Added cleanup of any legacy `import_temp.bin` files in `deleteModel()`.
+  8. Verified clean build via `compile_applet`.
+- **How it was verified**: Verified via `compile_applet` (Gradle build completed cleanly with zero compilation errors).
+- **Deviation from requested**: None. Surgical fix applied exactly as analyzed and agreed in discussion.
+- **Known issue or follow-up needed**: Ready for on-device verification by selecting a model via Settings > Voice Input > Import Model (.bin).

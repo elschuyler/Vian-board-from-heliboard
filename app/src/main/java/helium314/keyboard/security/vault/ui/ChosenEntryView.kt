@@ -11,6 +11,7 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -19,8 +20,13 @@ import android.widget.PopupWindow
 import android.widget.TextView
 import android.widget.Toast
 import helium314.keyboard.keyboard.KeyboardActionListener
+import helium314.keyboard.keyboard.KeyboardElement
+import helium314.keyboard.keyboard.KeyboardLayoutSet
 import helium314.keyboard.keyboard.KeyboardSwitcher
 import helium314.keyboard.keyboard.KeyboardTypeface
+import helium314.keyboard.keyboard.MainKeyboardView
+import helium314.keyboard.keyboard.PointerTracker
+import helium314.keyboard.keyboard.internal.KeyVisualAttributes
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.common.ColorType
@@ -65,10 +71,7 @@ class ChosenEntryView @JvmOverloads constructor(
     private lateinit var btnActionAttachment: LinearLayout
     private lateinit var iconActionAttachment: ImageView
 
-    private lateinit var btnUtilAbc: Button
-    private lateinit var btnUtilSpace: Button
-    private lateinit var btnUtilBackspace: ImageButton
-    private lateinit var btnUtilEnter: ImageButton
+    private var bottomRowKeyboard: MainKeyboardView? = null
 
     private var keyboardActionListener: KeyboardActionListener? = null
     private var currentEntry: VaultEntryEntity? = null
@@ -79,6 +82,11 @@ class ChosenEntryView @JvmOverloads constructor(
 
     companion object {
         private const val TAG = "ChosenEntryView"
+    }
+
+    init {
+        orientation = VERTICAL
+        fitsSystemWindows = true
     }
 
     override fun onFinishInflate() {
@@ -99,29 +107,31 @@ class ChosenEntryView @JvmOverloads constructor(
         btnActionAttachment = findViewById(R.id.btn_action_attachment)
         iconActionAttachment = findViewById(R.id.icon_action_attachment)
 
-        btnUtilAbc = findViewById(R.id.btn_util_abc)
-        btnUtilSpace = findViewById(R.id.btn_util_space)
-        btnUtilBackspace = findViewById(R.id.btn_util_backspace)
-        btnUtilEnter = findViewById(R.id.btn_util_enter)
+        bottomRowKeyboard = findViewById(R.id.bottom_row_keyboard)
 
         setupListeners()
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val res = context.resources
-        val width = ResourceUtils.getKeyboardWidth(context, Settings.getValues())
-        // Compact height profile: ~140dp–150dp or 60% of keyboard height
-        val fullHeight = ResourceUtils.getSecondaryKeyboardHeight(res, Settings.getValues())
-        val compactHeight = (fullHeight * 0.65f).toInt().coerceAtLeast((140 * res.displayMetrics.density).toInt())
+        val width = ResourceUtils.getKeyboardWidth(context, Settings.getValues()) + paddingLeft + paddingRight
+        val height = ResourceUtils.getSecondaryKeyboardHeight(res, Settings.getValues()) + paddingTop + paddingBottom
         val widthSpec = MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY)
-        val heightSpec = MeasureSpec.makeMeasureSpec(compactHeight, MeasureSpec.EXACTLY)
+        val heightSpec = MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
         super.onMeasure(widthSpec, heightSpec)
-        setMeasuredDimension(width, compactHeight)
+        setMeasuredDimension(width, height)
     }
 
-    fun bindEntry(entry: VaultEntryEntity, listener: KeyboardActionListener) {
+    @JvmOverloads
+    fun bindEntry(
+        entry: VaultEntryEntity,
+        listener: KeyboardActionListener,
+        editorInfo: EditorInfo? = null,
+        keyVisualAttr: KeyVisualAttributes? = null
+    ) {
         this.currentEntry = entry
         this.keyboardActionListener = listener
+        setupBottomRowKeyboard(editorInfo, listener)
 
         txtTitle.text = entry.title
         txtSubtitle.text = if (!entry.username.isNullOrBlank()) entry.username else "No username"
@@ -220,23 +230,16 @@ class ChosenEntryView @JvmOverloads constructor(
             }
         }
 
-        // Utility Row
-        btnUtilAbc.setOnClickListener {
-            stopChosenEntry()
-            KeyboardSwitcher.getInstance().closeChosenEntry(false)
-        }
+        // Utility Row handled standardly via bottom_row_keyboard
+    }
 
-        btnUtilSpace.setOnClickListener {
-            keyboardActionListener?.onCodeInput(Constants.CODE_SPACE, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
-        }
-
-        btnUtilBackspace.setOnClickListener {
-            keyboardActionListener?.onCodeInput(KeyCode.DELETE, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
-        }
-
-        btnUtilEnter.setOnClickListener {
-            keyboardActionListener?.onCodeInput(Constants.CODE_ENTER, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
-        }
+    private fun setupBottomRowKeyboard(editorInfo: EditorInfo?, listener: KeyboardActionListener) {
+        val keyboardView = bottomRowKeyboard ?: return
+        keyboardView.setKeyboardActionListener(listener)
+        PointerTracker.switchTo(keyboardView)
+        val kls = KeyboardLayoutSet.Builder.buildEmojiClipBottomRow(context, editorInfo)
+        val keyboard = kls.getKeyboard(KeyboardElement.CLIPBOARD_BOTTOM_ROW)
+        keyboardView.setKeyboard(keyboard)
     }
 
     private fun startTotpTicker() {
@@ -334,11 +337,6 @@ class ChosenEntryView @JvmOverloads constructor(
             colors.setColor(iconActionUsername, ColorType.KEY_ICON)
             colors.setColor(iconActionPassword, ColorType.KEY_ICON)
             colors.setColor(iconActionAttachment, ColorType.KEY_ICON)
-            colors.setColor(btnUtilBackspace, ColorType.KEY_ICON)
-            colors.setColor(btnUtilEnter, ColorType.KEY_ICON)
-
-            btnUtilAbc.setTextColor(textColor)
-            btnUtilSpace.setTextColor(textColor)
         } else {
             setBackgroundColor(Color.parseColor("#202124"))
             txtTitle.setTextColor(Color.WHITE)

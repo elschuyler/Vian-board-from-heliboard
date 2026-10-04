@@ -7,7 +7,9 @@
     android:layout_height="wrap_content"
     android:layout_gravity="bottom"
     android:orientation="vertical"
-    android:visibility="gone">
+    android:visibility="gone"
+    android:background="@android:color/transparent"
+    style="?attr/clipboardHistoryViewStyle">
 
     <!-- Top Navigation & Controls Header Strip -->
     <LinearLayout
@@ -147,4 +149,9 @@
             android:textSize="14sp"
             android:visibility="gone" />
     </FrameLayout>
+    <helium314.keyboard.keyboard.MainKeyboardView
+        android:id="@+id/bottom_row_keyboard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
 </helium314.keyboard.security.vault.ui.SecurityVaultExplorerView>

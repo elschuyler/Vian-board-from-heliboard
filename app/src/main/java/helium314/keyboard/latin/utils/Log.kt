@@ -10,67 +10,71 @@ import java.util.Date
 object Log {
     @JvmStatic
     fun wtf(tag: String?, message: String) {
-        log(LogLine('F', tag, message))
+        log('F', tag, message, null)
         android.util.Log.wtf(tag, message)
     }
 
     @JvmStatic
     fun e(tag: String?, message: String, e: Throwable?) {
-        log(LogLine('E', tag, "$message\n${e?.stackTraceToString()}", e))
+        log('E', tag, "$message\n${e?.stackTraceToString()}", e)
         android.util.Log.e(tag, message, e)
     }
 
     @JvmStatic
     fun e(tag: String?, message: String) {
-        log(LogLine('E', tag, message))
+        log('E', tag, message, null)
         android.util.Log.e(tag, message)
     }
 
     @JvmStatic
     fun w(tag: String?, message: String, e: Throwable?) {
-        log(LogLine('W', tag, "$message\n${e?.stackTraceToString()}", e))
+        log('W', tag, "$message\n${e?.stackTraceToString()}", e)
         android.util.Log.w(tag, message, e)
     }
 
     @JvmStatic
     fun w(tag: String?, message: String) {
-        log(LogLine('W', tag, message))
+        log('W', tag, message, null)
         android.util.Log.w(tag, message)
     }
 
     @JvmStatic
     fun i(tag: String?, message: String, e: Throwable?) {
-        log(LogLine('I', tag, "$message\n${e?.stackTraceToString()}", e))
+        log('I', tag, "$message\n${e?.stackTraceToString()}", e)
         android.util.Log.i(tag, message, e)
     }
 
     @JvmStatic
     fun i(tag: String?, message: String) {
-        log(LogLine('I', tag, message))
+        log('I', tag, message, null)
         android.util.Log.i(tag, message)
     }
 
     @JvmStatic
     fun d(tag: String?, message: String, e: Throwable?) {
-        log(LogLine('D', tag, "$message\n${e?.stackTraceToString()}", e))
+        log('D', tag, "$message\n${e?.stackTraceToString()}", e)
         android.util.Log.d(tag, message, e)
     }
 
     @JvmStatic
     fun d(tag: String?, message: String) {
-        log(LogLine('D', tag, message))
+        log('D', tag, message, null)
         android.util.Log.d(tag, message)
     }
 
     @JvmStatic
     fun v(tag: String?, message: String) {
-        log(LogLine('V', tag, message))
+        log('V', tag, message, null)
         android.util.Log.v(tag, message)
     }
 
     private fun log(line: LogLine) {
         // Forward directly to LogCatcher engine
         LogCatcher.log(line.level, line.tag, line.message, line.throwable)
+    }
+
+    private fun log(level: Char, tag: String?, message: String, throwable: Throwable?) {
+        LogCatcher.log(level, tag, message, throwable)
     }
 
     /** returns recent logs as LogLine */
@@ -88,12 +92,8 @@ data class LogLine(
     val throwable: Throwable? = null,
     val timestampMs: Long = System.currentTimeMillis()
 ) {
-    private val time = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        LocalDateTime.now()
-    } else {
-        Date(timestampMs)
+    override fun toString(): String {
+        val dateStr = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date(timestampMs))
+        return "$dateStr $level $tag: $message"
     }
-
-    override fun toString(): String =
-        "${time.toString().replace('T', ' ')} $level $tag: $message"
 }

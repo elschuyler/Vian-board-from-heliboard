@@ -29,6 +29,11 @@ class PatternGridView @JvmOverloads constructor(
 
     var onPatternCompleted: ((List<Int>) -> Unit)? = null
     var onPatternStarted: (() -> Unit)? = null
+    var isStealthMode: Boolean = false
+        set(value) {
+            field = value
+            invalidate()
+        }
 
     private val selectedNodes = mutableListOf<Int>()
     private var isErrorState = false
@@ -120,6 +125,22 @@ class PatternGridView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         val (normalColor, activeColor, haloColor) = resolveColors()
+
+        if (isStealthMode) {
+            // Stealth Mode: zero visual tell for pattern lines and halos.
+            // Tiny micro-dots/subtle shades only visible if stared at directly.
+            val microDotRadius = 3f * resources.displayMetrics.density
+            val stealthDotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.FILL
+                color = ColorUtils.setAlphaComponent(normalColor, 35) // ~14% opacity
+            }
+            for (i in 0..8) {
+                val cx = nodePositions[i][0]
+                val cy = nodePositions[i][1]
+                canvas.drawCircle(cx, cy, microDotRadius, stealthDotPaint)
+            }
+            return
+        }
 
         linePaint.color = activeColor
         nodeNormalPaint.color = normalColor

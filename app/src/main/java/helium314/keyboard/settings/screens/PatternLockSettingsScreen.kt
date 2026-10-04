@@ -27,6 +27,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,6 +62,12 @@ fun PatternLockSettingsScreen(
     // Setup state: 0 = Draw initial pattern, 1 = Confirm pattern
     var setupStep by remember { mutableStateOf(0) }
     var provisionalPattern by remember { mutableStateOf<List<Int>?>(null) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            VaultSessionManager.lockSecurity()
+        }
+    }
     var instructionText by remember {
         mutableStateOf(
             if (!isPatternSet) {
@@ -207,9 +214,8 @@ fun PatternLockSettingsScreen(
                                             VaultSessionManager.verifyPattern(ctx, pattern)
                                         }
                                         if (valid) {
-                                            instructionText = "Pattern verified! Session unlocked."
-                                            VaultSessionManager.startSecuritySession()
-                                            Toast.makeText(ctx, "Security Vault Unlocked", Toast.LENGTH_SHORT).show()
+                                            instructionText = "Pattern verified successfully!"
+                                            Toast.makeText(ctx, "Pattern Verified", Toast.LENGTH_SHORT).show()
                                             postDelayed({
                                                 clearPattern()
                                                 instructionText = if (forSecurityVault) "Dedicated security unlock pattern is active" else "Master unlock pattern is active"

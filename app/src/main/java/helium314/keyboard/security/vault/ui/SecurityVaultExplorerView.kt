@@ -6,6 +6,7 @@ import android.content.Context
 import android.graphics.Color
 import android.util.AttributeSet
 import android.view.View
+import android.view.inputmethod.EditorInfo
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.LinearLayout
@@ -13,8 +14,13 @@ import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import helium314.keyboard.keyboard.KeyboardActionListener
+import helium314.keyboard.keyboard.KeyboardElement
+import helium314.keyboard.keyboard.KeyboardLayoutSet
 import helium314.keyboard.keyboard.KeyboardSwitcher
 import helium314.keyboard.keyboard.KeyboardTypeface
+import helium314.keyboard.keyboard.MainKeyboardView
+import helium314.keyboard.keyboard.PointerTracker
+import helium314.keyboard.keyboard.internal.KeyVisualAttributes
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.common.ColorType
 import helium314.keyboard.latin.settings.Settings
@@ -47,6 +53,7 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyText: TextView
     private lateinit var adapter: AccordionFolderAdapter
+    private var bottomRowKeyboard: MainKeyboardView? = null
 
     private var keyboardActionListener: KeyboardActionListener? = null
     private val scope = CoroutineScope(Dispatchers.Main + Job())
@@ -57,6 +64,7 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
 
     init {
         orientation = VERTICAL
+        fitsSystemWindows = true
     }
 
     override fun onFinishInflate() {
@@ -70,6 +78,7 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
         btnClose = findViewById(R.id.btn_vault_close)
         recyclerView = findViewById(R.id.recycler_vault_items)
         emptyText = findViewById(R.id.txt_vault_empty)
+        bottomRowKeyboard = findViewById(R.id.bottom_row_keyboard)
 
         recyclerView.layoutManager = LinearLayoutManager(context)
         adapter = AccordionFolderAdapter(context) { entry ->
@@ -121,20 +130,35 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val res = context.resources
-        val width = ResourceUtils.getKeyboardWidth(context, Settings.getValues())
-        val height = ResourceUtils.getSecondaryKeyboardHeight(res, Settings.getValues())
+        val width = ResourceUtils.getKeyboardWidth(context, Settings.getValues()) + paddingLeft + paddingRight
+        val height = ResourceUtils.getSecondaryKeyboardHeight(res, Settings.getValues()) + paddingTop + paddingBottom
         val widthSpec = MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY)
         val heightSpec = MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
         super.onMeasure(widthSpec, heightSpec)
         setMeasuredDimension(width, height)
     }
 
-    fun startExplorer(listener: KeyboardActionListener) {
+    @JvmOverloads
+    fun startExplorer(
+        listener: KeyboardActionListener,
+        editorInfo: EditorInfo? = null,
+        keyVisualAttr: KeyVisualAttributes? = null
+    ) {
         this.keyboardActionListener = listener
+        setupBottomRowKeyboard(editorInfo, listener)
         applyThemeColors()
         updateChipHighlight(chipAll)
         loadData()
         visibility = View.VISIBLE
+    }
+
+    private fun setupBottomRowKeyboard(editorInfo: EditorInfo?, listener: KeyboardActionListener) {
+        val keyboardView = bottomRowKeyboard ?: return
+        keyboardView.setKeyboardActionListener(listener)
+        PointerTracker.switchTo(keyboardView)
+        val kls = KeyboardLayoutSet.Builder.buildEmojiClipBottomRow(context, editorInfo)
+        val keyboard = kls.getKeyboard(KeyboardElement.CLIPBOARD_BOTTOM_ROW)
+        keyboardView.setKeyboard(keyboard)
     }
 
     fun stopExplorer() {

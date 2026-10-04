@@ -47,6 +47,34 @@ object LogCatcher {
     private val activeComponents = ConcurrentHashMap<String, ComponentInfo>()
     private val diskExecutor = Executors.newSingleThreadExecutor()
 
+    private val pendingDiskEntries = ArrayList<LogEntry>()
+    private const val DISK_BATCH_THRESHOLD = 20
+
+    private val HIGH_FREQUENCY_TYPING_TAGS = arrayOf(
+        "PointerTracker",
+        "InputLogic",
+        "LatinIME",
+        "Suggest",
+        "DictionaryFacilitator",
+        "MainKeyboardView",
+        "WordComposer",
+        "RichInputConnection",
+        "MoreSuggestionsView",
+        "SuggestionStripView",
+        "KeyboardLayoutSet",
+        "TypoEngine"
+    )
+
+    private fun isHighFrequencyTypingLog(level: Char, tag: String): Boolean {
+        for (t in HIGH_FREQUENCY_TYPING_TAGS) {
+            if (tag.startsWith(t)) {
+                if (level == 'D' || level == 'V') return true
+                if (level == 'I' && (helium314.keyboard.latin.settings.Settings.getValues()?.mLiteMode == true || !BuildConfig.DEBUG)) return true
+            }
+        }
+        return false
+    }
+
     data class ComponentInfo(
         val name: String,
         val category: String,
@@ -137,6 +165,11 @@ object LogCatcher {
         if (!isEnabled) return
 
         val safeTag = tag ?: "General"
+        if (isHighFrequencyTypingLog(level, safeTag)) {
+            // Filter high-frequency typing debug noise so typing is 100% latency-free
+            return
+        }
+
         val timestamp = System.currentTimeMillis()
         val stackTrace = throwable?.let {
             val sw = StringWriter()
@@ -159,19 +192,61 @@ object LogCatcher {
             ringBuffer.add(entry)
         }
 
-        // Asynchronously append to persistent active log with 2 MB rotation check
-        appContext?.let { ctx ->
+        queueForDisk(entry)
+    }
+
+    private fun queueForDisk(entry: LogEntry) {
+        val shouldFlush: Boolean
+        val batch: List<LogEntry>?
+        synchronized(pendingDiskEntries) {
+            pendingDiskEntries.add(entry)
+            shouldFlush = entry.level == 'E' || entry.level == 'F' || entry.level == 'W' || pendingDiskEntries.size >= DISK_BATCH_THRESHOLD
+            if (shouldFlush) {
+                batch = ArrayList(pendingDiskEntries)
+                pendingDiskEntries.clear()
+            } else {
+                batch = null
+            }
+        }
+
+        if (batch != null) {
+            val ctx = appContext ?: return
             diskExecutor.execute {
-                try {
-                    val file = File(ctx.filesDir, ACTIVE_LOG_FILE)
-                    if (file.exists() && file.length() >= ROTATION_SIZE_BYTES) {
-                        rotateActiveLogToDownloads(ctx, file)
-                    }
-                    FileOutputStream(file, true).bufferedWriter().use { writer ->
-                        writer.write(entry.toExportString())
-                        writer.newLine()
-                    }
-                } catch (_: Throwable) {}
+                writeBatchToDisk(ctx, batch)
+            }
+        }
+    }
+
+    private fun writeBatchToDisk(ctx: Context, batch: List<LogEntry>) {
+        try {
+            val file = File(ctx.filesDir, ACTIVE_LOG_FILE)
+            if (file.exists() && file.length() >= ROTATION_SIZE_BYTES) {
+                rotateActiveLogToDownloads(ctx, file)
+            }
+            FileOutputStream(file, true).bufferedWriter().use { writer ->
+                for (e in batch) {
+                    writer.write(e.toExportString())
+                    writer.newLine()
+                }
+            }
+        } catch (_: Throwable) {}
+    }
+
+    @JvmStatic
+    fun flushPendingLogs() {
+        val batch: List<LogEntry>?
+        synchronized(pendingDiskEntries) {
+            if (pendingDiskEntries.isNotEmpty()) {
+                batch = ArrayList(pendingDiskEntries)
+                pendingDiskEntries.clear()
+            } else {
+                batch = null
+            }
+        }
+        val ctx = appContext ?: return
+        if (batch != null) {
+            diskExecutor.execute {
+                writeBatchToDisk(ctx, batch)
             }
         }
     }

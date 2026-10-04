@@ -644,41 +644,33 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     }
 
     public void showStealthPatternUnlock(@NonNull final Runnable onUnlockSuccess, @Nullable final Runnable onCancel) {
-        if (mStealthPatternKeyboardOverlay == null) {
-            showPatternUnlockView(onUnlockSuccess);
-            return;
-        }
-        // Ensure standard alphabet keyboard is displayed underneath with zero modal shift
-        setAlphabetKeyboard(ShiftMode.UNSHIFT);
-        mStealthPatternKeyboardOverlay.startStealthUnlock(
-            () -> {
-                onUnlockSuccess.run();
-                return kotlin.Unit.INSTANCE;
-            },
-            () -> {
-                if (onCancel != null) onCancel.run();
-                return kotlin.Unit.INSTANCE;
-            }
-        );
+        showPatternUnlockView(onUnlockSuccess, true);
     }
 
     public void stopStealthPatternUnlock() {
+        if (mPatternUnlockView != null) {
+            mPatternUnlockView.stopPatternUnlock();
+        }
         if (mStealthPatternKeyboardOverlay != null) {
             mStealthPatternKeyboardOverlay.stopStealthUnlock();
         }
     }
 
     public boolean isShowingStealthPatternUnlock() {
-        return mStealthPatternKeyboardOverlay != null && mStealthPatternKeyboardOverlay.getVisibility() == View.VISIBLE;
+        return mPatternUnlockView != null && mPatternUnlockView.getVisibility() == View.VISIBLE;
     }
 
     public void showPatternUnlockView(Runnable onUnlockSuccess) {
+        showPatternUnlockView(onUnlockSuccess, false);
+    }
+
+    public void showPatternUnlockView(Runnable onUnlockSuccess, boolean isStealth) {
         if (mPatternUnlockView == null) return;
         mMainKeyboardFrame.setVisibility(View.VISIBLE);
         mKeyboardView.setVisibility(View.GONE);
         mEmojiTabStripView.setVisibility(View.GONE);
         mSuggestionStripView.setVisibility(View.GONE);
-        mStripContainer.setVisibility(View.VISIBLE);
+        mStripContainer.setVisibility(isStealth ? View.GONE : View.VISIBLE);
         mClipboardStripScrollView.setVisibility(View.GONE);
         if (mDesktopShortcutsStripScrollView != null) {
             mDesktopShortcutsStripScrollView.setVisibility(View.GONE);
@@ -687,7 +679,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mVoicePreviewStrip.setVisibility(View.GONE);
         }
         if (mPatternUnlockStrip != null) {
-            mPatternUnlockStrip.setVisibility(View.VISIBLE);
+            mPatternUnlockStrip.setVisibility(isStealth ? View.GONE : View.VISIBLE);
         }
         if (mSecurityVaultExplorerView != null) {
             mSecurityVaultExplorerView.stopExplorer();
@@ -711,6 +703,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         mPatternUnlockView.startPatternUnlock(
                 mLatinIME.mKeyboardActionListener,
                 mKeyboardView.getKeyVisualAttribute(),
+                isStealth,
                 () -> {
                     if (onUnlockSuccess != null) {
                         onUnlockSuccess.run();
@@ -764,7 +757,12 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mChosenEntryView.stopChosenEntry();
         }
         if (mSecurityVaultExplorerView != null) {
-            mSecurityVaultExplorerView.startExplorer(mLatinIME.mKeyboardActionListener);
+            final EditorInfo editorInfo = mLatinIME.getCurrentInputEditorInfo();
+            mSecurityVaultExplorerView.startExplorer(
+                    mLatinIME.mKeyboardActionListener,
+                    editorInfo,
+                    mKeyboardView != null ? mKeyboardView.getKeyVisualAttribute() : null
+            );
             mSecurityVaultExplorerView.setVisibility(View.VISIBLE);
         }
         enforceLiteModeSingleModal(mSecurityVaultExplorerView);
@@ -810,7 +808,13 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mSecurityVaultExplorerView.stopExplorer();
         }
         if (mChosenEntryView != null) {
-            mChosenEntryView.bindEntry(entry, mLatinIME.mKeyboardActionListener);
+            final EditorInfo editorInfo = mLatinIME.getCurrentInputEditorInfo();
+            mChosenEntryView.bindEntry(
+                    entry,
+                    mLatinIME.mKeyboardActionListener,
+                    editorInfo,
+                    mKeyboardView != null ? mKeyboardView.getKeyVisualAttribute() : null
+            );
             mChosenEntryView.setVisibility(View.VISIBLE);
         }
         enforceLiteModeSingleModal(mChosenEntryView);

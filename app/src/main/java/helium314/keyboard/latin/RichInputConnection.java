@@ -933,6 +933,10 @@ public final class RichInputConnection implements PrivateCommandPerformer {
         return StringUtilsKt.getTouchedWordRange(before, after, script, spacingAndPunctuations);
     }
 
+    public boolean hasComposingText() {
+        return mComposingText.length() > 0;
+    }
+
     public boolean isCursorTouchingWord(final SpacingAndPunctuations spacingAndPunctuations,
             boolean checkTextAfter) {
         if (checkTextAfter && isCursorFollowedByWordCharacter(spacingAndPunctuations)) {

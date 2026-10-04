@@ -40,12 +40,16 @@ class PatternUnlockView @JvmOverloads constructor(
         setPadding(0, 0, 0, 0)
     }
 
+    private var isStealth = false
+
     override fun onFinishInflate() {
         super.onFinishInflate()
         gridView = findViewById(R.id.pattern_grid_view)
 
         gridView.onPatternStarted = {
-            statusText?.text = context.getString(R.string.pattern_verifying)
+            if (!isStealth) {
+                statusText?.text = context.getString(R.string.pattern_verifying)
+            }
         }
 
         gridView.onPatternCompleted = { pattern ->
@@ -56,21 +60,25 @@ class PatternUnlockView @JvmOverloads constructor(
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val res = context.resources
         val width = ResourceUtils.getKeyboardWidth(context, Settings.getValues())
-        val height = ResourceUtils.getSecondaryKeyboardHeight(res, Settings.getValues())
+        val height = ResourceUtils.getKeyboardHeight(res, Settings.getValues())
         val widthSpec = MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY)
         val heightSpec = MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
         super.onMeasure(widthSpec, heightSpec)
         setMeasuredDimension(width, height)
     }
 
+    @JvmOverloads
     fun startPatternUnlock(
         listener: KeyboardActionListener,
         keyVisualAttributes: KeyVisualAttributes?,
+        isStealthMode: Boolean = false,
         onSuccess: () -> Unit
     ) {
         keyboardActionListener = listener
         onUnlockSuccessCallback = onSuccess
         isUnlocked = false
+        isStealth = isStealthMode
+        gridView.isStealthMode = isStealthMode
 
         val strip = KeyboardSwitcher.getInstance().patternUnlockStrip
         if (strip != null) {
@@ -81,10 +89,13 @@ class PatternUnlockView @JvmOverloads constructor(
                 stopPatternUnlock()
                 KeyboardSwitcher.getInstance().closeSecondaryKeyboard()
             }
+            strip.visibility = if (isStealthMode) View.GONE else View.VISIBLE
         }
 
         applyThemeColors()
-        statusText?.text = context.getString(R.string.pattern_draw_to_unlock)
+        if (!isStealthMode) {
+            statusText?.text = context.getString(R.string.pattern_draw_to_unlock)
+        }
         gridView.clearPattern()
         visibility = View.VISIBLE
     }
@@ -100,22 +111,28 @@ class PatternUnlockView @JvmOverloads constructor(
         val matches = VaultSessionManager.verifyPattern(context, pattern)
         if (matches) {
             isUnlocked = true
-            statusText?.text = context.getString(R.string.pattern_unlocked)
+            if (!isStealth) {
+                statusText?.text = context.getString(R.string.pattern_unlocked)
+            }
             VaultSessionManager.startSecuritySession()
             postDelayed({
                 val cb = onUnlockSuccessCallback
                 stopPatternUnlock()
                 cb?.invoke()
-            }, 250)
+            }, if (isStealth) 80 else 250)
         } else {
-            statusText?.text = context.getString(R.string.pattern_incorrect)
-            gridView.setErrorState()
-            postDelayed({
-                if (!isUnlocked) {
-                    gridView.clearPattern()
-                    statusText?.text = context.getString(R.string.pattern_draw_to_unlock)
-                }
-            }, 650)
+            if (!isStealth) {
+                statusText?.text = context.getString(R.string.pattern_incorrect)
+                gridView.setErrorState()
+                postDelayed({
+                    if (!isUnlocked) {
+                        gridView.clearPattern()
+                        statusText?.text = context.getString(R.string.pattern_draw_to_unlock)
+                    }
+                }, 650)
+            } else {
+                gridView.clearPattern()
+            }
         }
     }
 

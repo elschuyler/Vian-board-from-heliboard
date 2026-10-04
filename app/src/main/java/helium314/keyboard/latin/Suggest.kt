@@ -125,9 +125,6 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
                     candidateCount++
                 }
             }
-            if (candidateCount > 0) {
-                LogCatcher.markComponentActive("TypoEngine", "Autocorrect", "Substituted accidental number typo: $candidateCount candidates matched")
-            }
         }
         val trailingSingleQuotesCount = StringUtils.getTrailingSingleQuotesCount(typedWordString)
         val capsMode = getCapsModeForTyping(wordComposer, keyboard)
@@ -164,28 +161,7 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         val typedWordInfo = SuggestedWordInfo(typedWordString, "", SuggestedWordInfo.MAX_SCORE,
             SuggestedWordInfo.KIND_TYPED, typedWordFirstOccurrenceWordInfo?.mSourceDict ?: Dictionary.DICTIONARY_USER_TYPED,
             SuggestedWordInfo.NOT_AN_INDEX , SuggestedWordInfo.NOT_A_CONFIDENCE)
-        if (typedWordString.isNotEmpty()) {
-            suggestionsContainer.add(0, typedWordInfo)
-            val ctx = mDictionaryFacilitator.context
-            if (ctx != null) {
-                val matches = VaultDao.getInstance(ctx).findSuggestions(typedWordString)
-                for ((idx, vaultEntry) in matches.take(2).withIndex()) {
-                    val maskedLabel = VaultDao.maskPhrase(vaultEntry.phrase)
-                    val vaultInfo = SuggestedWordInfo(
-                        vaultEntry.phrase,
-                        maskedLabel,
-                        "",
-                        SuggestedWordInfo.MAX_SCORE - 1 - idx,
-                        SuggestedWordInfo.KIND_VAULT_ENTRY,
-                        Dictionary.DICTIONARY_USER_TYPED,
-                        SuggestedWordInfo.NOT_AN_INDEX,
-                        SuggestedWordInfo.NOT_A_CONFIDENCE
-                    )
-                    suggestionsContainer.add(1 + idx, vaultInfo)
-                }
-            }
-        }
-        if (typedWordString.isNotEmpty() && suggestionsContainer.size == 1 && NumberSuggestionsHelper.isNumeric(typedWordString)) {
+        if (typedWordString.isNotEmpty() && suggestionsContainer.isEmpty() && NumberSuggestionsHelper.isNumeric(typedWordString)) {
             val suffixes = NumberSuggestionsHelper.getSuffixes(mDictionaryFacilitator.context)
             for ((index, suffix) in suffixes.withIndex()) {
                 val wordToCommit = if (suffix.startsWith('/') || suffix.startsWith('-') || suffix.startsWith('%')) {

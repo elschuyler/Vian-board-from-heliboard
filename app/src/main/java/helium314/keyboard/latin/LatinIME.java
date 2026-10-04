@@ -1089,6 +1089,7 @@ public class LatinIME extends InputMethodService implements
             mDictionaryFacilitator.dropSecondaryDictionaries();
             mKeyboardSwitcher.trimMemory();
         }
+        LogCatcher.flushPendingLogs();
     }
 
     protected void deallocateMemory() {
@@ -1674,7 +1675,6 @@ public class LatinIME extends InputMethodService implements
     public void setNeutralSuggestionStrip() {
         final SettingsValues currentSettings = mSettings.getCurrent();
         if (tryShowVaultSuggestion()) {
-            // vault auto-fill context pill has been set
             if (hasSuggestionStripView() && currentSettings.mAutoHideToolbar)
                 mSuggestionStripView.setToolbarVisibility(false);
             return;
@@ -1997,6 +1997,7 @@ public class LatinIME extends InputMethodService implements
     @Override
     public void onTrimMemory(int level) {
         super.onTrimMemory(level);
+        LogCatcher.flushPendingLogs();
         if (mSettings.getCurrent().mLiteMode) {
             mDictionaryFacilitator.dropSecondaryDictionaries();
             mKeyboardSwitcher.trimMemory();
@@ -2014,6 +2015,13 @@ public class LatinIME extends InputMethodService implements
     }
 
     public void setGestureDataGatheringMode(EditorInfo editorInfo, boolean restarting) {
+        if (mSettings.getCurrent().mLiteMode) {
+            GestureDataGatheringKt.useBackgroundGathering = false;
+            mKeyboardSwitcher.setBackgroundGatheringIndicator(false, false, false);
+            mDictionaryFacilitator = mOriginalDictionaryFacilitator;
+            mInputLogic.setFacilitator(mDictionaryFacilitator);
+            return;
+        }
         // only for gesture data gathering, remove when data gathering phase is done (end of 2026 latest)
         if (GestureDataGatheringSettings.INSTANCE.isInActiveGatheringMode(editorInfo)) {
             mDictionaryFacilitator = GestureDataGatheringKt.getGestureDataActiveFacilitator();

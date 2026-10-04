@@ -468,6 +468,33 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
     - Full telemetry sanitization and diagnostics routed through `LogCatcher`.
   - **Component 5: Settings Preferences (`SecurityScreen.kt`)**:
     - Added user switches for Stealth Gatekeeper (`pref_vault_stealth_gatekeeper`) and Context Suggestion Pills (`pref_vault_context_suggestions`).
+- **Phase 39: Unified Pattern Unlock, Stealth Micro-Dot Skin, Touch Pipeline & Modal Navigation Unification [COMPLETED]**:
+  - **Component 1: Session Leakage Prevention (`PatternLockSettingsScreen.kt`)**:
+    - Removed `VaultSessionManager.startSecuritySession()` from pattern test verification block inside Settings.
+    - Added `DisposableEffect(Unit)` with `onDispose { VaultSessionManager.lockSecurity() }` to guarantee pattern testing in Settings never leaks a 3-minute unlocked session to the IME.
+  - **Component 2: Touch Event Pipeline & Long-Press Inversion Fix (`KeyboardState.kt`, `PointerTracker.java`, `KeyboardSwitcher.java`)**:
+    - Deferred `KeyCode.SYMBOL_ALPHA` layout swap from `ACTION_DOWN` (`onPressKey`) to tap release (`onReleaseKey`), eliminating instant layout change beneath resting fingers.
+    - Fixed long-press on `?123` so the timer expires on the Alphabet keyboard, triggering Security Vault unlock challenge directly without switching to Symbols or inverting to `ABC`.
+    - Removed premature `onReleaseKey` dispatch inside `PointerTracker.onLongPressed` when long-press fires.
+  - **Component 3: Unified Pattern Unlock View & Stealth Micro-Dot Skin (`PatternUnlockView.kt`, `PatternGridView.kt`, `KeyboardSwitcher.java`)**:
+    - Unified both normal and stealth unlock into `PatternUnlockView` / `PatternGridView`, measuring with `ResourceUtils.getKeyboardHeight()` to match standard keyboard height with zero layout shift.
+    - In Stealth Mode: Rendered pattern nodes as ultra-subtle micro-dots (~14% opacity) visible only when stared at directly; completely suppressed connecting lines and halo; hid header status strip. Maintained virtual key tactile feedback on node pass.
+    - In Normal Mode: Maintained standard pattern unlock lines, glowing halo, and status text.
+  - **Component 4: Modal Navigation & Bottom Bar Unification (`security_vault_explorer_view.xml`, `chosen_entry_view.xml`, `SecurityVaultExplorerView.kt`, `ChosenEntryView.kt`)**:
+    - Added standard `MainKeyboardView` (`@+id/bottom_row_keyboard`) to both `security_vault_explorer_view.xml` and `chosen_entry_view.xml`.
+    - Bound `CLIPBOARD_BOTTOM_ROW` using `KeyboardLayoutSet.Builder.buildEmojiClipBottomRow(context, editorInfo)` across all modals (matching Clipboard and Emoji palettes).
+    - Added `fitsSystemWindows = true` and padding insets in `onMeasure` to prevent drawing beneath Android system 3-button/gesture navigation bars.
+- **Phase 40: Voice Model Import Pipeline Resolution (`VoiceModelManager.kt`) [COMPLETED]**:
+  - **Component 1: Elimination of Self-Deletion Bug**:
+    - Discovered root cause of `NoSuchFileException: import_temp.bin: The source file doesn't exist`: temporary staging file was previously created directly in `voice_models/` with `.bin` extension. On devices without an existing `model.bin`, `getActiveModelFile()` dynamic scan matched `import_temp.bin`, and subsequent `finalFile.delete()` destroyed the staging file immediately before copying.
+    - Relocated temporary staging file to `context.cacheDir/voice_model_import_<timestamp>.tmp`.
+    - Set target model destination deterministically to `File(targetDir, ACTIVE_MODEL_FILE_NAME)` instead of dynamically querying active model file during an in-flight import.
+  - **Component 2: Temporary File Filtering & Safe Staging Cleanup**:
+    - In `getActiveModelFile()`, added explicit filters to exclude files starting with `import_` or ending with `.tmp`, preventing temporary artifacts from being mistaken for valid speech models.
+    - Wrapped import stream operations in `try-finally` to guarantee that `.tmp` cache staging files are cleaned up whether the import succeeds or fails.
+    - Added legacy temporary file cleanup in `deleteModel()` to purge any lingering artifacts from previous failed attempts.
+
+
 
 
 

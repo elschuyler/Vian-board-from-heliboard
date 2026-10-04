@@ -1182,10 +1182,10 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         }
         if (code == KeyCode.SYMBOL_ALPHA) {
             final String label = key.getLabel();
-            final boolean isQuestion123 = label != null && (label.contains("123") || label.contains("?"));
+            final boolean isAlphabet = mKeyboard != null && mKeyboard.mId.getElement().isAlphabet();
+            final boolean isQuestion123 = (label != null && (label.contains("123") || label.contains("?"))) || isAlphabet;
             cancelKeyTracking();
             mIsTrackingForActionDisabled = true;
-            sListener.onReleaseKey(code, false);
             if (isQuestion123) {
                 sListener.onLongPressAlphaSymbolForNumpad();
             }

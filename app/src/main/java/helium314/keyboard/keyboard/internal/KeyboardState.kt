@@ -227,7 +227,10 @@ class KeyboardState(private val switchActions: SwitchActions) {
         when (code) {
             KeyCode.SHIFT -> onPressShift()
             KeyCode.CAPS_LOCK -> {} // Nothing to do here. See onReleaseKey.
-            KeyCode.SYMBOL_ALPHA -> onPressAlphaSymbol(autoCapsFlags, recapitalizeMode)
+            KeyCode.SYMBOL_ALPHA -> {
+                // Defer layout toggle to release tap so long-press on ?123 and ABC does not prematurely invert layouts
+                symbolKeyState = ModifierKeyState.PRESSING
+            }
             KeyCode.ALPHA, KeyCode.SYMBOL, KeyCode.NUMPAD, KeyCode.DPAD -> {} // don't start sliding, causes issues with fully customizable layouts (also does not allow chording, but can be fixed later)
             else -> {
                 shiftKeyState = shiftKeyState.chordIfPressing()
@@ -266,6 +269,8 @@ class KeyboardState(private val switchActions: SwitchActions) {
                     // Switch back to the previous keyboard mode if the user chords the mode change key and
                     // another key, then releases the mode change key.
                     loadPreviousLayout(autoCapsFlags, recapitalizeMode)
+                } else if (!withSliding && symbolKeyState == ModifierKeyState.PRESSING) {
+                    onPressAlphaSymbol(autoCapsFlags, recapitalizeMode)
                 }
                 if (withSliding) {
                     isInLayoutSlide = true

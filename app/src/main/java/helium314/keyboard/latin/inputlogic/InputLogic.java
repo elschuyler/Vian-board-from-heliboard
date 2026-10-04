@@ -349,6 +349,13 @@ public final class InputLogic {
             mSuggestedWords = SuggestedWords.getEmptyInstance();
             mSuggestionStripViewAccessor.setNeutralSuggestionStrip();
             inputTransaction.requireShiftUpdate(InputTransaction.SHIFT_UPDATE_NOW);
+            final String typed = mWordComposer.getTypedWord();
+            if (!TextUtils.isEmpty(typed)) {
+                final CharSequence textBefore = mConnection.getTextBeforeCursor(typed.length(), 0);
+                if (textBefore != null && typed.equals(textBefore.toString())) {
+                    mConnection.deleteTextBeforeCursor(typed.length());
+                }
+            }
             resetComposingState(true /* alsoResetLastComposedWord */);
             mConnection.commitText(suggestion, 1);
             mConnection.endBatchEdit();
@@ -368,7 +375,7 @@ public final class InputLogic {
         } else if (!suggestion.contains(" ") && suggestion.length() > 0 && Character.isLetterOrDigit(suggestion.charAt(0))) {
             final CharSequence before = mConnection.getTextBeforeCursor(1, 0);
             if (before != null && before.length() > 0 && Character.isDigit(before.charAt(before.length() - 1))) {
-                mConnection.commitText(" ", 1);
+                suggestion = " " + suggestion;
             }
         }
 
@@ -2527,6 +2534,13 @@ public final class InputLogic {
                     + "Connection.getNgramContextFromNthPreviousWord()");
             Log.d(TAG, "commitChosenWord() : NgramContext = " + ngramContext);
             startTimeMillis = SystemClock.elapsedRealtime();
+        }
+        final String typedWord = mWordComposer.getTypedWord();
+        if ((!mWordComposer.isComposingWord() || !mConnection.hasComposingText()) && !TextUtils.isEmpty(typedWord)) {
+            final CharSequence textBefore = mConnection.getTextBeforeCursor(typedWord.length(), 0);
+            if (textBefore != null && (typedWord.equals(textBefore.toString()) || typedWord.equalsIgnoreCase(textBefore.toString()))) {
+                mConnection.deleteTextBeforeCursor(typedWord.length());
+            }
         }
         mConnection.commitText(chosenWordWithSuggestions, 1);
         if (DebugFlags.DEBUG_ENABLED) {
