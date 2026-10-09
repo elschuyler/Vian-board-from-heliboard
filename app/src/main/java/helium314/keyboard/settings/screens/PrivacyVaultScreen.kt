@@ -62,6 +62,7 @@ import helium314.keyboard.latin.R
 import helium314.keyboard.latin.database.VaultDao
 import helium314.keyboard.latin.database.VaultEntry
 import helium314.keyboard.latin.utils.LogCatcher
+import helium314.keyboard.security.BiometricAuthTrampolineActivity
 import helium314.keyboard.security.PatternGridView
 import helium314.keyboard.security.VaultSessionManager
 import helium314.keyboard.settings.SearchScreen
@@ -109,7 +110,35 @@ private fun VaultUnlockScreen(
     onUnlocked: () -> Unit,
 ) {
     val context = LocalContext.current
-    var statusText by remember { mutableStateOf("Draw master pattern to unlock Privacy Vault") }
+    val primaryMethod = remember { VaultSessionManager.getPrimaryUnlockMethod(context) }
+    var statusText by remember {
+        mutableStateOf(
+            if (primaryMethod == VaultSessionManager.UnlockMethod.BIOMETRIC)
+                "Biometric challenge ready. Use sensor or draw pattern below."
+            else if (primaryMethod == VaultSessionManager.UnlockMethod.DEVICE_PIN)
+                "Device PIN ready. Tap unlock or draw pattern below."
+            else
+                "Draw master pattern to unlock Privacy Vault"
+        )
+    }
+
+    LaunchedEffect(Unit) {
+        if (primaryMethod == VaultSessionManager.UnlockMethod.BIOMETRIC ||
+            primaryMethod == VaultSessionManager.UnlockMethod.DEVICE_PIN) {
+            val mode = if (primaryMethod == VaultSessionManager.UnlockMethod.DEVICE_PIN)
+                BiometricAuthTrampolineActivity.MODE_DEVICE_PIN
+            else BiometricAuthTrampolineActivity.MODE_BIOMETRIC
+            BiometricAuthTrampolineActivity.launch(
+                context,
+                mode,
+                BiometricAuthTrampolineActivity.VAULT_PRIVACY
+            ) { success, _ ->
+                if (success) {
+                    onUnlocked()
+                }
+            }
+        }
+    }
 
     SearchSettingsScreen(
         onClickBack = onClickBack,
@@ -427,7 +456,7 @@ private fun EditVaultEntryDialog(
                 )
 
                 Text(
-                    text = "🔒 Strictly isolated inside HeliBoard sandbox. Never shared with Android system or other apps.",
+                    text = "🔒 Strictly isolated inside VianBoard sandbox. Never shared with Android system or other apps.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

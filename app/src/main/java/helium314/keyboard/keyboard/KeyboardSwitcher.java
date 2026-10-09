@@ -63,6 +63,8 @@ import helium314.keyboard.latin.utils.ScriptUtils;
 import helium314.keyboard.latin.utils.SubtypeUtilsAdditional;
 import helium314.keyboard.latin.utils.ToolbarMode;
 import helium314.keyboard.latin.voice.VoiceInputView;
+import helium314.keyboard.keyboard.handwriting.HandwritingPadView;
+import helium314.keyboard.security.BiometricAuthTrampolineActivity;
 import helium314.keyboard.security.PatternUnlockView;
 import helium314.keyboard.security.VaultSessionManager;
 import helium314.keyboard.security.vault.data.VaultEntryEntity;
@@ -94,6 +96,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     private ChosenEntryView mChosenEntryView;
     private StealthPatternKeyboardOverlay mStealthPatternKeyboardOverlay;
     private VoiceInputView mVoiceInputView;
+    private HandwritingPadView mHandwritingPadView;
     private TextView mFakeToastView;
     private ImageView mBackgroundGatheringIndicator;
     private LatinIME mLatinIME;
@@ -297,6 +300,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         if (DEBUG_ACTION) {
             Log.d(TAG, "closeSecondaryKeyboard");
         }
+        PointerTracker.setKeyboardActionListener(mLatinIME.mKeyboardActionListener);
         setAlphabetKeyboard(ShiftMode.UNSHIFT);
     }
 
@@ -331,6 +335,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         final int stripVisibility = mLatinIME.hasSuggestionStripView()? View.VISIBLE : View.GONE;
         mStripContainer.setVisibility(stripVisibility);
         PointerTracker.switchTo(mKeyboardView);
+        PointerTracker.setKeyboardActionListener(mLatinIME.mKeyboardActionListener);
         mKeyboardView.setVisibility(visibility);
         // The visibility of {@link #mKeyboardView} must be aligned with {@link #MainKeyboardFrame}.
         // @see #getVisibleKeyboardView() and
@@ -373,6 +378,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mChosenEntryView.setVisibility(View.GONE);
             mChosenEntryView.stopChosenEntry();
         }
+        if (mHandwritingPadView != null) {
+            mHandwritingPadView.setVisibility(View.GONE);
+            mHandwritingPadView.stopHandwriting();
+        }
         if (mStealthPatternKeyboardOverlay != null) {
             mStealthPatternKeyboardOverlay.stopStealthUnlock();
         }
@@ -407,6 +416,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         }
         if (activeModalView != mChosenEntryView && mChosenEntryView != null) {
             mChosenEntryView.stopChosenEntry();
+        }
+        if (activeModalView != mHandwritingPadView && mHandwritingPadView != null) {
+            mHandwritingPadView.stopHandwriting();
+            mHandwritingPadView.setVisibility(View.GONE);
         }
         KeyboardLayoutSet.Companion.clearNonCoreCache();
     }
@@ -448,6 +461,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         if (mVoiceInputView != null) {
             mVoiceInputView.setVisibility(View.GONE);
             mVoiceInputView.stopVoiceInput();
+        }
+        if (mHandwritingPadView != null) {
+            mHandwritingPadView.setVisibility(View.GONE);
+            mHandwritingPadView.stopHandwriting();
         }
         mEmojiPalettesView.startEmojiPalettes(mKeyboardView.getKeyVisualAttribute(),
                 mLatinIME.getCurrentInputEditorInfo(), mLatinIME.mKeyboardActionListener);
@@ -496,6 +513,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mVoiceInputView.setVisibility(View.GONE);
             mVoiceInputView.stopVoiceInput();
         }
+        if (mHandwritingPadView != null) {
+            mHandwritingPadView.setVisibility(View.GONE);
+            mHandwritingPadView.stopHandwriting();
+        }
         enforceLiteModeSingleModal(mClipboardHistoryView);
     }
 
@@ -528,6 +549,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         if (mVoiceInputView != null) {
             mVoiceInputView.setVisibility(View.GONE);
             mVoiceInputView.stopVoiceInput();
+        }
+        if (mHandwritingPadView != null) {
+            mHandwritingPadView.setVisibility(View.GONE);
+            mHandwritingPadView.stopHandwriting();
         }
         if (mClipboardHistoryView != null) {
             mClipboardHistoryView.startPromptHistory(
@@ -571,6 +596,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         if (mVoiceInputView != null) {
             mVoiceInputView.setVisibility(View.GONE);
             mVoiceInputView.stopVoiceInput();
+        }
+        if (mHandwritingPadView != null) {
+            mHandwritingPadView.setVisibility(View.GONE);
+            mHandwritingPadView.stopHandwriting();
         }
         if (mDesktopShortcutsStripScrollView != null) {
             mDesktopShortcutsStripScrollView.post(() -> mDesktopShortcutsStripScrollView.fullScroll(HorizontalScrollView.FOCUS_RIGHT));
@@ -626,30 +655,109 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             setSecurityVaultExplorerKeyboard();
             return;
         }
+        final VaultSessionManager.UnlockMethod primaryMethod = VaultSessionManager.INSTANCE.getPrimaryUnlockMethod(mLatinIME);
+        final Runnable onUnlock = () -> {
+            VaultSessionManager.INSTANCE.startSecuritySession();
+            setSecurityVaultExplorerKeyboard();
+        };
+
+        if (primaryMethod == VaultSessionManager.UnlockMethod.BIOMETRIC ||
+            primaryMethod == VaultSessionManager.UnlockMethod.DEVICE_PIN) {
+            final String mode = primaryMethod == VaultSessionManager.UnlockMethod.DEVICE_PIN
+                ? BiometricAuthTrampolineActivity.MODE_DEVICE_PIN
+                : BiometricAuthTrampolineActivity.MODE_BIOMETRIC;
+            BiometricAuthTrampolineActivity.Companion.launch(
+                mLatinIME,
+                mode,
+                BiometricAuthTrampolineActivity.VAULT_SECURITY,
+                (success, isBackupRequested) -> {
+                    if (success) {
+                        onUnlock.run();
+                    } else if (isBackupRequested) {
+                        // Fall back to backup unlock method (Pattern or Device PIN)
+                        final VaultSessionManager.UnlockMethod backupMethod = VaultSessionManager.INSTANCE.getBackupUnlockMethod(mLatinIME);
+                        if (backupMethod == VaultSessionManager.UnlockMethod.DEVICE_PIN && primaryMethod != VaultSessionManager.UnlockMethod.DEVICE_PIN) {
+                            BiometricAuthTrampolineActivity.Companion.launch(
+                                mLatinIME,
+                                BiometricAuthTrampolineActivity.MODE_DEVICE_PIN,
+                                BiometricAuthTrampolineActivity.VAULT_SECURITY,
+                                (pinSuccess, pinBackup) -> {
+                                    if (pinSuccess) {
+                                        onUnlock.run();
+                                    } else {
+                                        triggerPatternFallback(onUnlock);
+                                    }
+                                    return kotlin.Unit.INSTANCE;
+                                }
+                            );
+                        } else {
+                            triggerPatternFallback(onUnlock);
+                        }
+                    }
+                    return kotlin.Unit.INSTANCE;
+                }
+            );
+            return;
+        }
+
+        triggerPatternFallback(onUnlock);
+    }
+
+    private void triggerPatternFallback(Runnable onUnlock) {
         final boolean stealthEnabled = KtxKt.prefs(mLatinIME).getBoolean("pref_vault_stealth_gatekeeper", true);
         if (stealthEnabled) {
             showStealthPatternUnlock(
-                () -> {
-                    VaultSessionManager.INSTANCE.startSecuritySession();
-                    setSecurityVaultExplorerKeyboard();
-                },
+                onUnlock,
                 () -> {}
             );
         } else {
-            showPatternUnlockView(() -> {
-                VaultSessionManager.INSTANCE.startSecuritySession();
-                setSecurityVaultExplorerKeyboard();
-            });
+            showPatternUnlockView(onUnlock);
         }
     }
 
     public void showStealthPatternUnlock(@NonNull final Runnable onUnlockSuccess, @Nullable final Runnable onCancel) {
-        showPatternUnlockView(onUnlockSuccess, true);
+        if (mStealthPatternKeyboardOverlay == null) {
+            showPatternUnlockView(onUnlockSuccess, false);
+            return;
+        }
+        // Ensure main keyboard layout is active so user sees normal QWERTY alphabet keyboard
+        setAlphabetKeyboard(ShiftMode.UNSHIFT);
+        // Hide secondary modals
+        if (mPatternUnlockView != null) {
+            mPatternUnlockView.setVisibility(View.GONE);
+            mPatternUnlockView.stopPatternUnlock();
+        }
+        if (mPatternUnlockStrip != null) {
+            mPatternUnlockStrip.setVisibility(View.GONE);
+        }
+        if (mSecurityVaultExplorerView != null) {
+            mSecurityVaultExplorerView.stopExplorer();
+            mSecurityVaultExplorerView.setVisibility(View.GONE);
+        }
+        if (mChosenEntryView != null) {
+            mChosenEntryView.stopChosenEntry();
+            mChosenEntryView.setVisibility(View.GONE);
+        }
+        // Activate stealth overlay directly on top of the visible keyboard
+        mStealthPatternKeyboardOverlay.startStealthUnlock(
+            () -> {
+                stopStealthPatternUnlock();
+                onUnlockSuccess.run();
+                return kotlin.Unit.INSTANCE;
+            },
+            () -> {
+                stopStealthPatternUnlock();
+                if (onCancel != null) onCancel.run();
+                return kotlin.Unit.INSTANCE;
+            }
+        );
+        enforceLiteModeSingleModal(mStealthPatternKeyboardOverlay);
     }
 
     public void stopStealthPatternUnlock() {
         if (mPatternUnlockView != null) {
             mPatternUnlockView.stopPatternUnlock();
+            mPatternUnlockView.setVisibility(View.GONE);
         }
         if (mStealthPatternKeyboardOverlay != null) {
             mStealthPatternKeyboardOverlay.stopStealthUnlock();
@@ -657,7 +765,49 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     }
 
     public boolean isShowingStealthPatternUnlock() {
-        return mPatternUnlockView != null && mPatternUnlockView.getVisibility() == View.VISIBLE;
+        return mStealthPatternKeyboardOverlay != null && mStealthPatternKeyboardOverlay.getVisibility() == View.VISIBLE;
+    }
+
+    public void showVaultUnlock(String targetVault, Runnable onUnlockSuccess) {
+        final VaultSessionManager.UnlockMethod primaryMethod = VaultSessionManager.INSTANCE.getPrimaryUnlockMethod(mLatinIME);
+        if (primaryMethod == VaultSessionManager.UnlockMethod.BIOMETRIC ||
+            primaryMethod == VaultSessionManager.UnlockMethod.DEVICE_PIN) {
+            final String mode = primaryMethod == VaultSessionManager.UnlockMethod.DEVICE_PIN
+                ? BiometricAuthTrampolineActivity.MODE_DEVICE_PIN
+                : BiometricAuthTrampolineActivity.MODE_BIOMETRIC;
+            BiometricAuthTrampolineActivity.Companion.launch(
+                mLatinIME,
+                mode,
+                targetVault,
+                (success, isBackupRequested) -> {
+                    if (success) {
+                        if (onUnlockSuccess != null) onUnlockSuccess.run();
+                    } else if (isBackupRequested) {
+                        final VaultSessionManager.UnlockMethod backupMethod = VaultSessionManager.INSTANCE.getBackupUnlockMethod(mLatinIME);
+                        if (backupMethod == VaultSessionManager.UnlockMethod.DEVICE_PIN && primaryMethod != VaultSessionManager.UnlockMethod.DEVICE_PIN) {
+                            BiometricAuthTrampolineActivity.Companion.launch(
+                                mLatinIME,
+                                BiometricAuthTrampolineActivity.MODE_DEVICE_PIN,
+                                targetVault,
+                                (pinSuccess, pinBackup) -> {
+                                    if (pinSuccess) {
+                                        if (onUnlockSuccess != null) onUnlockSuccess.run();
+                                    } else {
+                                        showPatternUnlockView(onUnlockSuccess, false);
+                                    }
+                                    return kotlin.Unit.INSTANCE;
+                                }
+                            );
+                        } else {
+                            showPatternUnlockView(onUnlockSuccess, false);
+                        }
+                    }
+                    return kotlin.Unit.INSTANCE;
+                }
+            );
+            return;
+        }
+        showPatternUnlockView(onUnlockSuccess, false);
     }
 
     public void showPatternUnlockView(Runnable onUnlockSuccess) {
@@ -670,7 +820,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         mKeyboardView.setVisibility(View.GONE);
         mEmojiTabStripView.setVisibility(View.GONE);
         mSuggestionStripView.setVisibility(View.GONE);
-        mStripContainer.setVisibility(isStealth ? View.GONE : View.VISIBLE);
+        mStripContainer.setVisibility(View.VISIBLE);
         mClipboardStripScrollView.setVisibility(View.GONE);
         if (mDesktopShortcutsStripScrollView != null) {
             mDesktopShortcutsStripScrollView.setVisibility(View.GONE);
@@ -679,7 +829,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mVoicePreviewStrip.setVisibility(View.GONE);
         }
         if (mPatternUnlockStrip != null) {
-            mPatternUnlockStrip.setVisibility(isStealth ? View.GONE : View.VISIBLE);
+            mPatternUnlockStrip.setVisibility(View.VISIBLE);
         }
         if (mSecurityVaultExplorerView != null) {
             mSecurityVaultExplorerView.stopExplorer();
@@ -700,9 +850,16 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mVoiceInputView.setVisibility(View.GONE);
             mVoiceInputView.stopVoiceInput();
         }
+        if (mHandwritingPadView != null) {
+            mHandwritingPadView.setVisibility(View.GONE);
+            mHandwritingPadView.stopHandwriting();
+        }
+        if (mStealthPatternKeyboardOverlay != null) {
+            mStealthPatternKeyboardOverlay.stopStealthUnlock();
+        }
         mPatternUnlockView.startPatternUnlock(
                 mLatinIME.mKeyboardActionListener,
-                mKeyboardView.getKeyVisualAttribute(),
+                mKeyboardView != null ? mKeyboardView.getKeyVisualAttribute() : null,
                 isStealth,
                 () -> {
                     if (onUnlockSuccess != null) {
@@ -751,6 +908,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         if (mVoiceInputView != null) {
             mVoiceInputView.setVisibility(View.GONE);
             mVoiceInputView.stopVoiceInput();
+        }
+        if (mHandwritingPadView != null) {
+            mHandwritingPadView.setVisibility(View.GONE);
+            mHandwritingPadView.stopHandwriting();
         }
         if (mChosenEntryView != null) {
             mChosenEntryView.setVisibility(View.GONE);
@@ -807,6 +968,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mSecurityVaultExplorerView.setVisibility(View.GONE);
             mSecurityVaultExplorerView.stopExplorer();
         }
+        if (mHandwritingPadView != null) {
+            mHandwritingPadView.setVisibility(View.GONE);
+            mHandwritingPadView.stopHandwriting();
+        }
         if (mChosenEntryView != null) {
             final EditorInfo editorInfo = mLatinIME.getCurrentInputEditorInfo();
             mChosenEntryView.bindEntry(
@@ -828,6 +993,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mSecurityVaultExplorerView.stopExplorer();
             mSecurityVaultExplorerView.setVisibility(View.GONE);
         }
+        PointerTracker.setKeyboardActionListener(mLatinIME.mKeyboardActionListener);
         setAlphabetKeyboard(ShiftMode.UNSHIFT);
     }
 
@@ -839,6 +1005,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mChosenEntryView.stopChosenEntry();
             mChosenEntryView.setVisibility(View.GONE);
         }
+        PointerTracker.setKeyboardActionListener(mLatinIME.mKeyboardActionListener);
         setAlphabetKeyboard(ShiftMode.UNSHIFT);
     }
 
@@ -873,11 +1040,65 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mPatternUnlockView.setVisibility(View.GONE);
             mPatternUnlockView.stopPatternUnlock();
         }
+        if (mHandwritingPadView != null) {
+            mHandwritingPadView.setVisibility(View.GONE);
+            mHandwritingPadView.stopHandwriting();
+        }
         if (mVoiceInputView != null) {
             mVoiceInputView.startVoiceInput(mLatinIME.getCurrentInputEditorInfo(), mLatinIME.mKeyboardActionListener);
             mVoiceInputView.setVisibility(View.VISIBLE);
         }
         enforceLiteModeSingleModal(mVoiceInputView);
+    }
+
+    public void setHandwritingPadKeyboard() {
+        if (DEBUG_ACTION) {
+            Log.d(TAG, "setHandwritingPadKeyboard");
+        }
+        mMainKeyboardFrame.setVisibility(View.VISIBLE);
+        mKeyboardView.setVisibility(View.GONE);
+        mEmojiTabStripView.setVisibility(View.GONE);
+        mSuggestionStripView.setVisibility(View.GONE);
+        mStripContainer.setVisibility(View.GONE);
+        if (mVoicePreviewStrip != null) {
+            mVoicePreviewStrip.setVisibility(View.GONE);
+        }
+        if (mPatternUnlockStrip != null) {
+            mPatternUnlockStrip.setVisibility(View.GONE);
+        }
+        mClipboardStripScrollView.setVisibility(View.GONE);
+        if (mDesktopShortcutsStripScrollView != null) {
+            mDesktopShortcutsStripScrollView.setVisibility(View.GONE);
+        }
+        mEmojiPalettesView.setVisibility(View.GONE);
+        mEmojiPalettesView.stopEmojiPalettes();
+        mClipboardHistoryView.setVisibility(View.GONE);
+        mClipboardHistoryView.stopClipboardHistory();
+        if (mDesktopShortcutsView != null) {
+            mDesktopShortcutsView.setVisibility(View.GONE);
+            mDesktopShortcutsView.stopDesktopShortcuts();
+        }
+        if (mPatternUnlockView != null) {
+            mPatternUnlockView.setVisibility(View.GONE);
+            mPatternUnlockView.stopPatternUnlock();
+        }
+        if (mVoiceInputView != null) {
+            mVoiceInputView.setVisibility(View.GONE);
+            mVoiceInputView.stopVoiceInput();
+        }
+        if (mSecurityVaultExplorerView != null) {
+            mSecurityVaultExplorerView.setVisibility(View.GONE);
+            mSecurityVaultExplorerView.stopExplorer();
+        }
+        if (mChosenEntryView != null) {
+            mChosenEntryView.setVisibility(View.GONE);
+            mChosenEntryView.stopChosenEntry();
+        }
+        if (mHandwritingPadView != null) {
+            mHandwritingPadView.startHandwriting(mLatinIME.getCurrentInputEditorInfo(), mLatinIME.mKeyboardActionListener);
+            mHandwritingPadView.setVisibility(View.VISIBLE);
+        }
+        enforceLiteModeSingleModal(mHandwritingPadView);
     }
 
     public enum KeyboardSwitchState {
@@ -888,6 +1109,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         PROMPT(KeyboardElement.CLIPBOARD_BOTTOM_ROW),
         DESKTOP_SHORTCUTS(KeyboardElement.CLIPBOARD_BOTTOM_ROW),
         VOICE(null),
+        HANDWRITING(KeyboardElement.CLIPBOARD_BOTTOM_ROW),
         OTHER(null);
 
         final KeyboardElement mKeyboardElement;
@@ -898,7 +1120,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     }
 
     public KeyboardSwitchState getKeyboardSwitchState() {
-        boolean hidden = !isShowingEmojiPalettes() && !isShowingClipboardHistory() && !isShowingPromptHistory() && !isShowingDesktopShortcuts() && !isShowingPatternUnlock() && !isShowingVoiceInput() && !isShowingSecurityVaultExplorer() && !isShowingChosenEntry()
+        boolean hidden = !isShowingEmojiPalettes() && !isShowingClipboardHistory() && !isShowingPromptHistory() && !isShowingDesktopShortcuts() && !isShowingPatternUnlock() && !isShowingVoiceInput() && !isShowingSecurityVaultExplorer() && !isShowingChosenEntry() && !isShowingHandwritingPad()
                 && (mKeyboardLayoutSet == null
                 || mKeyboardView == null
                 || !mKeyboardView.isShown());
@@ -906,6 +1128,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             return KeyboardSwitchState.HIDDEN;
         } else if (isShowingVoiceInput()) {
             return KeyboardSwitchState.VOICE;
+        } else if (isShowingHandwritingPad()) {
+            return KeyboardSwitchState.HANDWRITING;
         } else if (isShowingEmojiPalettes()) {
             return KeyboardSwitchState.EMOJI;
         } else if (isShowingClipboardHistory()) {
@@ -939,6 +1163,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                 setDesktopShortcutsKeyboard();
             } else if (toggleState == KeyboardSwitchState.VOICE) {
                 setVoiceInputKeyboard();
+            } else if (toggleState == KeyboardSwitchState.HANDWRITING) {
+                setHandwritingPadKeyboard();
             } else {
                 mEmojiPalettesView.stopEmojiPalettes();
                 mEmojiPalettesView.setVisibility(View.GONE);
@@ -952,6 +1178,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                 }
                 if (mDesktopShortcutsStripScrollView != null) {
                     mDesktopShortcutsStripScrollView.setVisibility(View.GONE);
+                }
+                if (mHandwritingPadView != null) {
+                    mHandwritingPadView.stopHandwriting();
+                    mHandwritingPadView.setVisibility(View.GONE);
                 }
 
                 mMainKeyboardFrame.setVisibility(View.VISIBLE);
@@ -1201,6 +1431,14 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         return mVoiceInputView != null && mVoiceInputView.isShown();
     }
 
+    public boolean isShowingHandwritingPad() {
+        return mHandwritingPadView != null && mHandwritingPadView.isShown();
+    }
+
+    public HandwritingPadView getHandwritingPadView() {
+        return mHandwritingPadView;
+    }
+
     public boolean isShowingSecurityVaultExplorer() {
         return mSecurityVaultExplorerView != null && mSecurityVaultExplorerView.isShown();
     }
@@ -1214,7 +1452,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     }
 
     public boolean isShowingPopupKeysPanel() {
-        if (isShowingEmojiPalettes() || isShowingClipboardHistory() || isShowingPromptHistory() || isShowingDesktopShortcuts() || isShowingPatternUnlock() || isShowingVoiceInput() || isShowingSecurityVaultExplorer() || isShowingChosenEntry()) {
+        if (isShowingEmojiPalettes() || isShowingClipboardHistory() || isShowingPromptHistory() || isShowingDesktopShortcuts() || isShowingPatternUnlock() || isShowingVoiceInput() || isShowingSecurityVaultExplorer() || isShowingChosenEntry() || isShowingHandwritingPad()) {
             return false;
         }
         return mKeyboardView.isShowingPopupKeysPanel();
@@ -1231,6 +1469,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     public View getVisibleKeyboardView() {
         if (isShowingVoiceInput()) {
             return mVoiceInputView;
+        } else if (isShowingHandwritingPad()) {
+            return mHandwritingPadView;
         } else if (isShowingEmojiPalettes()) {
             return mEmojiPalettesView;
         } else if (isShowingClipboardHistory() || isShowingPromptHistory()) {
@@ -1305,6 +1545,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mVoiceInputView.stopVoiceInput();
             mVoiceInputView.setVisibility(View.GONE);
         }
+        if (mHandwritingPadView != null) {
+            mHandwritingPadView.stopHandwriting();
+            mHandwritingPadView.setVisibility(View.GONE);
+        }
         KeyboardLayoutSet.Companion.clearNonCoreCache();
     }
 
@@ -1320,6 +1564,9 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         }
         if (mVoiceInputView != null) {
             mVoiceInputView.stopVoiceInput();
+        }
+        if (mHandwritingPadView != null) {
+            mHandwritingPadView.stopHandwriting();
         }
         if (mSecurityVaultExplorerView != null) {
             mSecurityVaultExplorerView.stopExplorer();
@@ -1358,6 +1605,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         mVoiceInputView = mCurrentInputView.findViewById(R.id.voice_input_view);
         if (mVoiceInputView != null) {
             mVoiceInputView.setHardwareAcceleratedDrawingEnabled(isHardwareAcceleratedDrawingEnabled);
+        }
+        mHandwritingPadView = mCurrentInputView.findViewById(R.id.handwriting_pad_view);
+        if (mHandwritingPadView != null) {
+            mHandwritingPadView.setHardwareAcceleratedDrawingEnabled(isHardwareAcceleratedDrawingEnabled);
         }
         mFakeToastView = mCurrentInputView.findViewById(R.id.fakeToast);
 

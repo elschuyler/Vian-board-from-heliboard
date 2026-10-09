@@ -804,6 +804,15 @@ public class LatinIME extends InputMethodService implements
         if (!mKeyboardSwitcher.isPendingVoiceLaunch() && mKeyboardSwitcher.isShowingVoiceInput()) {
             mKeyboardSwitcher.setAlphabetKeyboard(ShiftMode.UNSHIFT);
         }
+        if (mKeyboardSwitcher.isShowingHandwritingPad()) {
+            mKeyboardSwitcher.setAlphabetKeyboard(ShiftMode.UNSHIFT);
+        }
+        if (mKeyboardSwitcher.isShowingSecurityVaultExplorer()) {
+            mKeyboardSwitcher.closeSecurityVaultExplorer(false);
+        }
+        if (mKeyboardSwitcher.isShowingChosenEntry()) {
+            mKeyboardSwitcher.closeChosenEntry(false);
+        }
         StatsUtils.onFinishInputView();
         mHandler.onFinishInputView(finishingInput);
         mStatsUtilsManager.onFinishInputView();
@@ -815,6 +824,15 @@ public class LatinIME extends InputMethodService implements
     public void onFinishInput() {
         if (!mKeyboardSwitcher.isPendingVoiceLaunch() && mKeyboardSwitcher.isShowingVoiceInput()) {
             mKeyboardSwitcher.setAlphabetKeyboard(ShiftMode.UNSHIFT);
+        }
+        if (mKeyboardSwitcher.isShowingHandwritingPad()) {
+            mKeyboardSwitcher.setAlphabetKeyboard(ShiftMode.UNSHIFT);
+        }
+        if (mKeyboardSwitcher.isShowingSecurityVaultExplorer()) {
+            mKeyboardSwitcher.closeSecurityVaultExplorer(false);
+        }
+        if (mKeyboardSwitcher.isShowingChosenEntry()) {
+            mKeyboardSwitcher.closeChosenEntry(false);
         }
         mHandler.onFinishInput();
         BackgroundGatheringCache.saveOrClear(this);
@@ -1050,13 +1068,15 @@ public class LatinIME extends InputMethodService implements
         if (!mKeyboardSwitcher.isPendingVoiceLaunch() && mKeyboardSwitcher.isShowingVoiceInput()) {
             mKeyboardSwitcher.closeSecondaryKeyboard();
         }
+        if (mKeyboardSwitcher.isShowingHandwritingPad()) {
+            mKeyboardSwitcher.closeSecondaryKeyboard();
+        }
         final MainKeyboardView mainKeyboardView = mKeyboardSwitcher.getMainKeyboardView();
         if (mainKeyboardView != null) {
             mainKeyboardView.closing();
         }
         clearNavigationBarColor();
         if (mSettings.getCurrent().mLiteMode) {
-            mDictionaryFacilitator.dropSecondaryDictionaries();
             mKeyboardSwitcher.trimMemory();
         }
     }
@@ -1086,7 +1106,6 @@ public class LatinIME extends InputMethodService implements
         mInputLogic.finishInput();
         mKeyboardActionListener.resetMetaState();
         if (mSettings.getCurrent().mLiteMode) {
-            mDictionaryFacilitator.dropSecondaryDictionaries();
             mKeyboardSwitcher.trimMemory();
         }
         LogCatcher.flushPendingLogs();
@@ -1174,7 +1193,6 @@ public class LatinIME extends InputMethodService implements
             mOptionsDialog = null;
         }
         if (mSettings.getCurrent().mLiteMode) {
-            mDictionaryFacilitator.dropSecondaryDictionaries();
             mKeyboardSwitcher.trimMemory();
         }
         super.hideWindow();
@@ -1464,12 +1482,25 @@ public class LatinIME extends InputMethodService implements
             onVoiceInputTriggered();
             return;
         }
+        if (KeyCode.HANDWRITING == event.getKeyCode()) {
+            onHandwritingTriggered();
+            return;
+        }
         final InputTransaction completeInputTransaction =
                 mInputLogic.onCodeInput(mSettings.getCurrent(), event,
                         mKeyboardSwitcher.getKeyboardCapsMode(),
                         mKeyboardSwitcher.getCurrentKeyboardScript(), mHandler);
         updateStateAfterInputTransaction(completeInputTransaction);
         mKeyboardSwitcher.onEvent(event, getCurrentAutoCapsState(), getCurrentRecapitalizeState());
+    }
+
+    public void onHandwritingTriggered() {
+        LogCatcher.INSTANCE.i("LatinIME", "Handwriting triggered (showingHandwriting=" + mKeyboardSwitcher.isShowingHandwritingPad() + ")");
+        if (mKeyboardSwitcher.isShowingHandwritingPad()) {
+            mKeyboardSwitcher.setAlphabetKeyboard(ShiftMode.UNSHIFT);
+            return;
+        }
+        mKeyboardSwitcher.setHandwritingPadKeyboard();
     }
 
     public void onVoiceInputTriggered() {
@@ -1613,7 +1644,7 @@ public class LatinIME extends InputMethodService implements
     public void pickSuggestionManually(final SuggestedWordInfo suggestionInfo) {
         if (suggestionInfo != null && suggestionInfo.isKindOf(SuggestedWordInfo.KIND_VAULT_ENTRY)) {
             if (VaultSessionManager.INSTANCE.isPatternSet(this) && !VaultSessionManager.INSTANCE.isPrivacySessionValid()) {
-                mKeyboardSwitcher.showPatternUnlockView(() -> {
+                mKeyboardSwitcher.showVaultUnlock(helium314.keyboard.security.BiometricAuthTrampolineActivity.VAULT_PRIVACY, () -> {
                     VaultSessionManager.INSTANCE.startPrivacySession();
                     pickSuggestionManually(suggestionInfo);
                 });
@@ -1803,6 +1834,21 @@ public class LatinIME extends InputMethodService implements
                 mKeyboardSwitcher.setAlphabetKeyboard(ShiftMode.UNSHIFT);
                 return true;
             }
+            if (mKeyboardSwitcher.isShowingHandwritingPad()) {
+                LogCatcher.INSTANCE.i("LatinIME", "Handwriting modal dismissed via Back key");
+                mKeyboardSwitcher.setAlphabetKeyboard(ShiftMode.UNSHIFT);
+                return true;
+            }
+            if (mKeyboardSwitcher.isShowingSecurityVaultExplorer()) {
+                LogCatcher.INSTANCE.i("LatinIME", "Security Vault Explorer dismissed via Back key");
+                mKeyboardSwitcher.closeSecurityVaultExplorer(false);
+                return true;
+            }
+            if (mKeyboardSwitcher.isShowingChosenEntry()) {
+                LogCatcher.INSTANCE.i("LatinIME", "Chosen Entry dismissed via Back key");
+                mKeyboardSwitcher.closeChosenEntry(false);
+                return true;
+            }
         }
         if (mKeyboardActionListener.onKeyDown(keyCode, keyEvent))
             return true;
@@ -1813,6 +1859,15 @@ public class LatinIME extends InputMethodService implements
     public boolean onKeyUp(final int keyCode, final KeyEvent keyEvent) {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
             if (mKeyboardSwitcher.isShowingVoiceInput()) {
+                return true;
+            }
+            if (mKeyboardSwitcher.isShowingHandwritingPad()) {
+                return true;
+            }
+            if (mKeyboardSwitcher.isShowingSecurityVaultExplorer()) {
+                return true;
+            }
+            if (mKeyboardSwitcher.isShowingChosenEntry()) {
                 return true;
             }
         }
@@ -1999,7 +2054,6 @@ public class LatinIME extends InputMethodService implements
         super.onTrimMemory(level);
         LogCatcher.flushPendingLogs();
         if (mSettings.getCurrent().mLiteMode) {
-            mDictionaryFacilitator.dropSecondaryDictionaries();
             mKeyboardSwitcher.trimMemory();
         }
         switch (level) {

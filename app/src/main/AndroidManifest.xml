@@ -13,6 +13,7 @@ SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WRITE_USER_DICTIONARY" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 
     <application android:label="@string/english_ime_name"
             android:name="helium314.keyboard.latin.App"
@@ -99,6 +100,13 @@ SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
             android:theme="@style/TransparentActivityTheme"
             android:excludeFromRecents="true"
             android:noHistory="true" />
+
+        <activity android:name="helium314.keyboard.security.BiometricAuthTrampolineActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:excludeFromRecents="true"
+            android:autoRemoveFromRecents="true"
+            android:launchMode="singleTop" />
 
         <activity android:name="helium314.keyboard.settings.LogKeeperActivity"
             android:theme="@style/platformActivityTheme"

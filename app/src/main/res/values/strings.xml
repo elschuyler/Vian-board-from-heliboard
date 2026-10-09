@@ -410,6 +410,7 @@
     <string name="desktop_shortcuts" tools:keep="@string/desktop_shortcuts">Desktop shortcuts</string>
     <string name="log_keeper" tools:keep="@string/log_keeper">Log Keeper</string>
     <string name="privacy_vault" tools:keep="@string/privacy_vault">Privacy Vault</string>
+    <string name="handwriting" tools:keep="@string/handwriting">Handwriting</string>
     <!-- Title of the setting to set clipboard toolbar keys -->
     <string name="clipboard_toolbar_keys">Select clipboard toolbar keys</string>
     <!-- Title of the setting to set pinned toolbar keys -->
@@ -1403,13 +1404,27 @@ New dictionary:
     <string name="privacy_vault_shortcut_hint">Shortcut / Trigger (e.g. eml, pin)</string>
     <string name="privacy_vault_phrase_hint">Private Phrase / Secret</string>
     <string name="privacy_vault_notes_hint">Notes / Label (optional)</string>
-    <string name="privacy_vault_isolated_notice">🔒 Strictly isolated inside HeliBoard sandbox. Never shared with Android system or other apps.</string>
+    <string name="privacy_vault_isolated_notice">🔒 Strictly isolated inside VianBoard sandbox. Never shared with Android system or other apps.</string>
 
     <!-- Security Vault Stealth & Auto-fill -->
     <string name="vault_stealth_gatekeeper_title">Stealth Gatekeeper</string>
     <string name="vault_stealth_gatekeeper_summary">Disguised pattern unlock over standard QWERTY keyboard with zero visual cues</string>
     <string name="vault_context_suggestions_title">Context Suggestion Pills</string>
     <string name="vault_context_suggestions_summary">Show matching account pills on suggestion strip for active apps</string>
+
+    <!-- Tri-Method Authentication Engine -->
+    <string name="vault_auth_primary_method_title">Primary Unlock Method</string>
+    <string name="vault_auth_backup_method_title">Backup Unlock Method</string>
+    <string name="vault_auth_method_pattern">Pattern Unlock</string>
+    <string name="vault_auth_method_biometric">Biometric (Fingerprint / Face)</string>
+    <string name="vault_auth_method_device_pin">Phone PIN / Password</string>
+    <string name="vault_auth_biometric_prompt_title">VianBoard Vault Unlock</string>
+    <string name="vault_auth_biometric_prompt_subtitle">Confirm identity to access encrypted credentials</string>
+    <string name="vault_auth_use_backup_method">Use Backup Method</string>
+    <string name="vault_auth_biometric_not_enrolled">No biometrics enrolled on device</string>
+    <string name="vault_auth_biometric_failed">Biometric authentication failed</string>
+    <string name="vault_auth_device_pin_unsupported">No device lockscreen PIN or password set</string>
+    <string name="vault_auth_test_success">Authentication verified successfully</string>
 
     <!-- new strings should go above the section for gesture data gathering -->
 </resources>

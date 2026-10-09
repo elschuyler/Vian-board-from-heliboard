@@ -106,19 +106,25 @@ class AccordionFolderAdapter(
             FilterMode.ALL, FilterMode.FOLDERS -> {
                 // Group entries by groupUuid
                 val entriesByGroup = allEntries.groupBy { it.groupUuid }
+                val rootGroups = allGroups.filter { it.parentGroupUuid.isNullOrEmpty() }
+                val subGroups = allGroups.filter { !it.parentGroupUuid.isNullOrEmpty() }
+
+                // If no hierarchy was set (e.g. flat group list), treat all groups as folders
+                val groupsToRender = if (subGroups.isNotEmpty()) subGroups else allGroups
                 val sortedGroups = if (sortMode == SortMode.NAME) {
-                    allGroups.sortedBy { it.name.lowercase() }
+                    groupsToRender.sortedBy { it.name.lowercase() }
                 } else {
-                    allGroups
+                    groupsToRender
                 }
 
+                // 1. Render folders first (subfolders or non-root groups)
                 for (group in sortedGroups) {
                     val groupEntries = entriesByGroup[group.groupUuid].orEmpty()
                     val totalCount = getRecursiveEntryCount(group.groupUuid, entriesByGroup)
-                    val isExpanded = expandedGroupUuids.contains(group.groupUuid) || filterMode == FilterMode.ALL
+                    val isExpanded = expandedGroupUuids.contains(group.groupUuid)
                     displayItems.add(ListItem.Folder(group, totalCount, isExpanded))
 
-                    if (isExpanded) {
+                    if (isExpanded && filterMode != FilterMode.FOLDERS) {
                         val sortedEntries = if (sortMode == SortMode.NAME) {
                             groupEntries.sortedBy { it.title.lowercase() }
                         } else {
@@ -130,16 +136,26 @@ class AccordionFolderAdapter(
                     }
                 }
 
-                // Any orphan entries without group
-                val orphanEntries = allEntries.filter { entry -> allGroups.none { it.groupUuid == entry.groupUuid } }
-                if (orphanEntries.isNotEmpty()) {
-                    val sortedOrphans = if (sortMode == SortMode.NAME) {
-                        orphanEntries.sortedBy { it.title.lowercase() }
-                    } else {
-                        orphanEntries.sortedByDescending { it.updatedAt }
+                // 2. Render rest of list of main: entries belonging to root folder(s) directly beneath subfolders
+                if (filterMode != FilterMode.FOLDERS) {
+                    val rootEntries = mutableListOf<VaultEntryEntity>()
+                    if (subGroups.isNotEmpty()) {
+                        for (rg in rootGroups) {
+                            rootEntries.addAll(entriesByGroup[rg.groupUuid].orEmpty())
+                        }
                     }
-                    for (entry in sortedOrphans) {
-                        displayItems.add(ListItem.Entry(entry, null))
+                    // Include any orphan entries without group
+                    val orphanEntries = allEntries.filter { entry -> allGroups.none { it.groupUuid == entry.groupUuid } }
+                    rootEntries.addAll(orphanEntries)
+
+                    val sortedRootEntries = if (sortMode == SortMode.NAME) {
+                        rootEntries.sortedBy { it.title.lowercase() }
+                    } else {
+                        rootEntries.sortedByDescending { it.updatedAt }
+                    }
+                    for (entry in sortedRootEntries) {
+                        val parent = allGroups.find { it.groupUuid == entry.groupUuid }
+                        displayItems.add(ListItem.Entry(entry, parent))
                     }
                 }
             }

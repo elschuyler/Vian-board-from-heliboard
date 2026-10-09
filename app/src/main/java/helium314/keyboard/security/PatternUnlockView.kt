@@ -60,7 +60,8 @@ class PatternUnlockView @JvmOverloads constructor(
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val res = context.resources
         val width = ResourceUtils.getKeyboardWidth(context, Settings.getValues())
-        val height = ResourceUtils.getKeyboardHeight(res, Settings.getValues())
+        val stripHeight = if (isStealth) res.getDimensionPixelSize(R.dimen.config_suggestions_strip_height) else 0
+        val height = ResourceUtils.getKeyboardHeight(res, Settings.getValues()) + stripHeight
         val widthSpec = MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY)
         val heightSpec = MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
         super.onMeasure(widthSpec, heightSpec)

@@ -26,6 +26,7 @@ data class VaultEntryEntity(
     val urlOrPackage: String? = null,
     val totpSecretEncrypted: ByteArray? = null,
     val notesEncrypted: ByteArray? = null,
+    val customFieldsJson: String? = null,
     val updatedAt: Long = System.currentTimeMillis()
 ) {
     override fun equals(other: Any?): Boolean {
@@ -51,6 +52,7 @@ data class VaultEntryEntity(
             if (other.notesEncrypted == null) return false
             if (!notesEncrypted.contentEquals(other.notesEncrypted)) return false
         } else if (other.notesEncrypted != null) return false
+        if (customFieldsJson != other.customFieldsJson) return false
         if (updatedAt != other.updatedAt) return false
 
         return true
@@ -65,6 +67,7 @@ data class VaultEntryEntity(
         result = 31 * result + (urlOrPackage?.hashCode() ?: 0)
         result = 31 * result + (totpSecretEncrypted?.contentHashCode() ?: 0)
         result = 31 * result + (notesEncrypted?.contentHashCode() ?: 0)
+        result = 31 * result + (customFieldsJson?.hashCode() ?: 0)
         result = 31 * result + updatedAt.hashCode()
         return result
     }

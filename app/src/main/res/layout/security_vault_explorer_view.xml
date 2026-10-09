@@ -40,53 +40,53 @@
                     android:layout_width="wrap_content"
                     android:layout_height="32dp"
                     android:gravity="center"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
                     android:layout_marginEnd="6dp"
                     android:text="All"
                     android:textSize="13sp"
                     android:textStyle="bold"
                     android:clickable="true"
                     android:focusable="true"
-                    android:background="?android:attr/selectableItemBackground" />
+                    android:background="@drawable/bg_vault_chip_active" />
 
                 <TextView
                     android:id="@+id/chip_filter_recent"
                     android:layout_width="wrap_content"
                     android:layout_height="32dp"
                     android:gravity="center"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
                     android:layout_marginEnd="6dp"
                     android:text="Recent"
                     android:textSize="13sp"
                     android:clickable="true"
                     android:focusable="true"
-                    android:background="?android:attr/selectableItemBackground" />
+                    android:background="@drawable/bg_vault_chip_inactive" />
 
                 <TextView
                     android:id="@+id/chip_filter_folders"
                     android:layout_width="wrap_content"
                     android:layout_height="32dp"
                     android:gravity="center"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:layout_marginEnd="6dp"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:layout_marginEnd="8dp"
                     android:text="Folders"
                     android:textSize="13sp"
                     android:clickable="true"
                     android:focusable="true"
-                    android:background="?android:attr/selectableItemBackground" />
+                    android:background="@drawable/bg_vault_chip_inactive" />
 
                 <ImageButton
                     android:id="@+id/btn_sort_toggle"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
                     android:padding="6dp"
                     android:scaleType="fitCenter"
                     android:src="@drawable/ic_timer"
                     android:contentDescription="Sort order toggle"
-                    android:background="?android:attr/selectableItemBackgroundBorderless" />
+                    android:background="@drawable/bg_vault_circle_button" />
             </LinearLayout>
         </HorizontalScrollView>
 

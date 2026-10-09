@@ -130,47 +130,14 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
     override fun isSecondaryDropped(): Boolean = isSecondaryDropped
 
     override fun dropSecondaryDictionaries() {
-        synchronized(this) {
-            if (isSecondaryDropped || dictionaryGroups.size <= 1) return
-            val primaryGroup = dictionaryGroups[0]
-            val secondaryGroups = dictionaryGroups.drop(1)
-            dictionaryGroups = listOf(primaryGroup)
-            isSecondaryDropped = true
-            lastDropTimestamp = android.os.SystemClock.elapsedRealtime()
-            secondaryGroups.forEach { group ->
-                DictionaryFacilitator.ALL_DICTIONARY_TYPES.forEach { dictType ->
-                    group.closeDict(dictType)
-                }
-            }
-            Log.i(TAG, "dropSecondaryDictionaries: dropped secondary dictionaries in Lite Mode")
-        }
+        // In Lite Mode, keep dictionary groups active so suggestion quality and multilingual typing remain full strength
     }
 
     override fun restoreSecondaryDictionaries(context: Context, listener: DictionaryInitializationListener?) {
-        synchronized(this) {
-            if (!isSecondaryDropped) return
-            isSecondaryDropped = false
-            val currentMainLocale = getMainLocale()
-            val currentSettings = Settings.getValues()
-            resetDictionaries(
-                context,
-                currentMainLocale,
-                currentSettings.mUseContactsDictionary,
-                currentSettings.mUseAppsDictionary,
-                currentSettings.mUsePersonalizedDicts,
-                false,
-                "",
-                listener
-            )
-            Log.i(TAG, "restoreSecondaryDictionaries: secondary dictionaries restored")
-        }
+        // Secondary dictionaries are kept active; no-op
     }
 
-    override fun shouldAutoRestoreSecondary(): Boolean {
-        if (!isSecondaryDropped) return false
-        // 15 minutes cooldown (900_000 ms)
-        return (android.os.SystemClock.elapsedRealtime() - lastDropTimestamp) > 900_000L
-    }
+    override fun shouldAutoRestoreSecondary(): Boolean = false
 
     // -------------- managing (loading & closing) dictionaries ------------
 
@@ -547,7 +514,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         }
         suggestionsArray[0] = getSuggestions(composedData, ngramContext, settingsValuesForSuggestion, sessionId,
             proximityInfoHandle, weightOfLangModelVsSpatialModel, dictionaryGroups[0])
-        val maxSuggestions = if (Settings.getValues().mLiteMode) 8 else SuggestedWords.MAX_SUGGESTIONS
+        val maxSuggestions = SuggestedWords.MAX_SUGGESTIONS
         val suggestionResults = SuggestionResults(
             maxSuggestions, ngramContext.isBeginningOfSentenceContext, false
         )

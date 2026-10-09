@@ -71,6 +71,8 @@ class ChosenEntryView @JvmOverloads constructor(
     private lateinit var btnActionAttachment: LinearLayout
     private lateinit var iconActionAttachment: ImageView
 
+    private var txtPreview: TextView? = null
+
     private var bottomRowKeyboard: MainKeyboardView? = null
 
     private var keyboardActionListener: KeyboardActionListener? = null
@@ -86,7 +88,8 @@ class ChosenEntryView @JvmOverloads constructor(
 
     init {
         orientation = VERTICAL
-        fitsSystemWindows = true
+        fitsSystemWindows = false
+        setPadding(0, 0, 0, 0)
     }
 
     override fun onFinishInflate() {
@@ -95,6 +98,7 @@ class ChosenEntryView @JvmOverloads constructor(
         btnLock = findViewById(R.id.btn_chosen_lock)
         txtTitle = findViewById(R.id.txt_chosen_title)
         txtSubtitle = findViewById(R.id.txt_chosen_subtitle)
+        txtPreview = findViewById(R.id.txt_chosen_preview)
 
         btnActionNote = findViewById(R.id.btn_action_note)
         iconActionNote = findViewById(R.id.icon_action_note)
@@ -114,8 +118,9 @@ class ChosenEntryView @JvmOverloads constructor(
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val res = context.resources
-        val width = ResourceUtils.getKeyboardWidth(context, Settings.getValues()) + paddingLeft + paddingRight
-        val height = ResourceUtils.getSecondaryKeyboardHeight(res, Settings.getValues()) + paddingTop + paddingBottom
+        val width = ResourceUtils.getKeyboardWidth(context, Settings.getValues())
+        val stripHeight = res.getDimensionPixelSize(R.dimen.config_suggestions_strip_height)
+        val height = ResourceUtils.getSecondaryKeyboardHeight(res, Settings.getValues()) + stripHeight
         val widthSpec = MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY)
         val heightSpec = MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
         super.onMeasure(widthSpec, heightSpec)
@@ -138,6 +143,12 @@ class ChosenEntryView @JvmOverloads constructor(
 
         val hasNotes = entry.notesEncrypted != null && entry.notesEncrypted.isNotEmpty()
         btnActionNote.alpha = if (hasNotes) 1f else 0.45f
+        txtPreview?.text = if (hasNotes) {
+            val decrypted = VaultCryptoManager.decryptToString(entry.notesEncrypted)?.take(120)
+            if (!decrypted.isNullOrBlank()) "Note: $decrypted" else "Tap User, Password or TOTP above to inject into field"
+        } else {
+            "Tap User, Password or TOTP above to inject into field"
+        }
 
         val hasTotp = entry.totpSecretEncrypted != null && entry.totpSecretEncrypted.isNotEmpty()
         btnActionTotp.alpha = if (hasTotp) 1f else 0.45f
@@ -235,7 +246,17 @@ class ChosenEntryView @JvmOverloads constructor(
 
     private fun setupBottomRowKeyboard(editorInfo: EditorInfo?, listener: KeyboardActionListener) {
         val keyboardView = bottomRowKeyboard ?: return
-        keyboardView.setKeyboardActionListener(listener)
+        val wrappedListener = object : KeyboardActionListener by listener {
+            override fun onCodeInput(code: Int, x: Int, y: Int, isKeyRepeat: Boolean) {
+                if (code == KeyCode.ALPHA) {
+                    stopChosenEntry()
+                    KeyboardSwitcher.getInstance().closeChosenEntry(false)
+                    return
+                }
+                listener.onCodeInput(code, x, y, isKeyRepeat)
+            }
+        }
+        keyboardView.setKeyboardActionListener(wrappedListener)
         PointerTracker.switchTo(keyboardView)
         val kls = KeyboardLayoutSet.Builder.buildEmojiClipBottomRow(context, editorInfo)
         val keyboard = kls.getKeyboard(KeyboardElement.CLIPBOARD_BOTTOM_ROW)

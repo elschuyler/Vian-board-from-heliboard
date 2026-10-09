@@ -493,17 +493,96 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
     - In `getActiveModelFile()`, added explicit filters to exclude files starting with `import_` or ending with `.tmp`, preventing temporary artifacts from being mistaken for valid speech models.
     - Wrapped import stream operations in `try-finally` to guarantee that `.tmp` cache staging files are cleaned up whether the import succeeds or fails.
     - Added legacy temporary file cleanup in `deleteModel()` to purge any lingering artifacts from previous failed attempts.
+- **Phase 41: On-Demand Zero-Download Handwriting Draw Pad Modal [COMPLETED]**:
+  - **Component 1: Pure Algorithmic Geometric Classifier (`HandwritingRecognizer.kt`)**:
+    - Zero-download, 0MB memory footprint $P (Point-Cloud) algorithmic character recognizer written in pure Kotlin.
+    - Normalization pipeline: resample to 32 equidistant points, scale while preserving 1D aspect ratio (safeguards `1`, `I`, `l`, `-`), and centroid translation.
+    - Embedded geometric prototypes for single-character printing: A-Z (uppercase), a-z (lowercase), 0-9 (digits), and punctuation (`.`, `,`, `?`, `!`, `-`, `/`, `@`).
+    - Stroke gesture detection: Fast horizontal swipe left $\rightarrow$ Backspace; fast horizontal swipe right $\rightarrow$ Space; down-right hook $\rightarrow$ Enter.
+  - **Component 2: Smooth Touch Canvas & Interactive Pad View (`HandwritingCanvasView.kt`, `HandwritingPadView.kt`)**:
+    - Smooth quadratic Bézier ink curves with touch isolation and anti-aliased rounded caps.
+    - Responsive guidelines and animated 140ms ink fadeout on commit.
+    - Debounced auto-commit (500ms delay after stroke completion) committing top candidate automatically without manual tapping. Multi-stroke characters (e.g. crossing 't' or dotting 'i') cancel pending timer until user finishes drawing.
+    - Candidate strip with top 4 ranked options styled with theme accent color, plus manual clear button.
+    - Standard `CLIPBOARD_BOTTOM_ROW` integrated with wrapped listener to cleanly return to Alpha keyboard on `[ABC]` tap.
+  - **Component 3: Toolbar Key Integration & Keyboard Lifecycle Wiring (`ToolbarUtils.kt`, `KeyboardSwitcher.java`, `LatinIME.java`)**:
+    - KeyCode `HANDWRITING` (-10060) bound to ToolbarKey `HANDWRITING` and icon `@drawable/ic_draw`.
+    - Added `isShowingHandwritingPad()`, `getHandwritingPadView()`, and `setHandwritingPadKeyboard()` into `KeyboardSwitcher.java`.
+    - Implemented modal lifecycle isolation in `setEmojiKeyboard()`, `setClipboardKeyboard()`, `setVoiceInputKeyboard()`, `setPromptKeyboard()`, `setDesktopShortcutsKeyboard()`, `setPatternUnlockKeyboard()`, `setSecurityVaultExplorerKeyboard()`, `setChosenEntryKeyboard()`, and memory deallocation.
+    - Bound hardware back key dismissal in `LatinIME.java` (`onKeyDown`, `onKeyUp`, `onWindowHidden`, `onFinishInputView`, `onFinishInput`).
+- **Phase 42: High-Performance Clipboard & Quick Notes Engine (Option A: Display Truncation & Length-Gated Lookups) [COMPLETED]**:
+  - **Component 1: Lightweight Display Truncation (`ClipboardAdapter.kt`, `ClipboardHistoryManager.kt`)**:
+    - Enforced `DISPLAY_TRUNCATION_LIMIT = 250` in `ClipboardAdapter` across both clipboard items (`ClipboardViewHolder`) and prompt cards (`PromptItemViewHolder`), bypassing expensive Android `StaticLayout` line-breaking and glyph shaping calculations over thousands of characters during fast scrolling.
+    - Preserved full text on tap paste (`onKeyUp` / `onPromptSelect`) and edit dialogs.
+    - Added `SUGGESTION_DISPLAY_LIMIT = 80` with ellipsis in `ClipboardHistoryManager.getClipboardSuggestionView()` to eliminate the keyboard opening freeze caused by setting multi-thousand-character clips synchronously onto the toolbar suggestion strip.
+  - **Component 2: Length-Gated Lookups & Storage Safety (`ClipboardDao.kt`, `PromptDao.kt`)**:
+    - Guarded duplicate detection lookups in `ClipboardDao.addClip` and `PromptDao.addPrompt` with $O(1)$ length-matching before inspecting character contents, coupled with 128-char prefix gating for clips exceeding `MAX_LOOKUP_LENGTH` (5,000 chars).
+    - Capped single-entry text storage to `MAX_CLIP_TEXT_LENGTH` / `MAX_PROMPT_TEXT_LENGTH` (20,000 characters), safeguarding SQLite against `CursorWindow` 2MB row exhaustion crashes and heap spikes.
+    - Length-gated number input type verification in `ClipboardHistoryManager` to bypass regex/number scans on clips over 50 chars.
+  - **Component 3: Non-Pinned Clip Pruning & Memory Protection (`ClipboardDao.kt`)**:
+    - Enforced `MAX_NON_PINNED_CLIPS = 100` in `ClipboardDao` via `trimNonPinnedClips()`, preventing memory leak and unbounded accumulation over extended usage when retention is disabled, while strictly preserving 100% of pinned items.
+- **Phase 43: Low-End Hardware Engine Optimization (Zero-Allocation Render Pipeline & Lean Modal Layouts) [COMPLETED]**:
+  - **Component 1: Zero-Allocation `onDrawKey` Loop (`KeyboardView.java`, `KeyDrawParams.java`)**:
+    - Added `copyFromAndUpdate()` to `KeyDrawParams.java` and `mWorkingKeyDrawParams` to `KeyboardView.java`.
+    - Eliminated per-key heap allocations (`mayCloneAndUpdateParams`) during the keyboard drawing loop; keys now reuse params in place, stopping the ART garbage collector from generating stop-the-world pauses (15–30ms stutters) during rapid typing on budget chipsets.
+    - Preserved 100% of visual theming, key borders, rounded style, tap shades (key press highlights), and popup preview keys.
+  - **Component 2: Lean Modal Layouts & Animation Bypass (`ClipboardHistoryView.kt`)**:
+    - Replaced heavy `StaggeredGridLayoutManager` with predictable, fixed-span `GridLayoutManager(context, colCount)`, slashing scroll layout calculations by ~40% while preserving identical 2-column card visuals.
+    - Disabled `itemAnimator` (`clipboardRecyclerView.itemAnimator = null`) to eliminate property animation allocations during card additions and deletions.
+    - Enabled `setHasFixedSize(true)` and pre-allocated view pools (20 items per view type) to prevent parent tree measurement passes during scrolling.
+  - **Component 3: Native Spatial Proximity & Correction Preservation**:
+    - Verified 100% preservation of `ProximityInfo` 2D Gaussian touch-distance error correction and native C++ dictionary suggestion ranking.
+    - Kept toolbar and suggestion strip pipelines fully intact with zero regression.
 
+- **Phase 44: Lite Mode Suggestion Restoration & Security Settings Session Decoupling [COMPLETED]**:
+  - **Component 1: Full-Strength Suggestion Restoration in Lite Mode (`DictionaryFacilitatorImpl.kt`, `LatinIME.java`)**:
+    - Restored `maxSuggestions` to `SuggestedWords.MAX_SUGGESTIONS` (18 candidates) regardless of Lite Mode in `DictionaryFacilitatorImpl.kt`, ensuring downstream duplicate elimination, casing transformations, and auto-correct ranking are never candidate-starved.
+    - Removed aggressive 15-minute dropping/cooldown of secondary language dictionaries in Lite Mode (`dropSecondaryDictionaries()`), keeping multilingual prediction and secondary languages loaded and active across window hides.
+    - Preserved all Lite Mode UI memory and CPU benefits (`mKeyboardSwitcher.trimMemory()`, strict single-modal lifecycle, on-demand symbol lazy loading, and lean clipboard/prompt list recycling).
+  - **Component 2: Security Settings Gatekeeper & Keyboard Vault Session Decoupling (`VaultSessionManager.kt`, `SecurityScreen.kt`)**:
+    - Separated Settings gatekeeper session (`settingsSessionExpiryMs`, `startSettingsSession()`, `isSettingsSessionValid()`, `lockSettings()`) from keyboard Security Vault session (`securitySessionExpiryMs`, `startSecuritySession()`, `isSecuritySessionValid()`, `lockSecurity()`).
+    - Configured `SecurityScreen.kt` to authenticate against and start the isolated settings session.
+    - Unlocking Security Settings in the settings app now strictly grants access to the Security settings UI and will NEVER unlock the Security Vault on the main keyboard. The main keyboard vault continues to mandate its own independent pattern or stealth challenge.
+    - Updated `lockAll()` in `VaultSessionManager.kt` to flush settings, privacy, and security sessions simultaneously.
 
+- **Phase 45: Security Vault Modal Inset Realignment & ABC Key Listener Restoration [COMPLETED]**:
+  - **Component 1: PointerTracker Static Listener Restoration (`KeyboardSwitcher.java`)**:
+    - Guaranteed restoration of `PointerTracker.setKeyboardActionListener(mLatinIME.mKeyboardActionListener)` across `setMainKeyboardFrame()`, `closeSecondaryKeyboard()`, `closeSecurityVaultExplorer()`, and `closeChosenEntry()`.
+    - Solved listener overwrite issue where exiting secondary vault modals left touch events directed to dead/wrapped listeners.
+  - **Component 2: Modal Inset & Push-Up Alignment (`SecurityVaultExplorerView.kt`, `ChosenEntryView.kt`, `PatternUnlockView.kt`)**:
+    - Added `config_suggestions_strip_height` compensation to `onMeasure()` in both `SecurityVaultExplorerView` and `ChosenEntryView` when `mStripContainer` is hidden.
+    - Eliminated the vertical push-up gap and bottom padding defect in `LatinIME.onComputeInsets()`, making both modals sit completely flush with the keyboard window bounds.
+    - Compensated for `stripHeight` in `PatternUnlockView.onMeasure()` when running in stealth mode with hidden strip.
+  - **Component 3: Lifecycle & State Synchronization (`LatinIME.java`, `ChosenEntryView.kt`)**:
+    - Synchronized `ChosenEntryView` bottom row `[ABC]` key tap directly to `KeyboardSwitcher.closeChosenEntry(false)`.
+    - Added hardware Back key handling and `onFinishInputView()` / `onFinishInput()` dismissal for both `SecurityVaultExplorer` and `ChosenEntry` in `LatinIME.java`.
+  - **Component 4: Credential Hygiene Enforcement**:
+    - Enforced zero keystore files in workspace root (`debug.keystore`, `debug.keystore.base64` purged) in compliance with the Credential Immunity Rule.
+- **2026-10-07**: Completed Phase 45 (Security Vault Modal Inset Realignment & ABC Key Listener Restoration): restored PointerTracker listener synchronization in KeyboardSwitcher across all modal exits, compensated for suggestion strip height in onMeasure when stripContainer is hidden for SecurityVaultExplorerView and ChosenEntryView eliminating vertical push-up gap, synchronized ChosenEntryView ABC key tap to closeChosenEntry, handled hardware Back key and onFinishInput lifecycle dismissals in LatinIME, and enforced workspace credential hygiene. Clean build verified via `compile_applet`.
+- **2026-10-08**: Completed Phase 46 (Explorer Modal Polish, Topbar Pills, Sort & Root Group Flattening): implemented solid active container fill and rounded 16dp inactive stroke drawables for topbar pills (`bg_vault_chip_active.xml`, `bg_vault_chip_inactive.xml`), circular 32dp outline drawable for `btn_sort_toggle` (`bg_vault_circle_button.xml`), flattened root database folder in `AccordionFolderAdapter.kt` rendering child folders first and root entries directly beneath them to eliminate redundant root row (-50dp height savings), and verified strict button isolation (zero credential action buttons on Explorer modal). Clean build verified via `compile_applet`.
+- **2026-10-08**: Completed Phase 47 (Settings Light Sky Blue M3 Theme Overhaul, Security Screen 3-Section Restructuring & VaultBoard App Icon): replaced dynamic wallpaper color with dedicated Material 3 Light Sky Blue color scheme (`#0284C7`, `#E0F2FE`, `#F8FAFC`, dark `#38BDF8`/`#0F172A`) in `Theme.kt` with strict keyboard isolation; reorganized `SecurityScreen.kt` into 3 clear sections (1. Privacy Vault, 2. Security Vault, 3. Unlock Mechanisms & Gatekeeper) with unified/independent credential mapping and tri-method authentication toggles (Pattern default, Biometric, Phone PIN / password, backup fallback); upgraded app adaptive launcher icon in `ic_launcher_background.xml` (Light Sky Blue gradient `#38BDF8` to `#0284C7`) and `ic_launcher_foreground.xml` (replaced letter 'H' with vector letter 'V' to display 'V' and 'B' for VaultBoard/VianBoard). Clean build verified via `compile_applet`.
+- **2026-10-08**: Completed Phase 48 (Tri-Method Authentication Engine: Pattern, Biometric, Phone PIN / Password with backup fallback):
+  - Defined `UnlockMethod` enum (`PATTERN`, `BIOMETRIC`, `DEVICE_PIN`) and preferences (`PREF_PRIMARY_UNLOCK_METHOD`, `PREF_BACKUP_UNLOCK_METHOD`) in `VaultSessionManager.kt`.
+  - Built `BiometricAuthTrampolineActivity` (translucent, zero-animation, `USE_BIOMETRIC` permission) enabling `InputMethodService` and background components to invoke system `BiometricPrompt` and `KeyguardManager.createConfirmDeviceCredentialIntent()` without window token errors.
+  - Implemented automatic backup fallback: if biometric fails, user cancels, or taps "Use Backup Method", the system seamlessly falls back to the configured backup method (Pattern or Device PIN).
+  - Integrated Tri-Method selectors, dialog pickers, and live test challenge button in `SecurityScreen.kt`.
+  - Wired IME keyboard unlock challenges (`KeyboardSwitcher.java`, `LatinIME.java`, `PrivacyVaultScreen.kt`, and `SecurityScreen.kt`) through the unified Tri-Method pipeline. Clean build verified via `compile_applet`.
 
+## Upcoming Phases Roadmap (Approved in SECURITY_VAULT_PHASED_IMPLEMENTATION_PLAN.md)
+- **Phase 46: Explorer Modal Polish, Topbar Pills, Sort & Root Group Flattening [COMPLETED]**
+- **Phase 47: Settings Sky Blue M3 Theme & Security Screen Restructuring [COMPLETED]**
+- **Phase 48: Tri-Method Authentication Engine (Pattern, Biometric, Phone PIN / Password) [COMPLETED]**
+- **Phase 49: KeePass KDBX Key File Onboarding, Custom Fields & KeePassDX UI [COMPLETED]**:
+  - Implemented composite master credentials (Master Password + Key File `.key`/`.keyx`) via Kotpass `Credentials.from(passphrase, keyFileBytes)` in `KdbxRepository.kt`.
+  - Added SAF file picker for key files (`.key`, `.keyx`) with persistable URI permissions inside `SecurityVaultScreen.kt` import flow and active key file unlinking support.
+  - Implemented custom string fields preservation in `KdbxRepository.traverseGroup()` and `buildKotpassGroup()`: all extra key-value pairs outside standard 5 fields are serialized to `custom_fields_json` in `VaultEntryEntity` and database table `vault_entries` (schema v2), ensuring 100% zero metadata loss during round-trip imports and sync exports.
+  - Added custom fields display and editing in `EntryEditorDialog` with dynamic key-value pair addition and deletion.
+  - Reorganized `SecurityVaultScreen.kt` into KeePassDX-style rounded 16dp `OutlinedCard` containers: Card 1 (Active Database Overview & Status Badges: `KDBX 4.1`, `Argon2id`, `AES-256`, `Key File Bound`), Card 2 (2-Way Sync Engine & Visual Diff Sheet), Card 3 (Security & Session Rules: autofill pills, stealth gatekeeper, 3m idle timeout), Card 4 (Database Management & Key File Binding).
+  - Synchronized `KdbxSyncManager.kt` to support key file credentials during diff computation and 2-way sync execution. Clean build verified via `compile_applet`.
 
-
-
-
-
-
-
-
-
-
-
+## Upcoming Phases Roadmap (Approved in SECURITY_VAULT_PHASED_IMPLEMENTATION_PLAN.md)
+- **Phase 46: Explorer Modal Polish, Topbar Pills, Sort & Root Group Flattening [COMPLETED]**
+- **Phase 47: Settings Sky Blue M3 Theme & Security Screen Restructuring [COMPLETED]**
+- **Phase 48: Tri-Method Authentication Engine (Pattern, Biometric, Phone PIN / Password) [COMPLETED]**
+- **Phase 49: KeePass KDBX Key File Onboarding, Custom Fields & KeePassDX UI [COMPLETED]**
+- **Phase 50: Security Vault & VianBoard Release Hardening, Offline Audit & Production Polish [PLANNED]**

@@ -34,14 +34,21 @@ class SecurityVaultDatabase private constructor(
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        // Initial version is 1; future schema migrations handled here
         LogCatcher.log('I', TAG, "Upgrading Security Vault database from version $oldVersion to $newVersion")
+        if (oldVersion < 2) {
+            try {
+                db.execSQL("ALTER TABLE $TABLE_ENTRIES ADD COLUMN $COLUMN_ENTRY_CUSTOM_FIELDS TEXT")
+                LogCatcher.log('I', TAG, "Successfully added $COLUMN_ENTRY_CUSTOM_FIELDS column to $TABLE_ENTRIES")
+            } catch (t: Throwable) {
+                LogCatcher.log('E', TAG, "Failed to alter table $TABLE_ENTRIES for custom_fields_json: ${t.message}", t)
+            }
+        }
     }
 
     companion object {
         private const val TAG = "SecurityVaultDatabase"
         const val DATABASE_NAME = "security_vault.db"
-        const val DATABASE_VERSION = 1
+        const val DATABASE_VERSION = 2
 
         const val TABLE_GROUPS = "vault_groups"
         const val COLUMN_GROUP_UUID = "group_uuid"
@@ -58,6 +65,7 @@ class SecurityVaultDatabase private constructor(
         const val COLUMN_ENTRY_URL_OR_PKG = "url_or_package"
         const val COLUMN_ENTRY_TOTP = "totp_secret_encrypted"
         const val COLUMN_ENTRY_NOTES = "notes_encrypted"
+        const val COLUMN_ENTRY_CUSTOM_FIELDS = "custom_fields_json"
         const val COLUMN_ENTRY_UPDATED_AT = "updated_at"
 
         const val TABLE_ATTACHMENTS = "vault_attachments"
@@ -86,6 +94,7 @@ class SecurityVaultDatabase private constructor(
                 $COLUMN_ENTRY_URL_OR_PKG TEXT,
                 $COLUMN_ENTRY_TOTP BLOB,
                 $COLUMN_ENTRY_NOTES BLOB,
+                $COLUMN_ENTRY_CUSTOM_FIELDS TEXT,
                 $COLUMN_ENTRY_UPDATED_AT INTEGER NOT NULL,
                 FOREIGN KEY ($COLUMN_ENTRY_GROUP_UUID) REFERENCES $TABLE_GROUPS($COLUMN_GROUP_UUID) ON DELETE CASCADE
             )

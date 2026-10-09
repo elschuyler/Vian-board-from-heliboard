@@ -200,9 +200,15 @@ class ClipboardHistoryManager(
         val inputType = editorInfo?.inputType ?: InputType.TYPE_NULL
         if (hasText) {
             if (TextUtils.isEmpty(content)) return null
+            if (content.length > 50 && InputTypeUtils.isNumberInputType(inputType)) return null
             if (InputTypeUtils.isNumberInputType(inputType) && !content.isValidNumber()) return null
             KeyboardTypeface.applyToTextView(textView)
-            textView.text = (if (isClipSensitive(inputType)) "*".repeat(content.length.coerceAtMost(200)) else content)
+            val displayContent = if (content.length > SUGGESTION_DISPLAY_LIMIT) {
+                content.subSequence(0, SUGGESTION_DISPLAY_LIMIT).toString() + "…"
+            } else {
+                content.toString()
+            }
+            textView.text = (if (isClipSensitive(inputType)) "*".repeat(content.length.coerceAtMost(20)) else displayContent)
         }
         val onClickListener = View.OnClickListener {
             dontShowCurrentSuggestion = true
@@ -261,6 +267,7 @@ class ClipboardHistoryManager(
         private var dontShowCurrentSuggestion: Boolean = false
 
         const val RECENT_TIME_MILLIS = 3 * 60 * 1000L // 3 minutes (for clipboard suggestions)
+        const val SUGGESTION_DISPLAY_LIMIT = 80 // Truncate suggestion strip pill text to avoid layout freeze on huge clips
 
         private fun maySaveFromUri(uri: Uri?, context: Context): Boolean {
             val maxSize = context.prefs().getInt(Settings.PREF_CLIPBOARD_FILES_SIZE_LIMIT, Defaults.PREF_CLIPBOARD_FILES_SIZE_LIMIT)

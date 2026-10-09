@@ -61,14 +61,23 @@ class ClipboardDao private constructor(private val db: Database) {
 
     fun addClip(timestamp: Long, pinned: Boolean, text: String) = synchronized(this) {
         clearOldClips()
-        val existingIndex = cache.indexOfFirst { it.text == text }
+        val safeText = if (text.length > MAX_CLIP_TEXT_LENGTH) text.take(MAX_CLIP_TEXT_LENGTH) else text
+        // Length-gated lookup: O(1) length check before comparing characters, with prefix gating on large clips
+        val existingIndex = cache.indexOfFirst {
+            val entryText = it.text
+            entryText != null &&
+            entryText.length == safeText.length &&
+            (safeText.length <= MAX_LOOKUP_LENGTH || entryText.startsWith(safeText.take(128))) &&
+            entryText == safeText
+        }
         if (existingIndex >= 0 && cache[existingIndex].timeStamp == timestamp)
             return@synchronized // nothing to do
         if (existingIndex >= 0) {
             updateTimestampAt(existingIndex, timestamp)
             return@synchronized
         }
-        insertNewEntry(timestamp, pinned, text, null, null, null)
+        insertNewEntry(timestamp, pinned, safeText, null, null, null)
+        trimNonPinnedClips()
     }
 
     fun addClipUri(timestamp: Long, pinned: Boolean, uri: Uri, description: ClipDescription, context: Context) = synchronized(this) {
@@ -118,21 +127,31 @@ class ClipboardDao private constructor(private val db: Database) {
 
     /** only public for restoring backups */
     fun insertNewEntry(timestamp: Long, pinned: Boolean, text: String?, filename: String?, mimeTypes: List<String>?, context: Context?) {
+        val safeText = if (text != null && text.length > MAX_CLIP_TEXT_LENGTH) text.take(MAX_CLIP_TEXT_LENGTH) else text
         val cv = ContentValues(5)
         cv.put(COLUMN_TIMESTAMP, timestamp)
         cv.put(COLUMN_PINNED, pinned)
-        cv.put(COLUMN_TEXT, text)
+        cv.put(COLUMN_TEXT, safeText)
         cv.put(COLUMN_FILE, filename)
         // § should be a safe separator, not allowed in mime types: https://datatracker.ietf.org/doc/html/rfc6838#section-4.2
         cv.put(COLUMN_MIME_TYPE, mimeTypes?.joinToString("§"))
         val rowId = db.writableDatabase.insert(TABLE, null, cv)
 
-        val entry = ClipboardHistoryEntry(rowId, timestamp, pinned, text, filename, mimeTypes)
+        val entry = ClipboardHistoryEntry(rowId, timestamp, pinned, safeText, filename, mimeTypes)
         if (filename != null && context != null)
             deleteIfSizeExceeded(context.prefs())
         cache.add(entry)
         cache.sort()
         listener?.onClipInserted(cache.indexOf(entry))
+    }
+
+    private fun trimNonPinnedClips() {
+        val nonPinned = cache.filter { !it.isPinned }
+        if (nonPinned.size > MAX_NON_PINNED_CLIPS) {
+            val excess = nonPinned.size - MAX_NON_PINNED_CLIPS
+            val toRemove = nonPinned.takeLast(excess)
+            delete(toRemove)
+        }
     }
 
     private fun updateTimestampAt(index: Int, timestamp: Long) {
@@ -177,9 +196,10 @@ class ClipboardDao private constructor(private val db: Database) {
 
     fun updateClipText(id: Long, newText: String) = synchronized(this) {
         val entry = cache.firstOrNull { it.id == id } ?: return@synchronized
-        entry.text = newText
+        val safeText = if (newText.length > MAX_CLIP_TEXT_LENGTH) newText.take(MAX_CLIP_TEXT_LENGTH) else newText
+        entry.text = safeText
         val cv = ContentValues(1).apply {
-            put(COLUMN_TEXT, newText)
+            put(COLUMN_TEXT, safeText)
         }
         db.writableDatabase.update(TABLE, cv, "$COLUMN_ID = ?", arrayOf(id.toString()))
     }
@@ -256,6 +276,10 @@ class ClipboardDao private constructor(private val db: Database) {
 
     companion object {
         private const val TAG = "ClipboardDao"
+
+        const val MAX_CLIP_TEXT_LENGTH = 20_000 // Safe storage ceiling to prevent CursorWindow 2MB crashes and memory bloat
+        const val MAX_LOOKUP_LENGTH = 5_000 // Length-gate threshold for heavy text lookups
+        const val MAX_NON_PINNED_CLIPS = 100 // Prevent unbounded clip accumulation when retention is disabled
 
         private const val TABLE = "CLIPBOARD"
         // it's possible timestamp is not unique, so we use a separate ID

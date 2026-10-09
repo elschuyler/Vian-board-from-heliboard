@@ -46,6 +46,7 @@ class ClipboardAdapter(
         const val VIEW_TYPE_CLIPBOARD_ITEM = 0
         const val VIEW_TYPE_PROMPT_ADD = 1
         const val VIEW_TYPE_PROMPT_ITEM = 2
+        const val DISPLAY_TRUNCATION_LIMIT = 250 // Max characters rendered into card TextView to prevent StaticLayout measurement jank
     }
 
     var mode: HistoryMode = HistoryMode.CLIPBOARD
@@ -153,7 +154,12 @@ class ClipboardAdapter(
             if (historyEntry.filename != null) {
                 historyEntry.setImageAndDescription(contentImageView, contentTextView)
             } else {
-                contentTextView.text = historyEntry.text?.take(1000) // truncate displayed text for performance reasons
+                val raw = historyEntry.text
+                contentTextView.text = if (raw != null && raw.length > DISPLAY_TRUNCATION_LIMIT) {
+                    raw.take(DISPLAY_TRUNCATION_LIMIT)
+                } else {
+                    raw
+                }
             }
             pinnedIconView.visibility = if (historyEntry.isPinned) View.VISIBLE else View.GONE
             contentImageView.visibility = if (historyEntry.filename != null) View.VISIBLE else View.GONE
@@ -401,7 +407,11 @@ class ClipboardAdapter(
 
         fun bind(entry: PromptEntry) {
             itemView.tag = entry.id
-            titleView.text = entry.text
+            titleView.text = if (entry.text.length > DISPLAY_TRUNCATION_LIMIT) {
+                entry.text.take(DISPLAY_TRUNCATION_LIMIT)
+            } else {
+                entry.text
+            }
             pinnedIcon.visibility = if (entry.isPinned) View.VISIBLE else View.GONE
             clipboardLayoutParams.setItemProperties(itemView)
         }

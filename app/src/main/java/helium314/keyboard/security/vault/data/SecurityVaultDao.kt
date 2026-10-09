@@ -179,6 +179,7 @@ class SecurityVaultDao private constructor(private val dbHelper: SecurityVaultDa
                 put(SecurityVaultDatabase.COLUMN_ENTRY_URL_OR_PKG, entry.urlOrPackage)
                 put(SecurityVaultDatabase.COLUMN_ENTRY_TOTP, entry.totpSecretEncrypted)
                 put(SecurityVaultDatabase.COLUMN_ENTRY_NOTES, entry.notesEncrypted)
+                put(SecurityVaultDatabase.COLUMN_ENTRY_CUSTOM_FIELDS, entry.customFieldsJson)
                 put(SecurityVaultDatabase.COLUMN_ENTRY_UPDATED_AT, entry.updatedAt)
             }
             val rowId = dbHelper.writableDatabase.insertWithOnConflict(
@@ -458,6 +459,7 @@ class SecurityVaultDao private constructor(private val dbHelper: SecurityVaultDa
                         put(SecurityVaultDatabase.COLUMN_ENTRY_URL_OR_PKG, e.urlOrPackage)
                         put(SecurityVaultDatabase.COLUMN_ENTRY_TOTP, e.totpSecretEncrypted)
                         put(SecurityVaultDatabase.COLUMN_ENTRY_NOTES, e.notesEncrypted)
+                        put(SecurityVaultDatabase.COLUMN_ENTRY_CUSTOM_FIELDS, e.customFieldsJson)
                         put(SecurityVaultDatabase.COLUMN_ENTRY_UPDATED_AT, e.updatedAt)
                     }
                     insert(SecurityVaultDatabase.TABLE_ENTRIES, null, cv)
@@ -514,6 +516,11 @@ class SecurityVaultDao private constructor(private val dbHelper: SecurityVaultDa
         val passCol = cursor.getColumnIndexOrThrow(SecurityVaultDatabase.COLUMN_ENTRY_PASSWORD)
         val totpCol = cursor.getColumnIndexOrThrow(SecurityVaultDatabase.COLUMN_ENTRY_TOTP)
         val notesCol = cursor.getColumnIndexOrThrow(SecurityVaultDatabase.COLUMN_ENTRY_NOTES)
+        val customFieldsCol = cursor.getColumnIndex(SecurityVaultDatabase.COLUMN_ENTRY_CUSTOM_FIELDS)
+
+        val customFields = if (customFieldsCol >= 0 && !cursor.isNull(customFieldsCol)) {
+            cursor.getString(customFieldsCol)
+        } else null
 
         return VaultEntryEntity(
             entryUuid = cursor.getString(cursor.getColumnIndexOrThrow(SecurityVaultDatabase.COLUMN_ENTRY_UUID)),
@@ -524,6 +531,7 @@ class SecurityVaultDao private constructor(private val dbHelper: SecurityVaultDa
             urlOrPackage = cursor.getString(cursor.getColumnIndexOrThrow(SecurityVaultDatabase.COLUMN_ENTRY_URL_OR_PKG)),
             totpSecretEncrypted = if (cursor.isNull(totpCol)) null else cursor.getBlob(totpCol),
             notesEncrypted = if (cursor.isNull(notesCol)) null else cursor.getBlob(notesCol),
+            customFieldsJson = customFields,
             updatedAt = cursor.getLong(cursor.getColumnIndexOrThrow(SecurityVaultDatabase.COLUMN_ENTRY_UPDATED_AT))
         )
     }

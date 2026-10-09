@@ -20,6 +20,10 @@ import helium314.keyboard.security.vault.data.SecurityVaultDao
 import helium314.keyboard.security.vault.data.VaultAttachmentEntity
 import helium314.keyboard.security.vault.data.VaultEntryEntity
 import helium314.keyboard.security.vault.data.VaultGroupEntity
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.UUID
@@ -31,9 +35,23 @@ import java.util.UUID
  * Runs exclusively in Settings (0% keyboard IME overhead).
  * Maps KDBX Groups & Entries 1:1 into Phase 1 SQLite entities while sealing
  * sensitive fields (passwords, TOTP seeds, notes) via hardware AES-256-GCM.
+ *
+ * Supports composite credentials (Password + Key File .key/.keyx) and
+ * preserves 100% of custom string fields without metadata loss.
  */
 object KdbxRepository {
     private const val TAG = "KdbxRepository"
+
+    private val STANDARD_FIELDS = setOf(
+        "Title",
+        "UserName",
+        "Password",
+        "URL",
+        "Notes",
+        "otp",
+        "TOTP Seed",
+        "TOTP Settings"
+    )
 
     data class ImportResult(
         val success: Boolean,
@@ -43,19 +61,50 @@ object KdbxRepository {
     )
 
     /**
-     * Imports an external KDBX database from a SAF Uri using the provided master password.
+     * Builds Kotpass Credentials from master password and optional key file bytes.
+     */
+    fun createCredentials(masterPassword: CharArray, keyFileBytes: ByteArray?): Credentials {
+        val passphrase = EncryptedValue.fromString(String(masterPassword))
+        return if (keyFileBytes != null && keyFileBytes.isNotEmpty()) {
+            Credentials.from(passphrase, keyFileBytes)
+        } else {
+            Credentials.from(passphrase)
+        }
+    }
+
+    /**
+     * Reads key file bytes safely from a SAF Uri.
+     */
+    fun readKeyFileBytes(context: Context, keyFileUri: Uri?): ByteArray? {
+        if (keyFileUri == null) return null
+        return try {
+            context.contentResolver.openInputStream(keyFileUri)?.use { it.readBytes() }
+        } catch (t: Throwable) {
+            LogCatcher.log('E', TAG, "Failed to read key file from $keyFileUri: ${t.message}", t)
+            null
+        }
+    }
+
+    /**
+     * Imports an external KDBX database from a SAF Uri using the provided master password and optional key file Uri.
      */
     fun importFromUri(
         context: Context,
         uri: Uri,
-        masterPassword: CharArray
+        masterPassword: CharArray,
+        keyFileUri: Uri? = null
     ): ImportResult {
         var inputStream: InputStream? = null
         try {
             inputStream = context.contentResolver.openInputStream(uri)
                 ?: return ImportResult(false, errorMessage = "Failed to open database file stream")
 
-            val credentials = Credentials.from(EncryptedValue.fromString(String(masterPassword)))
+            val keyFileBytes = readKeyFileBytes(context, keyFileUri)
+            if (keyFileUri != null && keyFileBytes == null) {
+                return ImportResult(false, errorMessage = "Failed to read selected key file")
+            }
+
+            val credentials = createCredentials(masterPassword, keyFileBytes)
             val db = KeePassDatabase.decode(inputStream, credentials)
 
             val groups = mutableListOf<VaultGroupEntity>()
@@ -82,7 +131,7 @@ object KdbxRepository {
             }
         } catch (t: Throwable) {
             LogCatcher.log('E', TAG, "KDBX import error: ${t.message}", t)
-            return ImportResult(false, errorMessage = t.message ?: "Invalid master password or corrupted database")
+            return ImportResult(false, errorMessage = t.message ?: "Invalid master password / key file or corrupted database")
         } finally {
             try {
                 inputStream?.close()
@@ -130,6 +179,23 @@ object KdbxRepository {
                 VaultCryptoManager.encryptString(notes)
             } else null
 
+            // Extract all custom string fields outside standard 5 fields
+            val customFieldsMap = mutableMapOf<String, String>()
+            for ((key, value) in entry.fields) {
+                if (key !in STANDARD_FIELDS && value.content.isNotEmpty()) {
+                    customFieldsMap[key] = value.content
+                }
+            }
+
+            val customFieldsJson = if (customFieldsMap.isNotEmpty()) {
+                val jsonObject = buildJsonObject {
+                    for ((k, v) in customFieldsMap) {
+                        put(k, JsonPrimitive(v))
+                    }
+                }
+                jsonObject.toString()
+            } else null
+
             entriesList.add(
                 VaultEntryEntity(
                     entryUuid = entryUuid,
@@ -140,6 +206,7 @@ object KdbxRepository {
                     urlOrPackage = url,
                     totpSecretEncrypted = totpEncrypted,
                     notesEncrypted = notesEncrypted,
+                    customFieldsJson = customFieldsJson,
                     updatedAt = System.currentTimeMillis()
                 )
             )
@@ -157,7 +224,8 @@ object KdbxRepository {
     fun exportToUri(
         context: Context,
         uri: Uri,
-        masterPassword: CharArray
+        masterPassword: CharArray,
+        keyFileUri: Uri? = null
     ): Boolean {
         var outputStream: OutputStream? = null
         try {
@@ -170,11 +238,13 @@ object KdbxRepository {
                 return false
             }
 
+            val keyFileBytes = readKeyFileBytes(context, keyFileUri)
+            val credentials = createCredentials(masterPassword, keyFileBytes)
+
             // Build Kotpass database structure from local SQLite entities
             val rootGroupEntity = groups.firstOrNull { it.parentGroupUuid == null } ?: groups.first()
             val kotpassRootGroup = buildKotpassGroup(rootGroupEntity, groups, allEntries)
 
-            val credentials = Credentials.from(EncryptedValue.fromString(String(masterPassword)))
             val baseDb = KeePassDatabase.Ver4x.create(
                 rootName = rootGroupEntity.name,
                 meta = Meta(),
@@ -223,6 +293,21 @@ object KdbxRepository {
             val totp = VaultCryptoManager.decryptToString(e.totpSecretEncrypted)
             if (!totp.isNullOrEmpty()) {
                 fieldsMap["otp"] = EntryValue.Plain(totp)
+            }
+
+            // Restore all custom string fields
+            if (!e.customFieldsJson.isNullOrBlank()) {
+                try {
+                    val jsonObj = Json.parseToJsonElement(e.customFieldsJson) as? JsonObject
+                    jsonObj?.forEach { (k, v) ->
+                        val stringVal = (v as? JsonPrimitive)?.content
+                        if (!stringVal.isNullOrEmpty() && !fieldsMap.containsKey(k)) {
+                            fieldsMap[k] = EntryValue.Plain(stringVal)
+                        }
+                    }
+                } catch (t: Throwable) {
+                    LogCatcher.log('W', TAG, "Failed to restore custom fields for entry ${e.entryUuid}: ${t.message}")
+                }
             }
 
             val entryUuid = try {

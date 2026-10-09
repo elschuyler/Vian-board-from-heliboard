@@ -4,6 +4,7 @@ package helium314.keyboard.security.vault.ui
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
 import android.view.View
 import android.view.inputmethod.EditorInfo
@@ -23,6 +24,7 @@ import helium314.keyboard.keyboard.PointerTracker
 import helium314.keyboard.keyboard.internal.KeyVisualAttributes
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.common.ColorType
+import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.LogCatcher
 import helium314.keyboard.latin.utils.ResourceUtils
@@ -64,7 +66,8 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
 
     init {
         orientation = VERTICAL
-        fitsSystemWindows = true
+        fitsSystemWindows = false
+        setPadding(0, 0, 0, 0)
     }
 
     override fun onFinishInflate() {
@@ -104,6 +107,7 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
             val newSort = adapter.toggleSortMode()
             btnSortToggle.alpha = if (newSort == AccordionFolderAdapter.SortMode.TIME) 1f else 0.6f
         }
+        updateChipHighlight(chipAll)
 
         // Close without lock: restores keyboard, keeps vault unlocked for remainder of session timer
         btnClose.setOnClickListener {
@@ -130,8 +134,9 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val res = context.resources
-        val width = ResourceUtils.getKeyboardWidth(context, Settings.getValues()) + paddingLeft + paddingRight
-        val height = ResourceUtils.getSecondaryKeyboardHeight(res, Settings.getValues()) + paddingTop + paddingBottom
+        val width = ResourceUtils.getKeyboardWidth(context, Settings.getValues())
+        val stripHeight = res.getDimensionPixelSize(R.dimen.config_suggestions_strip_height)
+        val height = ResourceUtils.getSecondaryKeyboardHeight(res, Settings.getValues()) + stripHeight
         val widthSpec = MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY)
         val heightSpec = MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
         super.onMeasure(widthSpec, heightSpec)
@@ -154,7 +159,16 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
 
     private fun setupBottomRowKeyboard(editorInfo: EditorInfo?, listener: KeyboardActionListener) {
         val keyboardView = bottomRowKeyboard ?: return
-        keyboardView.setKeyboardActionListener(listener)
+        val wrappedListener = object : KeyboardActionListener by listener {
+            override fun onCodeInput(code: Int, x: Int, y: Int, isKeyRepeat: Boolean) {
+                if (code == KeyCode.ALPHA) {
+                    closeWithoutLock()
+                    return
+                }
+                listener.onCodeInput(code, x, y, isKeyRepeat)
+            }
+        }
+        keyboardView.setKeyboardActionListener(wrappedListener)
         PointerTracker.switchTo(keyboardView)
         val kls = KeyboardLayoutSet.Builder.buildEmojiClipBottomRow(context, editorInfo)
         val keyboard = kls.getKeyboard(KeyboardElement.CLIPBOARD_BOTTOM_ROW)
@@ -208,12 +222,23 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
         val colors = runCatching { Settings.getValues().mColors }.getOrNull()
         val textColor = colors?.get(ColorType.KEY_TEXT) ?: Color.WHITE
         val hintColor = colors?.get(ColorType.KEY_HINT_TEXT) ?: Color.LTGRAY
+        val accentFill = colors?.get(ColorType.ACTION_KEY_BACKGROUND)
+            ?: colors?.get(ColorType.FUNCTIONAL_KEY_BACKGROUND)
+            ?: Color.parseColor("#3898EC")
+        val strokeWidth = (1.2 * resources.displayMetrics.density).toInt().coerceAtLeast(1)
 
         listOf(chipAll, chipRecent, chipFolders).forEach { chip ->
             if (chip == activeChip) {
-                chip.setTextColor(textColor)
+                chip.setBackgroundResource(R.drawable.bg_vault_chip_active)
+                chip.background?.mutate()?.setTint(accentFill)
+                chip.setTextColor(Color.WHITE)
                 chip.paint.isFakeBoldText = true
             } else {
+                chip.setBackgroundResource(R.drawable.bg_vault_chip_inactive)
+                val bg = chip.background?.mutate()
+                if (bg is GradientDrawable) {
+                    bg.setStroke(strokeWidth, hintColor)
+                }
                 chip.setTextColor(hintColor)
                 chip.paint.isFakeBoldText = false
             }
@@ -222,12 +247,19 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
 
     private fun applyThemeColors() {
         val colors = runCatching { Settings.getValues().mColors }.getOrNull()
+        val strokeWidth = (1.2 * resources.displayMetrics.density).toInt().coerceAtLeast(1)
         if (colors != null) {
             colors.setBackground(this, ColorType.MAIN_BACKGROUND)
             colors.setBackground(topBar, ColorType.STRIP_BACKGROUND)
             colors.setColor(btnLock, ColorType.KEY_ICON)
             colors.setColor(btnClose, ColorType.KEY_ICON)
             colors.setColor(btnSortToggle, ColorType.KEY_ICON)
+
+            val hintColor = colors.get(ColorType.KEY_HINT_TEXT)
+            val circleBg = btnSortToggle.background?.mutate()
+            if (circleBg is GradientDrawable) {
+                circleBg.setStroke(strokeWidth, hintColor)
+            }
 
             val textColor = colors.get(ColorType.KEY_TEXT)
             emptyText.setTextColor(textColor)
@@ -241,6 +273,10 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
             btnLock.setColorFilter(Color.WHITE)
             btnClose.setColorFilter(Color.WHITE)
             btnSortToggle.setColorFilter(Color.WHITE)
+            val circleBg = btnSortToggle.background?.mutate()
+            if (circleBg is GradientDrawable) {
+                circleBg.setStroke(strokeWidth, Color.parseColor("#55888888"))
+            }
             emptyText.setTextColor(Color.WHITE)
         }
     }

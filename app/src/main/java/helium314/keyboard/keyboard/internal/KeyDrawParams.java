@@ -121,6 +121,36 @@ public final class KeyDrawParams {
         return newParams;
     }
 
+    public void copyFromAndUpdate(@NonNull final KeyDrawParams source, int keySize, @Nullable KeyVisualAttributes attr) {
+        mTypeface = source.mTypeface;
+        mLetterSize = source.mLetterSize;
+        mLabelSize = source.mLabelSize;
+        mLargeLetterSize = source.mLargeLetterSize;
+        mHintLetterSize = source.mHintLetterSize;
+        mShiftedLetterHintSize = source.mShiftedLetterHintSize;
+        mHintLabelSize = source.mHintLabelSize;
+        mPreviewTextSize = source.mPreviewTextSize;
+
+        mTextColor = source.mTextColor;
+        mTextInactivatedColor = source.mTextInactivatedColor;
+        mTextShadowColor = source.mTextShadowColor;
+        mFunctionalTextColor = source.mFunctionalTextColor;
+        mHintLetterColor = source.mHintLetterColor;
+        mHintLabelColor = source.mHintLabelColor;
+        mShiftedLetterHintInactivatedColor = source.mShiftedLetterHintInactivatedColor;
+        mShiftedLetterHintActivatedColor = source.mShiftedLetterHintActivatedColor;
+        mPreviewTextColor = source.mPreviewTextColor;
+
+        mHintLabelVerticalAdjustment = source.mHintLabelVerticalAdjustment;
+        mLabelOffCenterRatio = source.mLabelOffCenterRatio;
+        mHintLabelOffCenterRatio = source.mHintLabelOffCenterRatio;
+        mAnimAlpha = source.mAnimAlpha;
+
+        if (attr != null) {
+            updateParams(keySize, attr);
+        }
+    }
+
     private static int selectTextSizeFromDimensionOrRatio(int keySize, int dimens, float ratio, int defaultDimens) {
         if (ResourceUtils.isValidDimensionPixelSize(dimens)) {
             return dimens;

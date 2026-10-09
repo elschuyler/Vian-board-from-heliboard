@@ -57,7 +57,13 @@ class PromptDao private constructor(private val db: Database) {
     fun getEntryContent(id: Long): PromptEntry? = synchronized(this) { cache.firstOrNull { it.id == id } }
 
     fun addPrompt(text: String, title: String = "", pinned: Boolean = false): Long = synchronized(this) {
-        val existingIndex = cache.indexOfFirst { it.text == text }
+        val safeText = if (text.length > MAX_PROMPT_TEXT_LENGTH) text.take(MAX_PROMPT_TEXT_LENGTH) else text
+        // Length-gated lookup: fast O(1) length check before comparing characters, with prefix gating on large clips
+        val existingIndex = cache.indexOfFirst {
+            it.text.length == safeText.length &&
+            (safeText.length <= MAX_LOOKUP_LENGTH || it.text.startsWith(safeText.take(128))) &&
+            it.text == safeText
+        }
         if (existingIndex >= 0) {
             val existing = cache[existingIndex]
             val now = System.currentTimeMillis()
@@ -79,11 +85,11 @@ class PromptDao private constructor(private val db: Database) {
         val cv = ContentValues().apply {
             put(COLUMN_TIMESTAMP, now)
             put(COLUMN_PINNED, if (pinned) 1 else 0)
-            put(COLUMN_TITLE, title.ifEmpty { text.take(30).replace("\n", " ").trim() })
-            put(COLUMN_TEXT, text)
+            put(COLUMN_TITLE, title.ifEmpty { safeText.take(30).replace("\n", " ").trim() })
+            put(COLUMN_TEXT, safeText)
         }
         val id = db.writableDatabase.insert(TABLE, null, cv)
-        val entry = PromptEntry(id, now, pinned, title.ifEmpty { text.take(30).replace("\n", " ").trim() }, text)
+        val entry = PromptEntry(id, now, pinned, title.ifEmpty { safeText.take(30).replace("\n", " ").trim() }, safeText)
         val insertPos = if (pinned) 0 else cache.count { it.isPinned }
         cache.add(insertPos, entry)
         listener?.onPromptInserted(insertPos)
@@ -126,13 +132,14 @@ class PromptDao private constructor(private val db: Database) {
             val index = cache.indexOfFirst { it.id == id }
             if (index < 0) return
             val entry = cache[index]
-            val newTitle = newText.take(30).replace("\n", " ").trim()
+            val safeNewText = if (newText.length > MAX_PROMPT_TEXT_LENGTH) newText.take(MAX_PROMPT_TEXT_LENGTH) else newText
+            val newTitle = safeNewText.take(30).replace("\n", " ").trim()
             val cv = ContentValues().apply {
-                put(COLUMN_TEXT, newText)
+                put(COLUMN_TEXT, safeNewText)
                 put(COLUMN_TITLE, newTitle)
             }
             db.writableDatabase.update(TABLE, cv, "$COLUMN_ID = ?", arrayOf(id.toString()))
-            val updated = entry.copy(text = newText, title = newTitle)
+            val updated = entry.copy(text = safeNewText, title = newTitle)
             cache[index] = updated
             listener?.onPromptUpdated()
         }
@@ -180,6 +187,9 @@ class PromptDao private constructor(private val db: Database) {
     }
 
     companion object {
+        const val MAX_PROMPT_TEXT_LENGTH = 20_000 // Safe storage ceiling to prevent CursorWindow 2MB crashes and memory thrashing
+        const val MAX_LOOKUP_LENGTH = 5_000 // Length-gate threshold for heavy text lookups
+
         const val TABLE = "PROMPTS"
         const val COLUMN_ID = "_id"
         const val COLUMN_TIMESTAMP = "TIMESTAMP"

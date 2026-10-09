@@ -23,18 +23,40 @@ object VaultSessionManager {
 
     const val PREF_SEPARATE_PATTERNS = "pref_vault_separate_patterns"
     const val PREF_REQUIRE_GATEKEEPER = "pref_vault_require_gatekeeper"
+    const val PREF_BIOMETRIC_ENABLED = "pref_vault_biometric_enabled"
+    const val PREF_PHONE_PIN_ENABLED = "pref_vault_phone_pin_enabled"
+    const val PREF_PRIMARY_UNLOCK_METHOD = "pref_vault_primary_unlock_method"
+    const val PREF_BACKUP_UNLOCK_METHOD = "pref_vault_backup_unlock_method"
     private const val PREF_SECURITY_PATTERN_SALT = "pref_vault_security_pattern_salt"
     private const val PREF_SECURITY_PATTERN_HASH = "pref_vault_security_pattern_hash"
+
+    enum class UnlockMethod(val id: String) {
+        PATTERN("pattern"),
+        BIOMETRIC("biometric"),
+        DEVICE_PIN("device_pin");
+
+        companion object {
+            fun fromId(id: String?): UnlockMethod = when (id) {
+                BIOMETRIC.id -> BIOMETRIC
+                DEVICE_PIN.id -> DEVICE_PIN
+                else -> PATTERN
+            }
+        }
+    }
 
     // Session durations
     const val PRIVACY_SESSION_DURATION_MS = 5 * 60 * 1000L  // 5 minutes
     const val SECURITY_SESSION_DURATION_MS = 3 * 60 * 1000L // 3 minutes
+    const val SETTINGS_SESSION_DURATION_MS = 3 * 60 * 1000L // 3 minutes (isolated to Security Settings UI)
 
     @Volatile
     private var privacySessionExpiryMs: Long = 0L
 
     @Volatile
     private var securitySessionExpiryMs: Long = 0L
+
+    @Volatile
+    private var settingsSessionExpiryMs: Long = 0L
 
     init {
         LogCatcher.markComponentActive("VaultSessionManager", "Security", "Active")
@@ -67,6 +89,75 @@ object VaultSessionManager {
     fun setGatekeeperEnabled(context: Context, enabled: Boolean) {
         context.prefs().edit {
             putBoolean(PREF_REQUIRE_GATEKEEPER, enabled)
+        }
+    }
+
+    fun isBiometricsSupported(context: Context): Boolean {
+        return context.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_FINGERPRINT)
+    }
+
+    fun isBiometricEnabled(context: Context): Boolean {
+        return context.prefs().getBoolean(PREF_BIOMETRIC_ENABLED, false)
+    }
+
+    fun setBiometricEnabled(context: Context, enabled: Boolean) {
+        context.prefs().edit {
+            putBoolean(PREF_BIOMETRIC_ENABLED, enabled)
+        }
+    }
+
+    fun isDevicePinSupported(context: Context): Boolean {
+        val km = context.getSystemService(Context.KEYGUARD_SERVICE) as? android.app.KeyguardManager
+        return km?.isDeviceSecure ?: false
+    }
+
+    fun isPhonePinEnabled(context: Context): Boolean {
+        return context.prefs().getBoolean(PREF_PHONE_PIN_ENABLED, false)
+    }
+
+    fun setPhonePinEnabled(context: Context, enabled: Boolean) {
+        context.prefs().edit {
+            putBoolean(PREF_PHONE_PIN_ENABLED, enabled)
+        }
+    }
+
+    fun getPrimaryUnlockMethod(context: Context): UnlockMethod {
+        val raw = context.prefs().getString(PREF_PRIMARY_UNLOCK_METHOD, UnlockMethod.PATTERN.id)
+        val method = UnlockMethod.fromId(raw)
+        // Auto-validate hardware/enrollment capability; fallback to PATTERN if unavailable
+        return when (method) {
+            UnlockMethod.BIOMETRIC -> if (isBiometricsSupported(context) && isBiometricEnabled(context)) method else UnlockMethod.PATTERN
+            UnlockMethod.DEVICE_PIN -> if (isDevicePinSupported(context) && isPhonePinEnabled(context)) method else UnlockMethod.PATTERN
+            UnlockMethod.PATTERN -> UnlockMethod.PATTERN
+        }
+    }
+
+    fun setPrimaryUnlockMethod(context: Context, method: UnlockMethod) {
+        context.prefs().edit {
+            putString(PREF_PRIMARY_UNLOCK_METHOD, method.id)
+            if (method == UnlockMethod.BIOMETRIC) {
+                putBoolean(PREF_BIOMETRIC_ENABLED, true)
+            } else if (method == UnlockMethod.DEVICE_PIN) {
+                putBoolean(PREF_PHONE_PIN_ENABLED, true)
+            }
+        }
+    }
+
+    fun getBackupUnlockMethod(context: Context): UnlockMethod {
+        val raw = context.prefs().getString(PREF_BACKUP_UNLOCK_METHOD, UnlockMethod.PATTERN.id)
+        val method = UnlockMethod.fromId(raw)
+        return when (method) {
+            UnlockMethod.DEVICE_PIN -> if (isDevicePinSupported(context) && isPhonePinEnabled(context)) method else UnlockMethod.PATTERN
+            else -> UnlockMethod.PATTERN
+        }
+    }
+
+    fun setBackupUnlockMethod(context: Context, method: UnlockMethod) {
+        context.prefs().edit {
+            putString(PREF_BACKUP_UNLOCK_METHOD, method.id)
+            if (method == UnlockMethod.DEVICE_PIN) {
+                putBoolean(PREF_PHONE_PIN_ENABLED, true)
+            }
         }
     }
 
@@ -193,6 +284,8 @@ object VaultSessionManager {
 
     fun isSecuritySessionValid(): Boolean = System.currentTimeMillis() < securitySessionExpiryMs
 
+    fun isSettingsSessionValid(): Boolean = System.currentTimeMillis() < settingsSessionExpiryMs
+
     fun startPrivacySession() {
         privacySessionExpiryMs = System.currentTimeMillis() + PRIVACY_SESSION_DURATION_MS
         LogCatcher.log('I', TAG, "startPrivacySession: 5-minute session started")
@@ -201,6 +294,11 @@ object VaultSessionManager {
     fun startSecuritySession() {
         securitySessionExpiryMs = System.currentTimeMillis() + SECURITY_SESSION_DURATION_MS
         LogCatcher.log('I', TAG, "startSecuritySession: 3-minute session started")
+    }
+
+    fun startSettingsSession() {
+        settingsSessionExpiryMs = System.currentTimeMillis() + SETTINGS_SESSION_DURATION_MS
+        LogCatcher.log('I', TAG, "startSettingsSession: 3-minute settings session started")
     }
 
     fun lockPrivacy() {
@@ -213,10 +311,16 @@ object VaultSessionManager {
         LogCatcher.log('I', TAG, "lockSecurity: Security vault session locked")
     }
 
+    fun lockSettings() {
+        settingsSessionExpiryMs = 0L
+        LogCatcher.log('I', TAG, "lockSettings: Security settings session locked")
+    }
+
     fun lockAll() {
         lockPrivacy()
         lockSecurity()
-        LogCatcher.log('I', TAG, "lockAll: All vault sessions locked")
+        lockSettings()
+        LogCatcher.log('I', TAG, "lockAll: All vault and settings sessions locked")
     }
 
     // --- Crypto Helpers ---

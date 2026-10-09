@@ -4,8 +4,6 @@ package helium314.keyboard.security.vault.engine
 import android.content.Context
 import android.net.Uri
 import androidx.core.content.edit
-import app.keemobile.kotpass.cryptography.EncryptedValue
-import app.keemobile.kotpass.database.Credentials
 import app.keemobile.kotpass.database.KeePassDatabase
 import app.keemobile.kotpass.database.decode
 import helium314.keyboard.latin.utils.LogCatcher
@@ -17,12 +15,16 @@ import java.io.InputStream
 /**
  * 2-Way KDBX Sync Engine with Conflict Detection & Visual Diff generation.
  * Compares external KDBX file with local SQLite cache by entry UUID.
+ *
+ * Supports composite credentials (password + key file).
  */
 object KdbxSyncManager {
     private const val TAG = "KdbxSyncManager"
 
     const val PREF_KDBX_URI = "pref_security_vault_kdbx_uri"
     const val PREF_KDBX_FILENAME = "pref_security_vault_kdbx_filename"
+    const val PREF_KEYFILE_URI = "pref_security_vault_keyfile_uri"
+    const val PREF_KEYFILE_FILENAME = "pref_security_vault_keyfile_filename"
     const val PREF_LAST_SYNC_TIME = "pref_security_vault_last_sync_timestamp"
     const val PREF_LAST_FILE_MODIFIED = "pref_security_vault_last_file_modified"
 
@@ -64,7 +66,8 @@ object KdbxSyncManager {
     fun computeDiff(
         context: Context,
         uri: Uri,
-        masterPassword: CharArray
+        masterPassword: CharArray,
+        keyFileUri: Uri? = null
     ): SyncDiffResult {
         var inputStream: InputStream? = null
         try {
@@ -74,7 +77,8 @@ object KdbxSyncManager {
             inputStream = context.contentResolver.openInputStream(uri)
                 ?: return SyncDiffResult(false, emptyList(), "Could not open external file")
 
-            val credentials = Credentials.from(EncryptedValue.fromString(String(masterPassword)))
+            val keyFileBytes = KdbxRepository.readKeyFileBytes(context, keyFileUri)
+            val credentials = KdbxRepository.createCredentials(masterPassword, keyFileBytes)
             val externalDb = KeePassDatabase.decode(inputStream, credentials)
 
             // Flatten external entries
@@ -192,9 +196,10 @@ object KdbxSyncManager {
     fun executeSync(
         context: Context,
         uri: Uri,
-        masterPassword: CharArray
+        masterPassword: CharArray,
+        keyFileUri: Uri? = null
     ): Boolean {
-        val success = KdbxRepository.exportToUri(context, uri, masterPassword)
+        val success = KdbxRepository.exportToUri(context, uri, masterPassword, keyFileUri)
         if (success) {
             context.prefs().edit {
                 putLong(PREF_LAST_SYNC_TIME, System.currentTimeMillis())

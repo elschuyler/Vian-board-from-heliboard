@@ -78,6 +78,7 @@ public class KeyboardView extends View {
     private Keyboard mKeyboard;
     @NonNull
     private final KeyDrawParams mKeyDrawParams = new KeyDrawParams();
+    private final KeyDrawParams mWorkingKeyDrawParams = new KeyDrawParams();
 
     // Drawing
     /** True if all keys should be drawn */
@@ -336,7 +337,13 @@ public class KeyboardView extends View {
 
         final KeyVisualAttributes attr = key.getVisualAttributes();
         // don't use the raw key height, linear font scaling with height is too extreme
-        final KeyDrawParams params = mKeyDrawParams.mayCloneAndUpdateParams((int) (key.getHeight() * mKeyScaleForText), attr);
+        final KeyDrawParams params;
+        if (attr == null) {
+            params = mKeyDrawParams;
+        } else {
+            mWorkingKeyDrawParams.copyFromAndUpdate(mKeyDrawParams, (int) (key.getHeight() * mKeyScaleForText), attr);
+            params = mWorkingKeyDrawParams;
+        }
         params.mAnimAlpha = Constants.Color.ALPHA_OPAQUE;
 
         if (!key.isSpacer()) {
