@@ -682,14 +682,28 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
             return locales
         }
 
-        /** Decoupled: emoji search loops removed from typing passes to save idle CPU cycles */
-        @Suppress("UNUSED_PARAMETER")
         private fun includeAtLeastTwoWordSuggestions(
             suggestionResults: SuggestionResults,
             suggestionsArray: Array<List<SuggestedWordInfo>?>,
             typedWord: String
         ) {
-            // No-op: emoji search loops decoupled from typing passes to save idle CPU cycles
+            var count = 0
+            for (info in suggestionResults) {
+                if (!isEmojiOrTypedWord(info, typedWord)) {
+                    count++
+                    if (count >= 2) return
+                }
+            }
+            for (suggestions in suggestionsArray) {
+                if (suggestions == null) continue
+                for (info in suggestions) {
+                    if (!isEmojiOrTypedWord(info, typedWord)) {
+                        suggestionResults.add(info)
+                        count++
+                        if (count >= 2) return
+                    }
+                }
+            }
         }
 
         private fun isEmojiOrTypedWord(info: SuggestedWordInfo, typedWord: String): Boolean =

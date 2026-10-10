@@ -42,6 +42,20 @@
             android:background="?android:attr/selectableItemBackground" />
 
         <TextView
+            android:id="@+id/voice_upgrade_button"
+            android:layout_width="wrap_content"
+            android:layout_height="28dp"
+            android:gravity="center"
+            android:text="Import .bin"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:layout_marginStart="6dp"
+            android:visibility="gone"
+            android:background="?android:attr/selectableItemBackground" />
+
+        <TextView
             android:id="@+id/voice_gain_pill"
             android:layout_width="wrap_content"
             android:minWidth="38dp"

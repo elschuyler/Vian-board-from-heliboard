@@ -42,6 +42,7 @@ class VoiceInputView @JvmOverloads constructor(
     private lateinit var pulseView: VoicePulseView
     private lateinit var streamingText: TextView
     private lateinit var gainPill: TextView
+    private lateinit var upgradeButton: TextView
     private lateinit var micButton: ImageView
     private var bottomRowKeyboard: MainKeyboardView? = null
 
@@ -159,7 +160,7 @@ class VoiceInputView @JvmOverloads constructor(
             post {
                 LogCatcher.w(TAG, "Voice input connection error: $message")
                 if (!VoiceModelManager.hasActiveModel(context)) {
-                    streamingText.text = "Recording raw audio (Tap to import model in Settings)"
+                    streamingText.text = "Recording raw audio (Tap Import .bin model)"
                 } else {
                     pulseView.pulseState = VoicePulseView.PulseState.ERROR
                     streamingText.text = message
@@ -193,6 +194,7 @@ class VoiceInputView @JvmOverloads constructor(
         pulseView = findViewById(R.id.voice_pulse_view)
         streamingText = findViewById(R.id.voice_streaming_text)
         gainPill = findViewById(R.id.voice_gain_pill)
+        upgradeButton = findViewById(R.id.voice_upgrade_button)
         micButton = findViewById(R.id.voice_mic_button)
         bottomRowKeyboard = findViewById(R.id.bottom_row_keyboard)
 
@@ -208,18 +210,40 @@ class VoiceInputView @JvmOverloads constructor(
             }
         }
 
+        val launchModelPicker = {
+            VoiceModelImportBridge.launchImport(context) { success, info ->
+                if (success && info != null) {
+                    post {
+                        upgradeButton.visibility = GONE
+                        streamingText.setText(R.string.voice_status_listening)
+                        pulseView.pulseState = VoicePulseView.PulseState.LISTENING
+                        if (voiceConnection == null) {
+                            voiceConnection = VoiceInputConnection(context.applicationContext, connectionListener)
+                        }
+                        voiceConnection?.connectAndStart(currentGainMultiplier)
+                        LogCatcher.i(TAG, "Whisper model loaded into active voice view: ${info.fileName}")
+                    }
+                }
+            }
+        }
+
+        upgradeButton.setOnClickListener { launchModelPicker() }
+
         streamingText.setOnClickListener {
             if (!VoiceModelManager.hasActiveModel(context)) {
-                val intent = Intent(context, SettingsActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                }
-                context.startActivity(intent)
+                launchModelPicker()
             } else {
                 togglePause()
             }
         }
         pulseView.setOnClickListener { togglePause() }
-        micButton.setOnClickListener { togglePause() }
+        micButton.setOnClickListener {
+            if (!VoiceModelManager.hasActiveModel(context)) {
+                launchModelPicker()
+            } else {
+                togglePause()
+            }
+        }
 
         gainPill.setOnClickListener {
             cycleGain()
@@ -279,10 +303,15 @@ class VoiceInputView @JvmOverloads constructor(
         // Setup gain pill with theme key background and colors
         if (keyBackgroundId != 0) {
             gainPill.setBackgroundResource(keyBackgroundId)
+            upgradeButton.setBackgroundResource(keyBackgroundId)
         }
         colors.setBackground(gainPill, ColorType.FUNCTIONAL_KEY_BACKGROUND)
         gainPill.setTextColor(colors.get(ColorType.KEY_TEXT))
         KeyboardTypeface.applyToTextView(gainPill)
+
+        colors.setBackground(upgradeButton, ColorType.ACTION_KEY_BACKGROUND)
+        upgradeButton.setTextColor(colors.get(ColorType.KEY_TEXT))
+        KeyboardTypeface.applyToTextView(upgradeButton)
 
         // Setup streaming text styling
         streamingText.setTextColor(colors.get(ColorType.KEY_TEXT))
@@ -312,8 +341,10 @@ class VoiceInputView @JvmOverloads constructor(
 
         if (hasModel) {
             streamingText.setText(R.string.voice_status_listening)
+            upgradeButton.visibility = GONE
         } else {
             streamingText.text = "Recording raw audio (Tap to import Whisper model)"
+            upgradeButton.visibility = VISIBLE
         }
         updateMicButtonState()
         LogCatcher.i(TAG, "Voice input modal presented (hasModel=$hasModel, gain=${currentGainMultiplier}x)")

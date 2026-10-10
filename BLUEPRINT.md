@@ -585,4 +585,24 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
 - **Phase 47: Settings Sky Blue M3 Theme & Security Screen Restructuring [COMPLETED]**
 - **Phase 48: Tri-Method Authentication Engine (Pattern, Biometric, Phone PIN / Password) [COMPLETED]**
 - **Phase 49: KeePass KDBX Key File Onboarding, Custom Fields & KeePassDX UI [COMPLETED]**
-- **Phase 50: Security Vault & VianBoard Release Hardening, Offline Audit & Production Polish [PLANNED]**
+- **Phase 50: Vault On-Demand Session Lifecycle, Full Lite Mode Dictionary/Prediction Engine & FUTO Voice Input Integration [COMPLETED]**:
+  - **Component 1: Vault On-Demand Session Lifecycle & Gate Unlock Separation (`LatinIME.java`, `KeyboardSwitcher.java`, `ChosenEntryView.kt`)**:
+    - Decoupled gate unlock from single-item paste action: unlocking the vault (pattern/biometrics) opens the Vault Explorer or Chosen Entry modal for persistent session browsing without immediately closing or locking after a single field copy.
+    - Strict on-demand teardown: calls `VaultSessionManager.lockAll()` immediately upon keyboard window hiding (`hideWindow()`) and input cleanup (`cleanupInternalStateForFinishInput()`).
+    - Modal exit teardown: calls `VaultSessionManager.lockSecurity()` immediately when switching away from vault modals (`setMainKeyboardFrame()`, `enforceLiteModeSingleModal()`, `closeSecurityVaultExplorer()`, and `closeChosenEntry()`), wiping decrypted secrets and cancelling timers so zero background burden is imposed on the phone.
+  - **Component 2: Full Dictionary & Prediction Engine in Lite Mode with Space Typo Recovery (`DictionaryFacilitatorImpl.kt`, `Suggest.kt`)**:
+    - Restored `includeAtLeastTwoWordSuggestions` in `DictionaryFacilitatorImpl.kt` to pull valid non-emoji, non-typed candidates from dictionary arrays into `suggestionResults`, restoring multi-word predictions and space-split suggestions previously no-oped.
+    - Added space-neighbor typo correction ('v', 'b', 'n' instead of spacebar) in `Suggest.kt`: automatically splits words at accidental space-neighbor consonants (e.g. "withvyou" -> "with you") and trims trailing space-neighbor consonants (e.g. "withv" -> "with") into candidate rankings.
+    - Guaranteed full-power dictionary, candidate pools (18 max suggestions), and ngram prediction parity in Lite Mode, keeping Lite Mode optimizations strictly focused on UI view hierarchy recycling.
+  - **Component 3: FUTO Offline Voice Input Engine & GitHub Actions Bundling (`VoiceModelManager.kt`, `build-apk.yml`)**:
+    - Added automatic bundled asset unpacking in `VoiceModelManager.kt` (`unpackBundledModelIfAvailable`) extracting `assets/voice_models/model.bin` into `noBackupFilesDir/voice_models/model.bin` on first run.
+    - Configured GitHub Actions workflow (`build-apk.yml`) to download official quantized GGML Whisper model (`ggml-tiny.en-q5_1.bin` ~32MB) into assets prior to APK assembly, ensuring out-of-the-box offline STT without external dependencies.
+    - Verified dual JNI symbols in `jni_whisper.cpp` (`Java_helium314_keyboard_latin_voice_WhisperEngine_*` and `Java_org_futo_voiceinput_whisper_WhisperEngine_*`) for complete binary interoperability.
+
+- **2026-10-10**: Completed Phase 50 (Vault On-Demand Session Lifecycle, Full Lite Mode Dictionary/Prediction Engine & FUTO Voice Input Integration). Clean build verified via `compile_applet`.
+- **2026-10-10**: Completed Phase 51 (FUTO Voice Input Parity, In-App .bin Model Picker, Lite Mode Prediction Autocorrection & On-Demand Vault Lifecycle):
+  - Fixed typo autocorrection regression in `Suggest.kt`: corrected `typedWordInfo` scoring and dictionary nullability, elevated space-neighbor typo candidates ('v', 'b', 'n') to `KIND_WHITELIST` (score 999950/999960) so typing 'v' instead of space autocorrects reliably to space and the intended word in both normal and Lite modes.
+  - Implemented post-install model importer (`VoiceModelImportBridge.kt`, `VoiceModelImportActivity.kt`) with SAF file picker (`*/*`), GGML/GGUF header validation (`0x67676d6c`), and in-app `noBackupFilesDir` storage.
+  - Added Mic Upgrade / Import button (`voice_upgrade_button`) in `voice_input_view.xml` and `VoiceInputView.kt` with live state transitions, responsive bouncing audio waveform bars (`VoicePulseView.kt`), and Log Keeper telemetry.
+  - Enforced strict on-demand session lock in `SecurityVaultExplorerView.closeWithoutLock()` so exiting the vault explorer modal locks the vault and purges secrets immediately. Clean build verified via `compile_applet`.
+

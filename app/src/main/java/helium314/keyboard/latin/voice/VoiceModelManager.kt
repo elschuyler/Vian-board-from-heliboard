@@ -44,6 +44,38 @@ object VoiceModelManager {
         return dir
     }
 
+    fun unpackBundledModelIfAvailable(context: Context): Boolean {
+        val targetFile = File(getModelDirectory(context), ACTIVE_MODEL_FILE_NAME)
+        if (targetFile.exists() && targetFile.length() > 1024 * 1024) {
+            return true
+        }
+        return try {
+            val assetPath = "voice_models/$ACTIVE_MODEL_FILE_NAME"
+            context.assets.open(assetPath).use { input ->
+                val tempFile = File(getModelDirectory(context), "bundled_model.tmp")
+                FileOutputStream(tempFile).use { output ->
+                    input.copyTo(output, bufferSize = 64 * 1024)
+                }
+                if (tempFile.length() > 1024 * 1024 && validateModelHeader(tempFile)) {
+                    if (targetFile.exists()) targetFile.delete()
+                    val renamed = tempFile.renameTo(targetFile)
+                    if (renamed || targetFile.exists()) {
+                        LogCatcher.i(TAG, "Bundled Whisper model successfully extracted from assets (${targetFile.length()} bytes)")
+                        true
+                    } else {
+                        tempFile.delete()
+                        false
+                    }
+                } else {
+                    tempFile.delete()
+                    false
+                }
+            }
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     fun getActiveModelFile(context: Context): File {
         val defaultFile = File(getModelDirectory(context), ACTIVE_MODEL_FILE_NAME)
         if (defaultFile.exists() && defaultFile.length() > 1024 * 1024) {
@@ -60,12 +92,18 @@ object VoiceModelManager {
         if (!files.isNullOrEmpty()) {
             return files[0]
         }
+        if (unpackBundledModelIfAvailable(context) && defaultFile.exists()) {
+            return defaultFile
+        }
         return defaultFile
     }
 
     fun hasActiveModel(context: Context): Boolean {
         val file = getActiveModelFile(context)
-        return file.exists() && file.length() > 1024 * 1024 // At least 1 MB
+        if (file.exists() && file.length() > 1024 * 1024) {
+            return true
+        }
+        return unpackBundledModelIfAvailable(context)
     }
 
     fun getModelInfo(context: Context): VoiceModelInfo? {

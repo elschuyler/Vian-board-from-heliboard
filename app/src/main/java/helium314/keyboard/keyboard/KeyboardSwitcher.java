@@ -378,6 +378,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mChosenEntryView.setVisibility(View.GONE);
             mChosenEntryView.stopChosenEntry();
         }
+        VaultSessionManager.INSTANCE.lockSecurity();
         if (mHandwritingPadView != null) {
             mHandwritingPadView.setVisibility(View.GONE);
             mHandwritingPadView.stopHandwriting();
@@ -416,6 +417,9 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         }
         if (activeModalView != mChosenEntryView && mChosenEntryView != null) {
             mChosenEntryView.stopChosenEntry();
+        }
+        if (activeModalView != mSecurityVaultExplorerView && activeModalView != mChosenEntryView) {
+            VaultSessionManager.INSTANCE.lockSecurity();
         }
         if (activeModalView != mHandwritingPadView && mHandwritingPadView != null) {
             mHandwritingPadView.stopHandwriting();
@@ -986,9 +990,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     }
 
     public void closeSecurityVaultExplorer(boolean lock) {
-        if (lock) {
-            VaultSessionManager.INSTANCE.lockSecurity();
-        }
+        VaultSessionManager.INSTANCE.lockSecurity();
         if (mSecurityVaultExplorerView != null) {
             mSecurityVaultExplorerView.stopExplorer();
             mSecurityVaultExplorerView.setVisibility(View.GONE);
@@ -998,9 +1000,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     }
 
     public void closeChosenEntry(boolean lock) {
-        if (lock) {
-            VaultSessionManager.INSTANCE.lockSecurity();
-        }
+        VaultSessionManager.INSTANCE.lockSecurity();
         if (mChosenEntryView != null) {
             mChosenEntryView.stopChosenEntry();
             mChosenEntryView.setVisibility(View.GONE);

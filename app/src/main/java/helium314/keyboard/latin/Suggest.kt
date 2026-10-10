@@ -126,6 +126,59 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
                 }
             }
         }
+
+        // Accidental space-neighbor consonant typo recovery (e.g. typing 'v', 'b', 'n' instead of spacebar)
+        val isSpellingValid = mDictionaryFacilitator.isValidSpellingWord(typedWordString) ||
+                mDictionaryFacilitator.isValidSpellingWord(typedWordString.lowercase(mDictionaryFacilitator.mainLocale))
+        if (!isSpellingValid && typedWordString.length >= 3) {
+            val spaceNeighbors = charArrayOf('v', 'b', 'n')
+            val lastChar = typedWordString.last()
+            if (lastChar in spaceNeighbors) {
+                val trimmed = typedWordString.substring(0, typedWordString.length - 1)
+                if (trimmed.length >= 2 && (mDictionaryFacilitator.isValidSpellingWord(trimmed) || mDictionaryFacilitator.isValidSpellingWord(trimmed.lowercase(mDictionaryFacilitator.mainLocale)))) {
+                    suggestionResults.add(
+                        SuggestedWordInfo(
+                            trimmed,
+                            "",
+                            999950,
+                            SuggestedWordInfo.KIND_WHITELIST or SuggestedWordInfo.KIND_CORRECTION or SuggestedWordInfo.KIND_FLAG_APPROPRIATE_FOR_AUTO_CORRECTION,
+                            Dictionary.DICTIONARY_USER_TYPED,
+                            SuggestedWordInfo.NOT_AN_INDEX,
+                            SuggestedWordInfo.NOT_A_CONFIDENCE
+                        )
+                    )
+                }
+            }
+            if (typedWordString.length >= 4) {
+                for (sep in spaceNeighbors) {
+                    var idx = typedWordString.indexOf(sep)
+                    while (idx > 0 && idx < typedWordString.length - 1) {
+                        val part1 = typedWordString.substring(0, idx)
+                        val part2 = typedWordString.substring(idx + 1)
+                        if (part1.length >= 2 && part2.isNotEmpty()) {
+                            val valid1 = mDictionaryFacilitator.isValidSpellingWord(part1) || mDictionaryFacilitator.isValidSpellingWord(part1.lowercase(mDictionaryFacilitator.mainLocale))
+                            val valid2 = mDictionaryFacilitator.isValidSpellingWord(part2) || mDictionaryFacilitator.isValidSpellingWord(part2.lowercase(mDictionaryFacilitator.mainLocale))
+                            if (valid1 && valid2) {
+                                val splitCandidate = "$part1 $part2"
+                                suggestionResults.add(
+                                    SuggestedWordInfo(
+                                        splitCandidate,
+                                        "",
+                                        999960,
+                                        SuggestedWordInfo.KIND_WHITELIST or SuggestedWordInfo.KIND_CORRECTION or SuggestedWordInfo.KIND_FLAG_APPROPRIATE_FOR_AUTO_CORRECTION,
+                                        Dictionary.DICTIONARY_USER_TYPED,
+                                        idx,
+                                        SuggestedWordInfo.NOT_A_CONFIDENCE
+                                    )
+                                )
+                                break
+                            }
+                        }
+                        idx = typedWordString.indexOf(sep, idx + 1)
+                    }
+                }
+            }
+        }
         val trailingSingleQuotesCount = StringUtils.getTrailingSingleQuotesCount(typedWordString)
         val capsMode = getCapsModeForTyping(wordComposer, keyboard)
         val suggestionsContainer = ArrayList(suggestionResults)
@@ -158,8 +211,8 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
             firstOccurrenceOfTypedWordInSuggestions,
             typedWordFirstOccurrenceWordInfo
         )
-        val typedWordInfo = SuggestedWordInfo(typedWordString, "", SuggestedWordInfo.MAX_SCORE,
-            SuggestedWordInfo.KIND_TYPED, typedWordFirstOccurrenceWordInfo?.mSourceDict ?: Dictionary.DICTIONARY_USER_TYPED,
+        val typedWordInfo = SuggestedWordInfo(typedWordString, "", typedWordFirstOccurrenceWordInfo?.mScore ?: 0,
+            SuggestedWordInfo.KIND_TYPED, typedWordFirstOccurrenceWordInfo?.mSourceDict,
             SuggestedWordInfo.NOT_AN_INDEX , SuggestedWordInfo.NOT_A_CONFIDENCE)
         if (typedWordString.isNotEmpty() && suggestionsContainer.isEmpty() && NumberSuggestionsHelper.isNumeric(typedWordString)) {
             val suffixes = NumberSuggestionsHelper.getSuffixes(mDictionaryFacilitator.context)

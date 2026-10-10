@@ -180,9 +180,10 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
     }
 
     fun closeWithoutLock() {
-        LogCatcher.log('I', TAG, "Closing Security Vault Explorer (retaining active unlock session)")
+        LogCatcher.log('I', TAG, "Exiting Security Vault Explorer modal: locking session and purging keys on demand")
+        VaultSessionManager.lockSecurity()
         stopExplorer()
-        KeyboardSwitcher.getInstance().closeSecurityVaultExplorer(false)
+        KeyboardSwitcher.getInstance().closeSecurityVaultExplorer(true)
     }
 
     fun closeAndLock() {

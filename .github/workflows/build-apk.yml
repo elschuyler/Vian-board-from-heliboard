@@ -52,7 +52,7 @@ jobs:
             echo "NDK not present in environment; skipping native pre-build"
           fi
 
-      - name: Build / Download Native Whisper Library (arm64-v8a & armeabi-v7a)
+      - name: Build Native Whisper Library (arm64-v8a & armeabi-v7a)
         run: |
           NDK_DIR="${ANDROID_NDK_HOME:-${ANDROID_NDK_LATEST_HOME:-$(find $ANDROID_HOME/ndk -maxdepth 1 -mindepth 1 2>/dev/null | sort -V | tail -n 1)}}"
           if [ -n "$NDK_DIR" ] && [ -f "$NDK_DIR/build/cmake/android.toolchain.cmake" ]; then
@@ -73,20 +73,19 @@ jobs:
             done
           fi
 
-          # Fallback: If libwhisper.so is not present for either ARM ABI, fetch FUTO prebuilt binary
-          if [ ! -f "app/src/main/jniLibs/arm64-v8a/libwhisper.so" ] || [ ! -f "app/src/main/jniLibs/armeabi-v7a/libwhisper.so" ]; then
-            echo "Attempting to retrieve FUTO prebuilt libwhisper.so binaries..."
-            curl -sL "https://github.com/futo-org/voice-input/releases/latest/download/app-standalone-release.apk" -o /tmp/futo-voice.apk || true
-            if [ -f "/tmp/futo-voice.apk" ]; then
-              mkdir -p app/src/main/jniLibs/arm64-v8a app/src/main/jniLibs/armeabi-v7a
-              unzip -q -o -j /tmp/futo-voice.apk "lib/arm64-v8a/libwhisper.so" -d app/src/main/jniLibs/arm64-v8a/ || true
-              unzip -q -o -j /tmp/futo-voice.apk "lib/armeabi-v7a/libwhisper.so" -d app/src/main/jniLibs/armeabi-v7a/ || true
-              rm -f /tmp/futo-voice.apk
-            fi
-          fi
-
           echo "Verifying native libraries in jniLibs:"
           find app/src/main/jniLibs -name "*.so" || echo "No .so found"
+
+      - name: Bundle Offline Whisper GGML Model (tiny.en-q5_1)
+        run: |
+          mkdir -p app/src/main/assets/voice_models
+          if [ ! -f "app/src/main/assets/voice_models/model.bin" ]; then
+            echo "Downloading quantized Whisper model for offline speech-to-text..."
+            curl -sL "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en-q5_1.bin" -o app/src/main/assets/voice_models/model.bin || true
+          fi
+          if [ -f "app/src/main/assets/voice_models/model.bin" ]; then
+            echo "Bundled offline model verified: $(ls -lh app/src/main/assets/voice_models/model.bin)"
+          fi
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace

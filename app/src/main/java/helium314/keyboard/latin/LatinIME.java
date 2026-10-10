@@ -1105,6 +1105,7 @@ public class LatinIME extends InputMethodService implements
         // Should do the following in onFinishInputInternal but until JB MR2 it's not called :(
         mInputLogic.finishInput();
         mKeyboardActionListener.resetMetaState();
+        VaultSessionManager.INSTANCE.lockAll();
         if (mSettings.getCurrent().mLiteMode) {
             mKeyboardSwitcher.trimMemory();
         }
@@ -1192,6 +1193,7 @@ public class LatinIME extends InputMethodService implements
             mOptionsDialog.dismiss();
             mOptionsDialog = null;
         }
+        VaultSessionManager.INSTANCE.lockAll();
         if (mSettings.getCurrent().mLiteMode) {
             mKeyboardSwitcher.trimMemory();
         }
