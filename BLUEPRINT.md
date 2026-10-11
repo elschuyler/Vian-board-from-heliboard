@@ -612,9 +612,19 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
   - Linked `m` (libm math library) to `whisper` shared library target in `app/src/main/jni/whisper/CMakeLists.txt`, resolving undefined reference linker errors on Android.
   - Hardened GitHub Actions workflow to build and verify `libwhisper.so` across `arm64-v8a` and `armeabi-v7a`.
   - Enforced Credential Immunity Rule: removed `./debug.keystore` and `./debug.keystore.base64` from repository root. Clean build verified via `compile_applet` (19MB APK output).
-- **2026-10-11**: Completed Phase 53 (Voice Input Engine Verification & SAF Model Import Lock):
-  - Validated and permanently locked SAF model import pipeline (`VoiceModelImportBridge`, `VoiceModelImportActivity`, `VoiceModelManager`) per user mandate: zero bundled model assets, zero bloat, lean 19MB APK.
-  - Confirmed isolated `:voice` process architecture, 21-band bouncing equalizer (`VoicePulseView.kt`), and dual JNI symbols (`helium314` and `org.futo.voiceinput`) in `jni_whisper.cpp`.
-  - Enforced Mandate 2 Credential Immunity Rule: verified zero exposed keystore binaries in workspace root. Clean build verified via `compile_applet`.
+- **2026-10-11**: Completed Phase 54 (Pattern Unlock Modal Viewport Flush Alignment, Contact Stealth Dots & 3-Page Security Architecture):
+  - **Component 1: Pattern Unlock Modal Height Alignment (`PatternUnlockView.kt`, `KeyboardSwitcher.java`)**:
+    - Removed redundant `stripHeight` addition in `PatternUnlockView.onMeasure()`, ensuring exact flush match with keyboard height and eliminating vertical push-up gap and bottom empty space.
+    - Controlled `mStripContainer` visibility dynamically in `KeyboardSwitcher.java` so suggestion bar is cleanly hidden during stealth unlock.
+    - Connected `pref_vault_stealth_gatekeeper` preference directly in `KeyboardSwitcher.showVaultUnlock()`.
+  - **Component 2: Subtle Stealth Dots on Finger Contact (`PatternGridView.kt`, `StealthPatternKeyboardOverlay.kt`)**:
+    - Rendered ~20% subtle opacity micro-dots (2.5dp) strictly when finger is touching (`isDragging` / `isTouching`), keeping the keyboard canvas completely pristine when untouched.
+    - Preserved zero visual lines, trails, or popups during dragging for zero shoulder-surfing vulnerability.
+  - **Component 3: Dedicated 3-Page Security Settings Architecture & Full-Page KDBX CRUD (`SecurityScreen.kt`, `UnlockMethodsScreen.kt`, `KdbxEntryEditorScreen.kt`, `SecurityVaultScreen.kt`, `SettingsNavHost.kt`)**:
+    - Reorganized `SecurityScreen.kt` into a clean 3-page hub routing to dedicated destinations: Privacy Vault, Security Vault, and Unlock Methods.
+    - Built dedicated `UnlockMethodsScreen.kt` encapsulating Main Security Gate, Unified vs Independent credentials, Pattern setup, Tri-Method authentication (Biometric, Device PIN, Pattern), and Stealth Mode toggles.
+    - Built dedicated full-page `KdbxEntryEditorScreen.kt` with Scaffold, top app bar, persistent bottom action bar, and inline password generator, eliminating cramped dialogs and keyboard occlusion.
+    - Synchronized Navigation Compose routes (`SettingsDestination.UnlockMethods`, `SettingsDestination.KdbxEntryEditor`) in `SettingsNavHost.kt`. Clean build verified via `compile_applet`.
+
 
 

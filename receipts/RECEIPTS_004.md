@@ -275,6 +275,41 @@
   6. Verified pristine local compilation via `compile_applet`.
 - **How it was verified**: Local compilation via `compile_applet` (exit code 0, Build succeeded).
 - **Deviation from requested**: None.
-- **Known issue or follow-up needed**: None. Architecture verified and locked.
+---
+
+### Receipt Entry: Phase 54 Pattern Unlock Modal Viewport Flush Alignment, Contact Stealth Dots & 3-Page Security Architecture
+- **Timestamp**: 2026-10-11 10:33:00 UTC-7
+- **Summary of request**: Fix pattern unlock modal viewport height push-up gap and bottom empty space (match normal keyboard footprint with stripped keys/suggestion bar), add subtle tell of dots only upon finger contact in stealth mode, and restructure Security settings into dedicated separate pages (Privacy Vault own page, Security Vault KeePass KDBX with full-page CRUD, and Unlock Methods separate page with Main Security Gate, Pattern setup, and Tri-Method authentication).
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/security/PatternUnlockView.kt`
+  - `app/src/main/java/helium314/keyboard/keyboard/KeyboardSwitcher.java`
+  - `app/src/main/java/helium314/keyboard/security/PatternGridView.kt`
+  - `app/src/main/java/helium314/keyboard/security/vault/ui/StealthPatternKeyboardOverlay.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/UnlockMethodsScreen.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/KdbxEntryEditorScreen.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/SecurityVaultScreen.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/SecurityScreen.kt`
+  - `app/src/main/java/helium314/keyboard/settings/SettingsNavHost.kt`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_004.md`
+- **What was actually done**:
+  1. Pattern Unlock Modal Alignment:
+     - In `PatternUnlockView.kt` (`onMeasure`), removed the additional `stripHeight` compensation that was forcing the modal to be taller than the keyboard window, creating vertical push-up gaps and empty bottom space.
+     - In `KeyboardSwitcher.java` (`showPatternUnlockView`), dynamically controlled `mStripContainer` visibility to ensure suggestions and title strip are hidden during stealth mode and displayed appropriately during normal pattern mode.
+     - Connected `pref_vault_stealth_gatekeeper` reading directly in `KeyboardSwitcher.showVaultUnlock()` using `DeviceProtectedUtils.getSharedPreferences(mLatinIME)`.
+  2. Subtle Stealth Dots on Finger Contact:
+     - In `PatternGridView.kt` (`onDraw`), updated stealth mode to render micro-dots (2.5dp at ~20% opacity) strictly when `isDragging == true` (finger in active contact), keeping the screen completely empty and pristine when untouched.
+     - In `StealthPatternKeyboardOverlay.kt`, tracked `isTouching` state across `ACTION_DOWN`, `ACTION_MOVE`, `ACTION_UP`, and `ACTION_CANCEL`, rendering 2.5dp micro-dots with ~18% subtle white opacity over the anchor keys only while a finger is touching, with zero lines or trails drawn.
+  3. 3-Page Security Architecture & Full-Page KDBX CRUD:
+     - Built dedicated `UnlockMethodsScreen.kt` containing Main Security Gatekeeper toggle, Independent Vault Credentials switch, Pattern configuration (Unified Master vs Separate Privacy & Security), Tri-Method authentication selectors (Primary & Backup), live test authentication trigger, Stealth Gatekeeper toggle, and Lock All Sessions action.
+     - Built dedicated full-page `KdbxEntryEditorScreen.kt` with Material 3 Scaffold, scrollable cards for Core Credentials, Autofill & Two-Factor, Secure Notes, and Custom Fields, persistent bottom action bar (Delete, Cancel, Save), and accordion inline Password Generator.
+     - Updated `SecurityVaultScreen.kt` to delegate new entry additions and existing entry clicks directly to `onClickAddEntry()` and `onClickEditEntry(uuid)` full-page navigation, eliminating cramped dialogs and keyboard occlusion.
+     - Reorganized `SecurityScreen.kt` into a clean 3-page hub routing cleanly to Privacy Vault, Security Vault, and Unlock Methods.
+     - Updated `SettingsNavHost.kt` with type-safe route destinations (`SettingsDestination.UnlockMethods`, `SettingsDestination.KdbxEntryEditor`).
+  4. Enforced Mandate 2 Credential Immunity Rule:
+     - Verified zero exposed keystore files in workspace root (`debug.keystore` purged).
+- **How it was verified**: Verified pristine compilation via `compile_applet` (exit code 0, Build succeeded).
+- **Deviation from requested**: None. Built exact architecture agreed upon during discussion.
+- **Known issue or follow-up needed**: None.
 
 

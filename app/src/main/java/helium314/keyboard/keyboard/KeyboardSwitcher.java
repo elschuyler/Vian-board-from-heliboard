@@ -803,7 +803,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                                 }
                             );
                         } else {
-                            showPatternUnlockView(onUnlockSuccess, false);
+                            final boolean isStealth = helium314.keyboard.latin.utils.DeviceProtectedUtils.getSharedPreferences(mLatinIME).getBoolean("pref_vault_stealth_gatekeeper", false);
+                            showPatternUnlockView(onUnlockSuccess, isStealth);
                         }
                     }
                     return kotlin.Unit.INSTANCE;
@@ -811,7 +812,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             );
             return;
         }
-        showPatternUnlockView(onUnlockSuccess, false);
+        final boolean isStealth = helium314.keyboard.latin.utils.DeviceProtectedUtils.getSharedPreferences(mLatinIME).getBoolean("pref_vault_stealth_gatekeeper", false);
+        showPatternUnlockView(onUnlockSuccess, isStealth);
     }
 
     public void showPatternUnlockView(Runnable onUnlockSuccess) {
@@ -824,7 +826,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         mKeyboardView.setVisibility(View.GONE);
         mEmojiTabStripView.setVisibility(View.GONE);
         mSuggestionStripView.setVisibility(View.GONE);
-        mStripContainer.setVisibility(View.VISIBLE);
+        mStripContainer.setVisibility(isStealth ? View.GONE : View.VISIBLE);
         mClipboardStripScrollView.setVisibility(View.GONE);
         if (mDesktopShortcutsStripScrollView != null) {
             mDesktopShortcutsStripScrollView.setVisibility(View.GONE);
@@ -833,7 +835,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mVoicePreviewStrip.setVisibility(View.GONE);
         }
         if (mPatternUnlockStrip != null) {
-            mPatternUnlockStrip.setVisibility(View.VISIBLE);
+            mPatternUnlockStrip.setVisibility(isStealth ? View.GONE : View.VISIBLE);
         }
         if (mSecurityVaultExplorerView != null) {
             mSecurityVaultExplorerView.stopExplorer();

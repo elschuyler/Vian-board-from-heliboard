@@ -115,6 +115,8 @@ import java.util.UUID
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SecurityVaultScreen(
+    onClickAddEntry: () -> Unit = {},
+    onClickEditEntry: (String) -> Unit = {},
     onClickBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -218,8 +220,7 @@ fun SecurityVaultScreen(
                 if (groups.isNotEmpty() || entries.isNotEmpty()) {
                     FloatingActionButton(
                         onClick = {
-                            editingEntry = null
-                            showEntryEditor = true
+                            onClickAddEntry()
                         },
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -599,8 +600,7 @@ fun SecurityVaultScreen(
                                 entry = entry,
                                 currentTickMs = currentTickMs,
                                 onClick = {
-                                    editingEntry = entry
-                                    showEntryEditor = true
+                                    onClickEditEntry(entry.entryUuid)
                                 }
                             )
                         }
@@ -623,8 +623,7 @@ fun SecurityVaultScreen(
                                     }
                                 },
                                 onEntryClick = { entry ->
-                                    editingEntry = entry
-                                    showEntryEditor = true
+                                    onClickEditEntry(entry.entryUuid)
                                 }
                             )
                         }
@@ -643,8 +642,7 @@ fun SecurityVaultScreen(
                                     entry = entry,
                                     currentTickMs = currentTickMs,
                                     onClick = {
-                                        editingEntry = entry
-                                        showEntryEditor = true
+                                        onClickEditEntry(entry.entryUuid)
                                     }
                                 )
                             }
@@ -783,25 +781,6 @@ fun SecurityVaultScreen(
                 ) {
                     Text("Cancel")
                 }
-            }
-        )
-    }
-
-    // --- Entry Editor Dialog with Custom Fields Support ---
-    if (showEntryEditor) {
-        EntryEditorDialog(
-            entry = editingEntry,
-            groups = groups,
-            onDismiss = { showEntryEditor = false },
-            onSave = { updatedEntry ->
-                dao.insertOrUpdateEntry(updatedEntry)
-                reloadData()
-                showEntryEditor = false
-            },
-            onDelete = { entryToDelete ->
-                dao.deleteEntry(entryToDelete.entryUuid)
-                reloadData()
-                showEntryEditor = false
             }
         )
     }
@@ -1034,413 +1013,7 @@ private fun VaultEntryCard(
     }
 }
 
-@Composable
-private fun EntryEditorDialog(
-    entry: VaultEntryEntity?,
-    groups: List<VaultGroupEntity>,
-    onDismiss: () -> Unit,
-    onSave: (VaultEntryEntity) -> Unit,
-    onDelete: (VaultEntryEntity) -> Unit
-) {
-    val isEditing = entry != null
-    var title by remember { mutableStateOf(entry?.title ?: "") }
-    var username by remember { mutableStateOf(entry?.username ?: "") }
-    var password by remember {
-        mutableStateOf(VaultCryptoManager.decryptToString(entry?.passwordEncrypted) ?: "")
-    }
-    var isPassVisible by remember { mutableStateOf(false) }
-    var urlOrPackage by remember { mutableStateOf(entry?.urlOrPackage ?: "") }
-    var totpSecret by remember {
-        mutableStateOf(VaultCryptoManager.decryptToString(entry?.totpSecretEncrypted) ?: "")
-    }
-    var notes by remember {
-        mutableStateOf(VaultCryptoManager.decryptToString(entry?.notesEncrypted) ?: "")
-    }
-    var selectedGroupUuid by remember {
-        mutableStateOf(entry?.groupUuid ?: groups.firstOrNull()?.groupUuid ?: "default_group")
-    }
 
-    // Custom Fields Map (parsed from customFieldsJson)
-    var customFieldsList by remember {
-        val initialMap = try {
-            if (!entry?.customFieldsJson.isNullOrBlank()) {
-                val json = Json.parseToJsonElement(entry?.customFieldsJson!!) as? JsonObject
-                json?.map { (k, v) -> Pair(k, (v as? JsonPrimitive)?.content ?: "") }?.toMutableList()
-            } else null
-        } catch (_: Throwable) {
-            null
-        }
-        mutableStateOf(initialMap ?: mutableListOf<Pair<String, String>>())
-    }
-
-    var newCustomKey by remember { mutableStateOf("") }
-    var newCustomVal by remember { mutableStateOf("") }
-    var isAddingCustomField by remember { mutableStateOf(false) }
-
-    // Inline Generator Configuration States
-    var isGeneratorExpanded by remember { mutableStateOf(false) }
-    var genLength by remember { mutableFloatStateOf(16f) }
-    var genUppercase by remember { mutableStateOf(true) }
-    var genLowercase by remember { mutableStateOf(true) }
-    var genDigits by remember { mutableStateOf(true) }
-    var genSymbols by remember { mutableStateOf(true) }
-    var genExcludeLookalikes by remember { mutableStateOf(false) }
-    var genPassphraseMode by remember { mutableStateOf(false) }
-    var genWordCount by remember { mutableIntStateOf(4) }
-
-    fun generateNewPassword() {
-        val config = PasswordGenerator.GeneratorConfig(
-            length = genLength.toInt(),
-            includeUppercase = genUppercase,
-            includeLowercase = genLowercase,
-            includeDigits = genDigits,
-            includeSymbols = genSymbols,
-            excludeLookalike = genExcludeLookalikes,
-            isPassphraseMode = genPassphraseMode,
-            passphraseWordCount = genWordCount
-        )
-        password = PasswordGenerator.generate(config)
-        isPassVisible = true
-    }
-
-    val passwordStrength = remember(password) {
-        PasswordGenerator.estimateStrength(password)
-    }
-
-    // Live TOTP validation preview
-    val totpPreview = remember(totpSecret) {
-        if (totpSecret.isNotBlank()) TotpGenerator.generateFromSecret(totpSecret) else null
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(if (isEditing) "Edit Entry" else "New Entry") },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text("Title *") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = username,
-                    onValueChange = { username = it },
-                    label = { Text("Username") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // Password Input Field with Visibility & Direct Generate Icon
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = { Text("Password") },
-                    singleLine = true,
-                    visualTransformation = if (isPassVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    trailingIcon = {
-                        Row {
-                            IconButton(onClick = { isPassVisible = !isPassVisible }) {
-                                Text(if (isPassVisible) "👁" else "🔒", fontSize = 14.sp)
-                            }
-                            IconButton(onClick = { generateNewPassword() }) {
-                                Text("🎲", fontSize = 14.sp)
-                            }
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // Password Strength Indicator
-                if (password.isNotEmpty()) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "Strength: ${passwordStrength.rating.label}",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "${passwordStrength.entropyBits.toInt()} bits",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        val barColor = when (passwordStrength.rating) {
-                            PasswordGenerator.StrengthAssessment.Rating.WEAK -> Color(0xFFE53935)
-                            PasswordGenerator.StrengthAssessment.Rating.FAIR -> Color(0xFFFB8C00)
-                            PasswordGenerator.StrengthAssessment.Rating.STRONG -> Color(0xFF43A047)
-                            PasswordGenerator.StrengthAssessment.Rating.UNBREAKABLE -> Color(0xFF1E88E5)
-                        }
-                        LinearProgressIndicator(
-                            progress = { passwordStrength.progressFraction },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(4.dp)
-                                .clip(RoundedCornerShape(2.dp)),
-                            color = barColor
-                        )
-                    }
-                }
-
-                // Password Generator Accordion Expand/Collapse
-                TextButton(
-                    onClick = { isGeneratorExpanded = !isGeneratorExpanded },
-                    modifier = Modifier.align(Alignment.End)
-                ) {
-                    Text(if (isGeneratorExpanded) "Hide Generator Options ▲" else "Configure Generator ▼")
-                }
-
-                AnimatedVisibility(visible = isGeneratorExpanded) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                            .padding(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(text = "Length: ${genLength.toInt()}", style = MaterialTheme.typography.bodySmall)
-                            Slider(
-                                value = genLength,
-                                onValueChange = { genLength = it },
-                                valueRange = 8f..32f,
-                                steps = 23,
-                                modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
-                            )
-                        }
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            FilterChipCompact("A-Z", genUppercase) { genUppercase = !genUppercase }
-                            FilterChipCompact("a-z", genLowercase) { genLowercase = !genLowercase }
-                            FilterChipCompact("0-9", genDigits) { genDigits = !genDigits }
-                            FilterChipCompact("#$%", genSymbols) { genSymbols = !genSymbols }
-                        }
-
-                        Button(
-                            onClick = { generateNewPassword() },
-                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Text("Generate Password")
-                        }
-                    }
-                }
-
-                OutlinedTextField(
-                    value = urlOrPackage,
-                    onValueChange = { urlOrPackage = it },
-                    label = { Text("URL / Package (Autofill Match)") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                OutlinedTextField(
-                    value = totpSecret,
-                    onValueChange = { totpSecret = it },
-                    label = { Text("TOTP Secret (Base32 or URI)") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                if (totpPreview != null) {
-                    Text(
-                        text = "Live Token: ${totpPreview.code} (${totpPreview.remainingSeconds}s remaining)",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    label = { Text("Notes") },
-                    maxLines = 3,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // ==========================================
-                // Custom String Fields Section (Zero Data Loss)
-                // ==========================================
-                Text(
-                    text = "Custom Fields (${customFieldsList.size})",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 6.dp)
-                )
-
-                for ((index, pair) in customFieldsList.withIndex()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "${pair.first}:",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.width(90.dp)
-                        )
-                        Text(
-                            text = pair.second,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.weight(1f)
-                        )
-                        IconButton(
-                            onClick = {
-                                val updated = customFieldsList.toMutableList()
-                                updated.removeAt(index)
-                                customFieldsList = updated
-                            },
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Text("✕", fontSize = 12.sp, color = MaterialTheme.colorScheme.error)
-                        }
-                    }
-                }
-
-                if (isAddingCustomField) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = newCustomKey,
-                            onValueChange = { newCustomKey = it },
-                            label = { Text("Field Name") },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f)
-                        )
-                        OutlinedTextField(
-                            value = newCustomVal,
-                            onValueChange = { newCustomVal = it },
-                            label = { Text("Value") },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        TextButton(onClick = { isAddingCustomField = false }) {
-                            Text("Cancel")
-                        }
-                        Button(
-                            onClick = {
-                                if (newCustomKey.isNotBlank()) {
-                                    val updated = customFieldsList.toMutableList()
-                                    updated.add(Pair(newCustomKey.trim(), newCustomVal.trim()))
-                                    customFieldsList = updated
-                                    newCustomKey = ""
-                                    newCustomVal = ""
-                                    isAddingCustomField = false
-                                }
-                            },
-                            enabled = newCustomKey.isNotBlank()
-                        ) {
-                            Text("Add")
-                        }
-                    }
-                } else {
-                    OutlinedButton(
-                        onClick = { isAddingCustomField = true },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("+ Add Custom Field")
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val passEncrypted = if (password.isNotBlank()) VaultCryptoManager.encryptString(password) else null
-                    val totpEncrypted = if (totpSecret.isNotBlank()) VaultCryptoManager.encryptString(totpSecret) else null
-                    val notesEncrypted = if (notes.isNotBlank()) VaultCryptoManager.encryptString(notes) else null
-
-                    val customJson = if (customFieldsList.isNotEmpty()) {
-                        val jsonObject = buildJsonObject {
-                            for ((k, v) in customFieldsList) {
-                                put(k, JsonPrimitive(v))
-                            }
-                        }
-                        jsonObject.toString()
-                    } else null
-
-                    val updated = VaultEntryEntity(
-                        entryUuid = entry?.entryUuid ?: UUID.randomUUID().toString(),
-                        groupUuid = selectedGroupUuid,
-                        title = title.ifBlank { "Untitled" },
-                        username = username.ifBlank { null },
-                        passwordEncrypted = passEncrypted,
-                        urlOrPackage = urlOrPackage.ifBlank { null },
-                        totpSecretEncrypted = totpEncrypted,
-                        notesEncrypted = notesEncrypted,
-                        customFieldsJson = customJson,
-                        updatedAt = System.currentTimeMillis()
-                    )
-                    onSave(updated)
-                },
-                enabled = title.isNotBlank()
-            ) {
-                Text("Save")
-            }
-        },
-        dismissButton = {
-            Row {
-                if (isEditing) {
-                    TextButton(
-                        onClick = { onDelete(entry!!) },
-                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                    ) {
-                        Text("Delete")
-                    }
-                }
-                TextButton(onClick = onDismiss) {
-                    Text("Cancel")
-                }
-            }
-        }
-    )
-}
-
-@Composable
-private fun FilterChipCompact(label: String, selected: Boolean, onToggle: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .background(
-                if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
-                RoundedCornerShape(6.dp)
-            )
-            .clickable(onClick = onToggle)
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-    ) {
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-        )
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

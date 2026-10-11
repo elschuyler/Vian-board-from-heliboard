@@ -34,6 +34,8 @@ import helium314.keyboard.settings.screens.PrivacyVaultScreen
 import helium314.keyboard.settings.screens.SecondaryLayoutScreen
 import helium314.keyboard.settings.screens.SecurityScreen
 import helium314.keyboard.settings.screens.SecurityVaultScreen
+import helium314.keyboard.settings.screens.UnlockMethodsScreen
+import helium314.keyboard.settings.screens.KdbxEntryEditorScreen
 import helium314.keyboard.settings.screens.SubtypeScreen
 import helium314.keyboard.settings.screens.TextCorrectionScreen
 import helium314.keyboard.settings.screens.ToolbarScreen
@@ -94,10 +96,16 @@ fun SettingsNavHost(
         }
         composable(SettingsDestination.Security) {
             SecurityScreen(
-                onClickPatternLock = { navController.navigate(SettingsDestination.PatternLock) },
-                onClickSecurityPatternLock = { navController.navigate(SettingsDestination.SecurityPatternLock) },
+                onClickUnlockMethods = { navController.navigate(SettingsDestination.UnlockMethods) },
                 onClickPrivacyVault = { navController.navigate(SettingsDestination.PrivacyVault) },
                 onClickSecurityVault = { navController.navigate(SettingsDestination.SecurityVault) },
+                onClickBack = ::goBack
+            )
+        }
+        composable(SettingsDestination.UnlockMethods) {
+            UnlockMethodsScreen(
+                onClickPatternLock = { navController.navigate(SettingsDestination.PatternLock) },
+                onClickSecurityPatternLock = { navController.navigate(SettingsDestination.SecurityPatternLock) },
                 onClickBack = ::goBack
             )
         }
@@ -111,7 +119,24 @@ fun SettingsNavHost(
             PrivacyVaultScreen(onClickBack = ::goBack)
         }
         composable(SettingsDestination.SecurityVault) {
-            SecurityVaultScreen(onClickBack = ::goBack)
+            SecurityVaultScreen(
+                onClickAddEntry = { navController.navigate(SettingsDestination.KdbxEntryEditor) },
+                onClickEditEntry = { uuid -> navController.navigate(SettingsDestination.KdbxEntryEditor + "?uuid=$uuid") },
+                onClickBack = ::goBack
+            )
+        }
+        composable(SettingsDestination.KdbxEntryEditor) {
+            KdbxEntryEditorScreen(
+                entryUuid = null,
+                onClickBack = ::goBack
+            )
+        }
+        composable(SettingsDestination.KdbxEntryEditor + "?uuid={uuid}") { backStackEntry ->
+            val uuid = backStackEntry.arguments?.getString("uuid")
+            KdbxEntryEditorScreen(
+                entryUuid = uuid,
+                onClickBack = ::goBack
+            )
         }
         composable(SettingsDestination.WordEngine) {
             WordEngineScreen(
@@ -210,10 +235,12 @@ object SettingsDestination {
     const val Advanced = "advanced"
     const val Debug = "debug"
     const val Security = "security"
+    const val UnlockMethods = "unlock_methods"
     const val PatternLock = "pattern_lock"
     const val SecurityPatternLock = "security_pattern_lock"
     const val PrivacyVault = "privacy_vault"
     const val SecurityVault = "security_vault"
+    const val KdbxEntryEditor = "kdbx_entry_editor"
     const val Appearance = "appearance"
     const val Colors = "colors/"
     const val ColorsNight = "colors_night/"

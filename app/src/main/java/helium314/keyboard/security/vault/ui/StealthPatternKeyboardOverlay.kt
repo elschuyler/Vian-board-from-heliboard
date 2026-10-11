@@ -4,6 +4,9 @@ package helium314.keyboard.security.vault.ui
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import androidx.core.graphics.ColorUtils
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -37,6 +40,7 @@ class StealthPatternKeyboardOverlay @JvmOverloads constructor(
     private var onCancelCallback: (() -> Unit)? = null
     private var isActive = false
     private var failureCount = 0
+    private var isTouching = false
 
     // Coordinates of the 9 anchor keys (0..8)
     private val anchorPoints = Array(9) { FloatArray(2) }
@@ -68,6 +72,7 @@ class StealthPatternKeyboardOverlay @JvmOverloads constructor(
 
     fun stopStealthUnlock() {
         isActive = false
+        isTouching = false
         pattern.clear()
         visibility = GONE
         onUnlockSuccessCallback = null
@@ -152,15 +157,21 @@ class StealthPatternKeyboardOverlay @JvmOverloads constructor(
 
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                isTouching = true
                 pattern.clear()
                 checkNodeProximity(x, y)
+                invalidate()
                 return true
             }
             MotionEvent.ACTION_MOVE -> {
+                isTouching = true
                 checkNodeProximity(x, y)
+                invalidate()
                 return true
             }
             MotionEvent.ACTION_UP -> {
+                isTouching = false
+                invalidate()
                 if (pattern.size >= 4) {
                     verifyPattern()
                 } else if (pattern.isEmpty()) {
@@ -176,6 +187,8 @@ class StealthPatternKeyboardOverlay @JvmOverloads constructor(
                 return true
             }
             MotionEvent.ACTION_CANCEL -> {
+                isTouching = false
+                invalidate()
                 val cb = onCancelCallback
                 stopStealthUnlock()
                 cb?.invoke()
@@ -269,10 +282,21 @@ class StealthPatternKeyboardOverlay @JvmOverloads constructor(
     }
 
     /**
-     * Explicit zero-paint: zero visual lines, zero glowing trails, zero modal shift.
+     * Subtle micro-dot tell only upon finger contact (isTouching).
+     * Zero tell when untouched.
      */
     override fun onDraw(canvas: Canvas) {
-        // Intentionally completely blank
+        if (!isTouching || !hasCalculatedAnchors) return
+        val microDotRadius = 2.5f * resources.displayMetrics.density
+        val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            color = ColorUtils.setAlphaComponent(Color.WHITE, 45) // ~18% subtle opacity
+        }
+        for (node in 0..8) {
+            val cx = anchorPoints[node][0]
+            val cy = anchorPoints[node][1]
+            canvas.drawCircle(cx, cy, microDotRadius, dotPaint)
+        }
     }
 
     companion object {

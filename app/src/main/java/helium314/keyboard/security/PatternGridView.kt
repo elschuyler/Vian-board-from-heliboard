@@ -127,17 +127,19 @@ class PatternGridView @JvmOverloads constructor(
         val (normalColor, activeColor, haloColor) = resolveColors()
 
         if (isStealthMode) {
-            // Stealth Mode: zero visual tell for pattern lines and halos.
-            // Tiny micro-dots/subtle shades only visible if stared at directly.
-            val microDotRadius = 3f * resources.displayMetrics.density
-            val stealthDotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.FILL
-                color = ColorUtils.setAlphaComponent(normalColor, 35) // ~14% opacity
-            }
-            for (i in 0..8) {
-                val cx = nodePositions[i][0]
-                val cy = nodePositions[i][1]
-                canvas.drawCircle(cx, cy, microDotRadius, stealthDotPaint)
+            // Stealth Mode: zero visual tell when untouched.
+            // Only upon finger contact (isDragging), render very subtle micro-dots (~20% opacity)
+            if (isDragging) {
+                val microDotRadius = 2.5f * resources.displayMetrics.density
+                val stealthDotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    style = Paint.Style.FILL
+                    color = ColorUtils.setAlphaComponent(normalColor, 50) // ~20% subtle opacity
+                }
+                for (i in 0..8) {
+                    val cx = nodePositions[i][0]
+                    val cy = nodePositions[i][1]
+                    canvas.drawCircle(cx, cy, microDotRadius, stealthDotPaint)
+                }
             }
             return
         }
