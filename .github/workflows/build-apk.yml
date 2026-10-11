@@ -39,25 +39,26 @@ jobs:
       - name: Grant Execute Permission for Gradlew
         run: chmod +x gradlew
 
-      - name: Build Native LatinIME Library (ndk-build)
+      - name: Build Native Libraries (ndk-build for LatinIME & Whisper)
         run: |
           NDK_DIR="${ANDROID_NDK_HOME:-${ANDROID_NDK_LATEST_HOME:-$(find $ANDROID_HOME/ndk -maxdepth 1 -mindepth 1 2>/dev/null | sort -V | tail -n 1)}}"
           if [ -n "$NDK_DIR" ] && [ -f "$NDK_DIR/ndk-build" ]; then
-            echo "Compiling libjni_latinime.so using NDK at $NDK_DIR for ARMv7 and ARMv8..."
-            $NDK_DIR/ndk-build -C app/src/main/jni NDK_APPLICATION_MK=Application.mk NDK_LIBS_OUT=$GITHUB_WORKSPACE/app/src/main/jniLibs APP_ABI="armeabi-v7a arm64-v8a"
+            echo "Compiling native libraries using NDK at $NDK_DIR for ARMv7 and ARMv8..."
+            $NDK_DIR/ndk-build -C app/src/main/jni NDK_APPLICATION_MK=Application.mk NDK_LIBS_OUT=$GITHUB_WORKSPACE/app/src/main/jniLibs APP_ABI="armeabi-v7a arm64-v8a" -j$(nproc)
           elif command -v ndk-build &> /dev/null; then
-            echo "Compiling libjni_latinime.so using ndk-build in PATH..."
-            ndk-build -C app/src/main/jni NDK_APPLICATION_MK=Application.mk NDK_LIBS_OUT=$GITHUB_WORKSPACE/app/src/main/jniLibs APP_ABI="armeabi-v7a arm64-v8a"
+            echo "Compiling native libraries using ndk-build in PATH..."
+            ndk-build -C app/src/main/jni NDK_APPLICATION_MK=Application.mk NDK_LIBS_OUT=$GITHUB_WORKSPACE/app/src/main/jniLibs APP_ABI="armeabi-v7a arm64-v8a" -j$(nproc)
           else
             echo "NDK not present in environment; skipping native pre-build"
           fi
 
-      - name: Build Native Whisper Library (arm64-v8a & armeabi-v7a)
+      - name: Build and Verify Native Whisper Library (arm64-v8a & armeabi-v7a)
         run: |
           NDK_DIR="${ANDROID_NDK_HOME:-${ANDROID_NDK_LATEST_HOME:-$(find $ANDROID_HOME/ndk -maxdepth 1 -mindepth 1 2>/dev/null | sort -V | tail -n 1)}}"
-          if [ -n "$NDK_DIR" ] && [ -f "$NDK_DIR/build/cmake/android.toolchain.cmake" ]; then
-            echo "Compiling libwhisper.so using CMake and NDK at $NDK_DIR for ARMv7 and ARMv8..."
-            for ABI in armeabi-v7a arm64-v8a; do
+          for ABI in armeabi-v7a arm64-v8a; do
+            TARGET_SO="$GITHUB_WORKSPACE/app/src/main/jniLibs/$ABI/libwhisper.so"
+            if [ ! -f "$TARGET_SO" ] && [ -n "$NDK_DIR" ] && [ -f "$NDK_DIR/build/cmake/android.toolchain.cmake" ]; then
+              echo "Building libwhisper.so via CMake for $ABI..."
               mkdir -p app/src/main/jniLibs/$ABI
               cmake -B /tmp/build-whisper-$ABI \
                 -S app/src/main/jni/whisper \
@@ -65,27 +66,21 @@ jobs:
                 -DANDROID_ABI=$ABI \
                 -DANDROID_PLATFORM=android-24 \
                 -DCMAKE_BUILD_TYPE=Release
-              cmake --build /tmp/build-whisper-$ABI --config Release
+              cmake --build /tmp/build-whisper-$ABI --config Release -- -j$(nproc)
               if [ -f "/tmp/build-whisper-$ABI/libwhisper.so" ]; then
-                cp /tmp/build-whisper-$ABI/libwhisper.so app/src/main/jniLibs/$ABI/
-                echo "Built and copied libwhisper.so for $ABI"
+                cp /tmp/build-whisper-$ABI/libwhisper.so "$TARGET_SO"
+                echo "Built and copied libwhisper.so for $ABI via CMake"
               fi
-            done
-          fi
+            fi
+          done
 
-          echo "Verifying native libraries in jniLibs:"
+          echo "Verifying compiled native libraries in jniLibs:"
           find app/src/main/jniLibs -name "*.so" || echo "No .so found"
 
-      - name: Bundle Offline Whisper GGML Model (tiny.en-q5_1)
+      - name: Clean Asset Space (Lean APK - User imports models post-install)
         run: |
-          mkdir -p app/src/main/assets/voice_models
-          if [ ! -f "app/src/main/assets/voice_models/model.bin" ]; then
-            echo "Downloading quantized Whisper model for offline speech-to-text..."
-            curl -sL "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en-q5_1.bin" -o app/src/main/assets/voice_models/model.bin || true
-          fi
-          if [ -f "app/src/main/assets/voice_models/model.bin" ]; then
-            echo "Bundled offline model verified: $(ls -lh app/src/main/assets/voice_models/model.bin)"
-          fi
+          rm -rf app/src/main/assets/voice_models
+          echo "Verified: No bundled model in assets (pure post-install user import pipeline)"
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace

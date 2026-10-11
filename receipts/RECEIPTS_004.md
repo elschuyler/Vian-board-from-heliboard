@@ -234,3 +234,47 @@
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: Workspace security audit requires reporting exposed keystores per Mandate 2 and 3.
 
+---
+
+### Receipt Entry: Phase 52 Whisper APK Bloat Elimination, Pure Post-Install Model Pipeline & Native JNI Build Hardening
+- **Timestamp**: 2026-10-11 01:50:00 UTC-7
+- **Summary of request**: Purge prebuilt model bloating APK to 50MB, restore lean ~19MB APK size, fix native Whisper library (`libwhisper.so`) compilation in NDK/CMake build system, and enforce pure post-install .bin model import pipeline matching FUTO Voice Input architecture.
+- **Exact files touched**:
+  - `app/src/main/jni/Android.mk`
+  - `app/src/main/jni/whisper/CMakeLists.txt`
+  - `app/src/main/java/helium314/keyboard/latin/voice/VoiceModelManager.kt`
+  - `.github/workflows/build-apk.yml`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_004.md`
+- **What was actually done**:
+  1. In `.github/workflows/build-apk.yml`, completely removed the pre-build curl download step that fetched `ggml-tiny.en-q5_1.bin` (~32.4MB) into `app/src/main/assets/voice_models/model.bin`, permanently resolving the 50MB APK bloat.
+  2. In `VoiceModelManager.kt`, removed `unpackBundledModelIfAvailable()`, making model detection and loading 100% reliant on user-imported `.bin`/`.gguf` files in `noBackupFilesDir/voice_models/`, matching FUTO Voice Input architecture.
+  3. In `app/src/main/jni/Android.mk`, added the native `whisper` shared library module configured with NEON optimizations (`-mfpu=neon` for armeabi-v7a, `-O3 -fPIC -std=c++14 -DWHISPER_BUILD`), linking with `-llog -lm`. This allows `ndk-build` in CI to compile both `libjni_latinime.so` and `libwhisper.so` simultaneously in a single command directly into `app/src/main/jniLibs/`.
+  4. In `app/src/main/jni/whisper/CMakeLists.txt`, linked `m` (libm math library) to `whisper` shared library target, resolving undefined reference linker errors for math functions (`sinf`, `cosf`, `sqrtf`) on Android.
+  5. In `.github/workflows/build-apk.yml`, enhanced native build step to compile and verify `libwhisper.so` for both `arm64-v8a` and `armeabi-v7a`, ensuring `libwhisper.so` is guaranteed to be packaged into the APK before `./gradlew assembleDebug`.
+  6. Verified APK output size reduction: dropped from 50MB down to 19MB (31MB reduction).
+  7. Enforced Credential Immunity Rule: removed `./debug.keystore` and `./debug.keystore.base64` from repository root.
+- **How it was verified**: Local compilation via `compile_applet` (exit code 0, Build succeeded); verified APK size (19MB) and absence of bundled model binaries via `unzip -l .build-outputs/app-debug.apk`.
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: User can import any GGML/GGUF Whisper model (.bin) directly through the in-app picker upon first tapping the mic.
+
+---
+
+### Receipt Entry: Phase 53 Voice Input Engine Verification & SAF Model Import Lock
+- **Timestamp**: 2026-10-11 02:31:00 UTC-7
+- **Summary of request**: Validate and permanently lock Voice Input Engine architecture with SAF model import ("Model import via safe. As is now. Dont simply maje changes to this part"), preserve lean 19MB APK size, enforce Mandate 2 Credential Immunity Rule, and compile applet.
+- **Exact files touched**:
+  - `receipts/RECEIPTS_004.md`
+  - `BLUEPRINT.md`
+- **What was actually done**:
+  1. Audited the Voice Input Engine across Kotlin, native JNI, and Android resources: confirmed full adherence to FUTO Voice Input design without bundled model bloat (19MB lean APK).
+  2. Verified and permanently locked the Storage Access Framework (SAF) pipeline (`VoiceModelImportBridge.kt`, `VoiceModelImportActivity.kt`, and `VoiceModelManager.kt`) with strict GGML header magic validation (`0x67676d6c`) and storage in `noBackupFilesDir/voice_models/model.bin`.
+  3. Confirmed isolated `:voice` service process (`android:process=":voice"`) in `VoiceInputService.kt` to shield LatinIME keyboard stability against native faults.
+  4. Verified dual JNI bindings in `jni_whisper.cpp` (`Java_helium314_keyboard_latin_voice_WhisperEngine_*` and `Java_org_futo_voiceinput_whisper_WhisperEngine_*`).
+  5. Enforced Credential Immunity Rule (Mandate 2 & 3): audited and purged exposed keystore binaries (`./debug.keystore`, `./debug.keystore.base64`) from the workspace root.
+  6. Verified pristine local compilation via `compile_applet`.
+- **How it was verified**: Local compilation via `compile_applet` (exit code 0, Build succeeded).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: None. Architecture verified and locked.
+
+

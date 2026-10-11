@@ -99,8 +99,41 @@ include $(BUILD_SHARED_LIBRARY)
 #################### Clean up the tmp vars
 include $(LOCAL_PATH)/CleanupNativeFileList.mk
 
+######################################
+# Native Whisper Speech Recognition Library (whisper.cpp)
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := whisper
+LOCAL_MODULE_TAGS := optional
+
+LOCAL_CLANG := true
+LOCAL_NDK_STL_VARIANT := c++_static
+
+LOCAL_C_INCLUDES := $(LOCAL_PATH)/whisper $(LOCAL_PATH)/whisper/src
+
+LOCAL_SRC_FILES := whisper/jni_whisper.cpp \
+                   whisper/src/whisper.cpp \
+                   whisper/src/ggml.c \
+                   whisper/src/ggml-alloc.c \
+                   whisper/src/ggml-backend.c \
+                   whisper/src/ggml-quants.c
+
+LOCAL_CFLAGS += -O3 -fPIC -DWHISPER_BUILD
+LOCAL_CPPFLAGS += -O3 -fPIC -std=c++14 -DWHISPER_BUILD
+
+ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
+    LOCAL_CFLAGS += -mfpu=neon
+    LOCAL_CPPFLAGS += -mfpu=neon
+endif
+
+LOCAL_LDLIBS += -llog -lm
+LOCAL_LDFLAGS += -Wl,--build-id=none
+
+include $(BUILD_SHARED_LIBRARY)
+
 #################### Unit test on host environment
 #include $(LOCAL_PATH)/HostUnitTests.mk
 
 #################### Unit test on target environment
 #include $(LOCAL_PATH)/TargetUnitTests.mk
+

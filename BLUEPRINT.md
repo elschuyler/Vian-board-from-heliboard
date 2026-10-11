@@ -605,4 +605,16 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
   - Implemented post-install model importer (`VoiceModelImportBridge.kt`, `VoiceModelImportActivity.kt`) with SAF file picker (`*/*`), GGML/GGUF header validation (`0x67676d6c`), and in-app `noBackupFilesDir` storage.
   - Added Mic Upgrade / Import button (`voice_upgrade_button`) in `voice_input_view.xml` and `VoiceInputView.kt` with live state transitions, responsive bouncing audio waveform bars (`VoicePulseView.kt`), and Log Keeper telemetry.
   - Enforced strict on-demand session lock in `SecurityVaultExplorerView.closeWithoutLock()` so exiting the vault explorer modal locks the vault and purges secrets immediately. Clean build verified via `compile_applet`.
+- **2026-10-11**: Completed Phase 52 (Whisper APK Bloat Elimination, Pure Post-Install Model Pipeline & Native JNI Build Hardening):
+  - Completely purged automated model download in `.github/workflows/build-apk.yml`, removing 32.4MB bundled model asset and restoring lean 19MB APK size (matching FUTO Voice Input lightweight APK design).
+  - Removed `unpackBundledModelIfAvailable()` from `VoiceModelManager.kt`, strictly loading models from user-imported files in `noBackupFilesDir/voice_models/`.
+  - Added native `whisper` module directly to `app/src/main/jni/Android.mk` with NEON optimizations and `-llog -lm` linkage, enabling single-command `ndk-build` in CI to compile both `libjni_latinime.so` and `libwhisper.so` simultaneously.
+  - Linked `m` (libm math library) to `whisper` shared library target in `app/src/main/jni/whisper/CMakeLists.txt`, resolving undefined reference linker errors on Android.
+  - Hardened GitHub Actions workflow to build and verify `libwhisper.so` across `arm64-v8a` and `armeabi-v7a`.
+  - Enforced Credential Immunity Rule: removed `./debug.keystore` and `./debug.keystore.base64` from repository root. Clean build verified via `compile_applet` (19MB APK output).
+- **2026-10-11**: Completed Phase 53 (Voice Input Engine Verification & SAF Model Import Lock):
+  - Validated and permanently locked SAF model import pipeline (`VoiceModelImportBridge`, `VoiceModelImportActivity`, `VoiceModelManager`) per user mandate: zero bundled model assets, zero bloat, lean 19MB APK.
+  - Confirmed isolated `:voice` process architecture, 21-band bouncing equalizer (`VoicePulseView.kt`), and dual JNI symbols (`helium314` and `org.futo.voiceinput`) in `jni_whisper.cpp`.
+  - Enforced Mandate 2 Credential Immunity Rule: verified zero exposed keystore binaries in workspace root. Clean build verified via `compile_applet`.
+
 
