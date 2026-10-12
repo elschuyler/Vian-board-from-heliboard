@@ -35,6 +35,7 @@ import helium314.keyboard.settings.screens.SecondaryLayoutScreen
 import helium314.keyboard.settings.screens.SecurityScreen
 import helium314.keyboard.settings.screens.SecurityVaultScreen
 import helium314.keyboard.settings.screens.UnlockMethodsScreen
+import helium314.keyboard.settings.screens.KdbxEntriesScreen
 import helium314.keyboard.settings.screens.KdbxEntryEditorScreen
 import helium314.keyboard.settings.screens.SubtypeScreen
 import helium314.keyboard.settings.screens.TextCorrectionScreen
@@ -99,6 +100,7 @@ fun SettingsNavHost(
                 onClickUnlockMethods = { navController.navigate(SettingsDestination.UnlockMethods) },
                 onClickPrivacyVault = { navController.navigate(SettingsDestination.PrivacyVault) },
                 onClickSecurityVault = { navController.navigate(SettingsDestination.SecurityVault) },
+                onClickKdbxEntries = { navController.navigate(SettingsDestination.KdbxEntries) },
                 onClickBack = ::goBack
             )
         }
@@ -120,6 +122,12 @@ fun SettingsNavHost(
         }
         composable(SettingsDestination.SecurityVault) {
             SecurityVaultScreen(
+                onClickBrowseEntries = { navController.navigate(SettingsDestination.KdbxEntries) },
+                onClickBack = ::goBack
+            )
+        }
+        composable(SettingsDestination.KdbxEntries) {
+            KdbxEntriesScreen(
                 onClickAddEntry = { navController.navigate(SettingsDestination.KdbxEntryEditor) },
                 onClickEditEntry = { uuid -> navController.navigate(SettingsDestination.KdbxEntryEditor + "?uuid=$uuid") },
                 onClickBack = ::goBack
@@ -240,6 +248,7 @@ object SettingsDestination {
     const val SecurityPatternLock = "security_pattern_lock"
     const val PrivacyVault = "privacy_vault"
     const val SecurityVault = "security_vault"
+    const val KdbxEntries = "kdbx_entries"
     const val KdbxEntryEditor = "kdbx_entry_editor"
     const val Appearance = "appearance"
     const val Colors = "colors/"

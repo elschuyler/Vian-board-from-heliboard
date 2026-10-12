@@ -1071,6 +1071,9 @@ public class LatinIME extends InputMethodService implements
         if (mKeyboardSwitcher.isShowingHandwritingPad()) {
             mKeyboardSwitcher.closeSecondaryKeyboard();
         }
+        if (mKeyboardSwitcher.isShowingPatternUnlock()) {
+            mKeyboardSwitcher.closeSecondaryKeyboard();
+        }
         final MainKeyboardView mainKeyboardView = mKeyboardSwitcher.getMainKeyboardView();
         if (mainKeyboardView != null) {
             mainKeyboardView.closing();
@@ -1851,6 +1854,11 @@ public class LatinIME extends InputMethodService implements
                 mKeyboardSwitcher.closeChosenEntry(false);
                 return true;
             }
+            if (mKeyboardSwitcher.isShowingPatternUnlock()) {
+                LogCatcher.INSTANCE.i("LatinIME", "Pattern unlock modal dismissed via Back key");
+                mKeyboardSwitcher.closeSecondaryKeyboard();
+                return true;
+            }
         }
         if (mKeyboardActionListener.onKeyDown(keyCode, keyEvent))
             return true;
@@ -1870,6 +1878,9 @@ public class LatinIME extends InputMethodService implements
                 return true;
             }
             if (mKeyboardSwitcher.isShowingChosenEntry()) {
+                return true;
+            }
+            if (mKeyboardSwitcher.isShowingPatternUnlock()) {
                 return true;
             }
         }

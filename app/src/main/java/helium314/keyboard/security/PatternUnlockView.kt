@@ -13,10 +13,8 @@ import helium314.keyboard.keyboard.KeyboardActionListener
 import helium314.keyboard.keyboard.KeyboardSwitcher
 import helium314.keyboard.keyboard.KeyboardTypeface
 import helium314.keyboard.keyboard.internal.KeyVisualAttributes
-import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.common.ColorType
-import helium314.keyboard.latin.common.Constants
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.ResourceUtils
 
@@ -30,17 +28,23 @@ class PatternUnlockView @JvmOverloads constructor(
     private lateinit var gridView: PatternGridView
     private var statusText: TextView? = null
     private var closeButton: ImageButton? = null
+    private var pasteButton: ImageButton? = null
+    private var spacerView: View? = null
 
     private var keyboardActionListener: KeyboardActionListener? = null
     private var onUnlockSuccessCallback: (() -> Unit)? = null
     private var isUnlocked = false
 
+    var isStealth: Boolean = false
+        private set
+
+    var isShowingPattern: Boolean = false
+        private set
+
     init {
-        fitsSystemWindows = false
+        fitsSystemWindows = true
         setPadding(0, 0, 0, 0)
     }
-
-    private var isStealth = false
 
     override fun onFinishInflate() {
         super.onFinishInflate()
@@ -58,12 +62,10 @@ class PatternUnlockView @JvmOverloads constructor(
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
         val res = context.resources
-        val width = ResourceUtils.getKeyboardWidth(context, Settings.getValues())
-        val height = ResourceUtils.getKeyboardHeight(res, Settings.getValues())
-        val widthSpec = MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY)
-        val heightSpec = MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
-        super.onMeasure(widthSpec, heightSpec)
+        val width = ResourceUtils.getKeyboardWidth(context, Settings.getValues()) + paddingLeft + paddingRight
+        val height = ResourceUtils.getSecondaryKeyboardHeight(res, Settings.getValues()) + paddingTop + paddingBottom
         setMeasuredDimension(width, height)
     }
 
@@ -78,18 +80,35 @@ class PatternUnlockView @JvmOverloads constructor(
         onUnlockSuccessCallback = onSuccess
         isUnlocked = false
         isStealth = isStealthMode
+        isShowingPattern = true
         gridView.isStealthMode = isStealthMode
 
         val strip = KeyboardSwitcher.getInstance().patternUnlockStrip
         if (strip != null) {
             statusText = strip.findViewById(R.id.pattern_strip_status_text)
             closeButton = strip.findViewById(R.id.pattern_strip_close_btn)
+            pasteButton = strip.findViewById(R.id.pattern_strip_paste_btn)
+            spacerView = strip.findViewById(R.id.pattern_strip_spacer)
 
-            closeButton?.setOnClickListener {
+            val closeAction = View.OnClickListener {
                 stopPatternUnlock()
                 KeyboardSwitcher.getInstance().closeSecondaryKeyboard()
             }
-            strip.visibility = if (isStealthMode) View.GONE else View.VISIBLE
+            closeButton?.setOnClickListener(closeAction)
+            pasteButton?.setOnClickListener(closeAction)
+
+            if (isStealthMode) {
+                statusText?.visibility = View.GONE
+                closeButton?.visibility = View.GONE
+                spacerView?.visibility = View.VISIBLE
+                pasteButton?.visibility = View.VISIBLE
+            } else {
+                statusText?.visibility = View.VISIBLE
+                closeButton?.visibility = View.VISIBLE
+                spacerView?.visibility = View.GONE
+                pasteButton?.visibility = View.GONE
+            }
+            strip.visibility = View.VISIBLE
         }
 
         applyThemeColors()
@@ -102,6 +121,7 @@ class PatternUnlockView @JvmOverloads constructor(
 
     fun stopPatternUnlock() {
         visibility = View.GONE
+        isShowingPattern = false
         gridView.clearPattern()
         isUnlocked = false
         onUnlockSuccessCallback = null
@@ -141,8 +161,6 @@ class PatternUnlockView @JvmOverloads constructor(
         val strip = KeyboardSwitcher.getInstance().patternUnlockStrip
         if (colors != null) {
             val textColor = colors.get(ColorType.KEY_TEXT)
-            val stripBg = colors.get(ColorType.STRIP_BACKGROUND)
-            val keyBg = colors.get(ColorType.KEY_BACKGROUND)
 
             statusText?.let { tv: TextView ->
                 tv.setTextColor(textColor)
@@ -151,14 +169,26 @@ class PatternUnlockView @JvmOverloads constructor(
             closeButton?.let { btn: ImageButton ->
                 colors.setColor(btn, ColorType.KEY_ICON)
             }
+            pasteButton?.let { btn: ImageButton ->
+                colors.setColor(btn, ColorType.TOOL_BAR_KEY)
+            }
             strip?.let {
                 colors.setBackground(it, ColorType.STRIP_BACKGROUND)
             }
-            colors.setBackground(this, ColorType.MAIN_BACKGROUND)
+            if (isStealth) {
+                setBackgroundColor(Color.TRANSPARENT)
+            } else {
+                colors.setBackground(this, ColorType.MAIN_BACKGROUND)
+            }
         } else {
             statusText?.setTextColor(Color.WHITE)
             closeButton?.setColorFilter(Color.WHITE)
-            setBackgroundColor(Color.parseColor("#202124"))
+            pasteButton?.setColorFilter(Color.WHITE)
+            if (isStealth) {
+                setBackgroundColor(Color.TRANSPARENT)
+            } else {
+                setBackgroundColor(Color.parseColor("#202124"))
+            }
         }
     }
 }

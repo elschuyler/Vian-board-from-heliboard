@@ -115,8 +115,7 @@ import java.util.UUID
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SecurityVaultScreen(
-    onClickAddEntry: () -> Unit = {},
-    onClickEditEntry: (String) -> Unit = {},
+    onClickBrowseEntries: () -> Unit = {},
     onClickBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -125,8 +124,6 @@ fun SecurityVaultScreen(
 
     var groups by remember { mutableStateOf<List<VaultGroupEntity>>(emptyList()) }
     var entries by remember { mutableStateOf<List<VaultEntryEntity>>(emptyList()) }
-    var searchQuery by remember { mutableStateOf("") }
-    var expandedGroupUuids by remember { mutableStateOf<Set<String>>(emptySet()) }
 
     var kdbxUriString by remember { mutableStateOf(context.prefs().getString(KdbxSyncManager.PREF_KDBX_URI, null)) }
     var kdbxFileName by remember { mutableStateOf(context.prefs().getString(KdbxSyncManager.PREF_KDBX_FILENAME, null)) }
@@ -141,9 +138,6 @@ fun SecurityVaultScreen(
     var masterPasswordInput by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
     var isProcessing by remember { mutableStateOf(false) }
-
-    var showEntryEditor by remember { mutableStateOf(false) }
-    var editingEntry by remember { mutableStateOf<VaultEntryEntity?>(null) }
 
     var showSyncDiffSheet by remember { mutableStateOf(false) }
 
@@ -215,20 +209,7 @@ fun SecurityVaultScreen(
         settings = emptyList()
     ) {
         Scaffold(
-            contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom),
-            floatingActionButton = {
-                if (groups.isNotEmpty() || entries.isNotEmpty()) {
-                    FloatingActionButton(
-                        onClick = {
-                            onClickAddEntry()
-                        },
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    ) {
-                        Icon(painter = painterResource(R.drawable.ic_plus), contentDescription = "Add Entry")
-                    }
-                }
-            }
+            contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
         ) { innerPadding ->
             Column(
                 modifier = Modifier
@@ -566,91 +547,63 @@ fun SecurityVaultScreen(
                         }
                     }
 
-                    // Search & Filter Bar
-                    if (entries.isNotEmpty()) {
-                        item {
-                            OutlinedTextField(
-                                value = searchQuery,
-                                onValueChange = { searchQuery = it },
+                    // Card 5: Dedicated Vault Entries Access
+                    item {
+                        OutlinedCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onClickBrowseEntries() },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.outlinedCardColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                            )
+                        ) {
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                placeholder = { Text("Search vault entries...") },
-                                singleLine = true,
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                        }
-                    }
-
-                    // Folders & Entries Tree List
-                    val filteredEntries = if (searchQuery.isBlank()) {
-                        entries
-                    } else {
-                        entries.filter {
-                            it.title.contains(searchQuery, ignoreCase = true) ||
-                                    (it.username?.contains(searchQuery, ignoreCase = true) == true) ||
-                                    (it.urlOrPackage?.contains(searchQuery, ignoreCase = true) == true) ||
-                                    (it.customFieldsJson?.contains(searchQuery, ignoreCase = true) == true)
-                        }
-                    }
-
-                    if (searchQuery.isNotBlank()) {
-                        items(filteredEntries, key = { it.entryUuid }) { entry ->
-                            VaultEntryCard(
-                                entry = entry,
-                                currentTickMs = currentTickMs,
-                                onClick = {
-                                    onClickEditEntry(entry.entryUuid)
-                                }
-                            )
-                        }
-                    } else if (groups.isNotEmpty() || entries.isNotEmpty()) {
-                        val rootGroups = groups.filter { it.parentGroupUuid == null }
-                        val ungroupedEntries = entries.filter { e -> groups.none { it.groupUuid == e.groupUuid } }
-
-                        items(rootGroups, key = { it.groupUuid }) { group ->
-                            VaultGroupAccordionItem(
-                                group = group,
-                                allGroups = groups,
-                                allEntries = entries,
-                                expandedGroupUuids = expandedGroupUuids,
-                                currentTickMs = currentTickMs,
-                                onToggleExpand = { uuid ->
-                                    expandedGroupUuids = if (expandedGroupUuids.contains(uuid)) {
-                                        expandedGroupUuids - uuid
-                                    } else {
-                                        expandedGroupUuids + uuid
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text("🔑", fontSize = 18.sp)
                                     }
-                                },
-                                onEntryClick = { entry ->
-                                    onClickEditEntry(entry.entryUuid)
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column {
+                                        Text(
+                                            text = "KDBX Vault Entries",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = "${entries.size} entries in ${groups.size} groups • Tap to browse & edit",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
-                            )
-                        }
-
-                        if (ungroupedEntries.isNotEmpty()) {
-                            item {
                                 Text(
-                                    text = "General",
-                                    style = MaterialTheme.typography.titleSmall,
+                                    text = "→",
+                                    fontSize = 20.sp,
                                     fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
-                                )
-                            }
-                            items(ungroupedEntries, key = { it.entryUuid }) { entry ->
-                                VaultEntryCard(
-                                    entry = entry,
-                                    currentTickMs = currentTickMs,
-                                    onClick = {
-                                        onClickEditEntry(entry.entryUuid)
-                                    }
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                             }
                         }
                     }
 
                     item {
-                        Spacer(modifier = Modifier.height(72.dp))
+                        Spacer(modifier = Modifier.height(32.dp))
                     }
                 }
             }
@@ -815,206 +768,6 @@ private fun StatusBadge(text: String, color: Color) {
         )
     }
 }
-
-@Composable
-private fun VaultGroupAccordionItem(
-    group: VaultGroupEntity,
-    allGroups: List<VaultGroupEntity>,
-    allEntries: List<VaultEntryEntity>,
-    expandedGroupUuids: Set<String>,
-    currentTickMs: Long,
-    onToggleExpand: (String) -> Unit,
-    onEntryClick: (VaultEntryEntity) -> Unit
-) {
-    val isExpanded = expandedGroupUuids.contains(group.groupUuid)
-    val groupEntries = allEntries.filter { it.groupUuid == group.groupUuid }
-    val childGroups = allGroups.filter { it.parentGroupUuid == group.groupUuid }
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
-                .clickable { onToggleExpand(group.groupUuid) }
-                .padding(vertical = 8.dp, horizontal = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = if (isExpanded) "▼" else "▶",
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.width(20.dp)
-            )
-            Icon(
-                painter = painterResource(R.drawable.ic_folder),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = group.name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.weight(1f)
-            )
-            Text(
-                text = "${groupEntries.size}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
-                    .padding(horizontal = 8.dp, vertical = 2.dp)
-            )
-        }
-
-        AnimatedVisibility(visible = isExpanded) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 24.dp)
-            ) {
-                for (child in childGroups) {
-                    VaultGroupAccordionItem(
-                        group = child,
-                        allGroups = allGroups,
-                        allEntries = allEntries,
-                        expandedGroupUuids = expandedGroupUuids,
-                        currentTickMs = currentTickMs,
-                        onToggleExpand = onToggleExpand,
-                        onEntryClick = onEntryClick
-                    )
-                }
-                for (entry in groupEntries) {
-                    VaultEntryCard(
-                        entry = entry,
-                        currentTickMs = currentTickMs,
-                        onClick = { onEntryClick(entry) }
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun VaultEntryCard(
-    entry: VaultEntryEntity,
-    currentTickMs: Long,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("🔑", fontSize = 16.sp)
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = entry.title,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = entry.username ?: entry.urlOrPackage ?: "No username",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                if (entry.totpSecretEncrypted != null) {
-                    val totpSecret = remember(entry.totpSecretEncrypted) {
-                        VaultCryptoManager.decryptToString(entry.totpSecretEncrypted)
-                    }
-                    if (!totpSecret.isNullOrEmpty()) {
-                        val totpRes = TotpGenerator.generateFromSecret(totpSecret, currentTickMs)
-                        if (totpRes != null) {
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(
-                                    text = totpRes.code,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    fontFamily = FontFamily.Monospace,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Text(
-                                    text = "${totpRes.remainingSeconds}s",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Display custom field pill badges if present
-            if (!entry.customFieldsJson.isNullOrBlank()) {
-                val customMap = remember(entry.customFieldsJson) {
-                    try {
-                        val json = Json.parseToJsonElement(entry.customFieldsJson) as? JsonObject
-                        json?.mapValues { (_, v) -> (v as? JsonPrimitive)?.content ?: "" } ?: emptyMap()
-                    } catch (_: Throwable) {
-                        emptyMap()
-                    }
-                }
-
-                if (customMap.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        for ((k, v) in customMap.entries.take(3)) {
-                            Box(
-                                modifier = Modifier
-                                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(6.dp))
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    text = "$k: $v",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    maxLines = 1,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        if (customMap.size > 3) {
-                            Text(
-                                text = "+${customMap.size - 3} more",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.align(Alignment.CenterVertically)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun VisualDiffBottomSheet(

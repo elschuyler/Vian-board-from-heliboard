@@ -62,6 +62,7 @@ fun SecurityScreen(
     onClickUnlockMethods: () -> Unit,
     onClickPrivacyVault: () -> Unit,
     onClickSecurityVault: () -> Unit,
+    onClickKdbxEntries: () -> Unit = {},
     onClickBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -116,10 +117,17 @@ fun SecurityScreen(
                 // SECTION 2: SECURITY VAULT PAGE
                 PreferenceCategory(title = "Security Vault")
                 Preference(
-                    name = "Security Vault (KeePass KDBX)",
-                    description = "KeePass database onboarding, 1:1 folders, credentials, 2-way sync & full entry CRUD",
+                    name = "Security Vault Settings",
+                    description = "KDBX database connection, Argon2id encryption, key file binding & 2-way sync",
                     onClick = onClickSecurityVault,
                     icon = R.drawable.ic_setup_key
+                ) { NextScreenIcon() }
+
+                Preference(
+                    name = "KDBX Vault Entries",
+                    description = "Browse, search, edit, create and organize credentials and folders",
+                    onClick = onClickKdbxEntries,
+                    icon = R.drawable.ic_vpn_key
                 ) { NextScreenIcon() }
 
                 Preference(

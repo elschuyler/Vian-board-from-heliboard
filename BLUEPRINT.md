@@ -624,7 +624,21 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
     - Reorganized `SecurityScreen.kt` into a clean 3-page hub routing to dedicated destinations: Privacy Vault, Security Vault, and Unlock Methods.
     - Built dedicated `UnlockMethodsScreen.kt` encapsulating Main Security Gate, Unified vs Independent credentials, Pattern setup, Tri-Method authentication (Biometric, Device PIN, Pattern), and Stealth Mode toggles.
     - Built dedicated full-page `KdbxEntryEditorScreen.kt` with Scaffold, top app bar, persistent bottom action bar, and inline password generator, eliminating cramped dialogs and keyboard occlusion.
-    - Synchronized Navigation Compose routes (`SettingsDestination.UnlockMethods`, `SettingsDestination.KdbxEntryEditor`) in `SettingsNavHost.kt`. Clean build verified via `compile_applet`.
+    - Synchronized Navigation Compose routes (`SettingsDestination.UnlockMethods`, `SettingsDestination.SecurityVault`, `SettingsDestination.KdbxEntries`, `SettingsDestination.KdbxEntryEditor`) in `SettingsNavHost.kt`.
+    - Added dedicated KDBX Vault Entries routing from both `SecurityScreen.kt` and `SecurityVaultScreen.kt` to `KdbxEntriesScreen.kt`, fully separating database connection & sync settings from credentials list & CRUD. Clean build verified via `compileDebugKotlin`.
 
-
-
+- **2026-10-12**: Completed Phase 56 (On-Demand Disguise Pattern Unlock Modal, Secondary Keyboard Geometry Alignment & Stealth Overlay Retirement):
+  - **Component 1: Secondary Keyboard Geometry Alignment (`PatternUnlockView.kt`)**:
+    - Aligned `PatternUnlockView` geometry with `ClipboardHistoryView`: set `fitsSystemWindows = true` and measured height via `ResourceUtils.getSecondaryKeyboardHeight(res, Settings.getValues()) + paddingTop + paddingBottom`.
+    - Eliminated vertical push-up gap and bottom empty space across normal and stealth unlock modes.
+  - **Component 2: Suggestion Strip Close Button & Stealth Disguise Paste Button (`strip_container.xml`, `PatternUnlockView.kt`)**:
+    - In normal mode, displays status text (`pattern_strip_status_text`) and clean corner `[X]` close button (`pattern_strip_close_btn`).
+    - In stealth mode, status text and close button are hidden; displays disguised paste button (`pattern_strip_paste_btn`) in the suggestion strip with `@drawable/sym_keyboard_paste_rounded` and `ColorType.TOOL_BAR_KEY` tinting. Tapping the paste button safely closes the modal via `closeSecondaryKeyboard()`.
+  - **Component 3: Keyboard Underlay Visual Disguise in Stealth Mode (`KeyboardSwitcher.java`, `PatternUnlockView.kt`)**:
+    - In stealth mode, keeps `mKeyboardView` visible under `PatternUnlockView` with transparent modal background (`Color.TRANSPARENT`), presenting a full visual replica of the keyboard while `PatternGridView` intercepts 100% of touches.
+    - In normal mode, `mKeyboardView` is hidden to display a clean empty board canvas with themed `ColorType.MAIN_BACKGROUND`.
+  - **Component 4: Stealth Overlay Retirement & Back Key Navigation (`main_keyboard_frame.xml`, `KeyboardSwitcher.java`, `LatinIME.java`)**:
+    - Retired `StealthPatternKeyboardOverlay` from `main_keyboard_frame.xml` and `KeyboardSwitcher.java`; all pattern unlock challenges run on-demand through `PatternUnlockView`.
+    - Wired `onKeyDown`, `onKeyUp`, and `onWindowHidden` in `LatinIME.java` to smoothly dismiss `PatternUnlockView` via Back key or when the keyboard is hidden.
+  - **Component 5: Security Enforcement**:
+    - Purged build-generated `./debug.keystore` and `./debug.keystore.base64` per Mandate 2 & 3.
