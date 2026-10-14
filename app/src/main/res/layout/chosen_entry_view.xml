@@ -11,17 +11,16 @@
     android:background="@android:color/transparent"
     style="?attr/clipboardHistoryViewStyle">
 
-    <!-- Row 3 (Top Row): Lock & Back on Left, Title & Username on Right -->
+    <!-- Row 1 (Top Header Row): Back & Lock, Title & Subtitle -->
     <LinearLayout
         android:id="@+id/chosen_top_row"
         android:layout_width="match_parent"
-        android:layout_height="44dp"
+        android:layout_height="38dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingStart="8dp"
-        android:paddingEnd="12dp">
+        android:paddingStart="6dp"
+        android:paddingEnd="10dp">
 
-        <!-- Stacked tiny buttons: Lock on left, Back on right (or stacked) -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
@@ -30,9 +29,9 @@
 
             <ImageButton
                 android:id="@+id/btn_chosen_back"
-                android:layout_width="38dp"
-                android:layout_height="38dp"
-                android:padding="8dp"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:padding="6dp"
                 android:scaleType="fitCenter"
                 android:src="@drawable/ic_arrow_back"
                 android:contentDescription="Back to Vault Explorer"
@@ -40,9 +39,9 @@
 
             <ImageButton
                 android:id="@+id/btn_chosen_lock"
-                android:layout_width="38dp"
-                android:layout_height="38dp"
-                android:padding="8dp"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:padding="6dp"
                 android:scaleType="fitCenter"
                 android:src="@drawable/ic_lock"
                 android:contentDescription="Close &amp; Lock Vault"
@@ -53,7 +52,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="6dp"
             android:orientation="vertical">
 
             <TextView
@@ -75,15 +74,18 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Row 2 (Middle Action Row - 5 Action Tiles) -->
+    <!-- Row 2 (Middle Action Row - 5 Action Tiles styled like keyboard keys) -->
+    <!-- Order: Notes, Attachment, Password, Username, TOTP -->
     <LinearLayout
         android:id="@+id/chosen_action_row"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="44dp"
         android:orientation="horizontal"
         android:gravity="center"
-        android:paddingStart="4dp"
-        android:paddingEnd="4dp">
+        android:paddingStart="3dp"
+        android:paddingEnd="3dp"
+        android:paddingTop="0dp"
+        android:paddingBottom="0dp">
 
         <!-- Tile 1: Note -->
         <LinearLayout
@@ -94,14 +96,16 @@
             android:orientation="vertical"
             android:gravity="center"
             android:layout_margin="2dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
             android:clickable="true"
             android:focusable="true"
-            android:background="?android:attr/selectableItemBackground">
+            android:background="@drawable/bg_chosen_action_key">
 
             <ImageView
                 android:id="@+id/icon_action_note"
-                android:layout_width="18dp"
-                android:layout_height="18dp"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
                 android:src="@drawable/ic_note"
                 android:contentDescription="View Note" />
 
@@ -113,33 +117,34 @@
                 android:text="Note" />
         </LinearLayout>
 
-        <!-- Tile 2: Username -->
+        <!-- Tile 2: Attachment -->
         <LinearLayout
-            android:id="@+id/btn_action_username"
+            android:id="@+id/btn_action_attachment"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="1.2"
+            android:layout_weight="1"
             android:orientation="vertical"
             android:gravity="center"
             android:layout_margin="2dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
             android:clickable="true"
             android:focusable="true"
-            android:background="?android:attr/selectableItemBackground">
+            android:background="@drawable/bg_chosen_action_key">
 
             <ImageView
-                android:id="@+id/icon_action_username"
-                android:layout_width="18dp"
-                android:layout_height="18dp"
-                android:src="@drawable/ic_vpn_key"
-                android:contentDescription="Inject Username" />
+                android:id="@+id/icon_action_attachment"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_attachment"
+                android:contentDescription="View Attachments" />
 
             <TextView
-                android:id="@+id/label_action_username"
+                android:id="@+id/label_action_attachment"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="10sp"
-                android:textStyle="bold"
-                android:text="User" />
+                android:text="Files" />
         </LinearLayout>
 
         <!-- Tile 3: Password -->
@@ -147,18 +152,20 @@
             android:id="@+id/btn_action_password"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="1.2"
+            android:layout_weight="1.1"
             android:orientation="vertical"
             android:gravity="center"
             android:layout_margin="2dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
             android:clickable="true"
             android:focusable="true"
-            android:background="?android:attr/selectableItemBackground">
+            android:background="@drawable/bg_chosen_action_key">
 
             <ImageView
                 android:id="@+id/icon_action_password"
-                android:layout_width="18dp"
-                android:layout_height="18dp"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
                 android:src="@drawable/ic_lock"
                 android:contentDescription="Inject Password" />
 
@@ -171,84 +178,68 @@
                 android:text="Password" />
         </LinearLayout>
 
-        <!-- Tile 4: TOTP with live progress -->
+        <!-- Tile 4: Username -->
         <LinearLayout
-            android:id="@+id/btn_action_totp"
+            android:id="@+id/btn_action_username"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1.1"
             android:orientation="vertical"
             android:gravity="center"
             android:layout_margin="2dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
             android:clickable="true"
             android:focusable="true"
-            android:background="?android:attr/selectableItemBackground">
+            android:background="@drawable/bg_chosen_action_key">
 
-            <helium314.keyboard.security.vault.ui.TotpCircleProgressView
-                android:id="@+id/action_totp_circle"
-                android:layout_width="20dp"
-                android:layout_height="20dp" />
+            <ImageView
+                android:id="@+id/icon_action_username"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_vpn_key"
+                android:contentDescription="Inject Username" />
 
             <TextView
-                android:id="@+id/label_action_totp"
+                android:id="@+id/label_action_username"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="10sp"
-                android:text="TOTP" />
+                android:textStyle="bold"
+                android:text="User" />
         </LinearLayout>
 
-        <!-- Tile 5: Attachment -->
+        <!-- Tile 5: TOTP with live progress -->
         <LinearLayout
-            android:id="@+id/btn_action_attachment"
+            android:id="@+id/btn_action_totp"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:orientation="vertical"
             android:gravity="center"
             android:layout_margin="2dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
             android:clickable="true"
             android:focusable="true"
-            android:background="?android:attr/selectableItemBackground">
+            android:background="@drawable/bg_chosen_action_key">
 
-            <ImageView
-                android:id="@+id/icon_action_attachment"
+            <helium314.keyboard.security.vault.ui.TotpCircleProgressView
+                android:id="@+id/action_totp_circle"
                 android:layout_width="18dp"
-                android:layout_height="18dp"
-                android:src="@drawable/ic_attachment"
-                android:contentDescription="View Attachments" />
+                android:layout_height="18dp" />
 
             <TextView
-                android:id="@+id/label_action_attachment"
+                android:id="@+id/label_action_totp"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="10sp"
-                android:text="Files" />
+                android:textStyle="bold"
+                android:text="TOTP" />
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Expandable Middle Card: Details preview & anchors bottom row keyboard flush to bottom edge -->
-    <FrameLayout
-        android:id="@+id/chosen_content_container"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:paddingTop="6dp"
-        android:paddingBottom="6dp">
-
-        <TextView
-            android:id="@+id/txt_chosen_preview"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:textSize="12sp"
-            android:alpha="0.75"
-            android:ellipsize="end"
-            android:maxLines="3"
-            android:text="Tap User, Password or TOTP above to inject into field" />
-    </FrameLayout>
-
+    <!-- Row 3 (Bottom Utility Row Keyboard: ABC, Space, Delete, Enter) -->
     <helium314.keyboard.keyboard.MainKeyboardView
         android:id="@+id/bottom_row_keyboard"
         android:layout_width="match_parent"

@@ -40,6 +40,10 @@ public abstract class Dictionary {
     public static final PhonyDictionary DICTIONARY_HARDCODED =
             new PhonyDictionary(TYPE_HARDCODED);
 
+    public static final String TYPE_VAULT = "vault"; // isolated Privacy Vault shortcuts
+    public static final PhonyDictionary DICTIONARY_VAULT =
+            new PhonyDictionary(TYPE_VAULT);
+
     // Spawned by resuming suggestions. Comes from a span that was in the TextView.
     public static final String TYPE_RESUMED = "resumed";
     public static final PhonyDictionary DICTIONARY_RESUMED = new PhonyDictionary(TYPE_RESUMED);
@@ -173,6 +177,7 @@ public abstract class Dictionary {
         return switch (mDictType) {
             case TYPE_USER_TYPED,
                  TYPE_USER,
+                 TYPE_VAULT,
                  TYPE_CONTACTS,
                  TYPE_APPS,
                  TYPE_USER_HISTORY -> true;

@@ -55,7 +55,6 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyText: TextView
     private lateinit var adapter: AccordionFolderAdapter
-    private var bottomRowKeyboard: MainKeyboardView? = null
 
     private var keyboardActionListener: KeyboardActionListener? = null
     private val scope = CoroutineScope(Dispatchers.Main + Job())
@@ -81,7 +80,6 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
         btnClose = findViewById(R.id.btn_vault_close)
         recyclerView = findViewById(R.id.recycler_vault_items)
         emptyText = findViewById(R.id.txt_vault_empty)
-        bottomRowKeyboard = findViewById(R.id.bottom_row_keyboard)
 
         recyclerView.layoutManager = LinearLayoutManager(context)
         adapter = AccordionFolderAdapter(context) { entry ->
@@ -150,29 +148,10 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
         keyVisualAttr: KeyVisualAttributes? = null
     ) {
         this.keyboardActionListener = listener
-        setupBottomRowKeyboard(editorInfo, listener)
         applyThemeColors()
         updateChipHighlight(chipAll)
         loadData()
         visibility = View.VISIBLE
-    }
-
-    private fun setupBottomRowKeyboard(editorInfo: EditorInfo?, listener: KeyboardActionListener) {
-        val keyboardView = bottomRowKeyboard ?: return
-        val wrappedListener = object : KeyboardActionListener by listener {
-            override fun onCodeInput(code: Int, x: Int, y: Int, isKeyRepeat: Boolean) {
-                if (code == KeyCode.ALPHA) {
-                    closeWithoutLock()
-                    return
-                }
-                listener.onCodeInput(code, x, y, isKeyRepeat)
-            }
-        }
-        keyboardView.setKeyboardActionListener(wrappedListener)
-        PointerTracker.switchTo(keyboardView)
-        val kls = KeyboardLayoutSet.Builder.buildEmojiClipBottomRow(context, editorInfo)
-        val keyboard = kls.getKeyboard(KeyboardElement.CLIPBOARD_BOTTOM_ROW)
-        keyboardView.setKeyboard(keyboard)
     }
 
     fun stopExplorer() {

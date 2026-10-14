@@ -179,6 +179,28 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
                 }
             }
         }
+
+        // Privacy Vault shortcuts and phrases matching (in-memory O(1) cache)
+        val ctx = mDictionaryFacilitator.context
+        if (typedWordString.isNotEmpty() && ctx != null) {
+            val vaultEntries = VaultDao.getInstance(ctx).findSuggestions(typedWordString)
+            for ((vIndex, entry) in vaultEntries.take(3).withIndex()) {
+                val maskedLabel = VaultDao.maskPhrase(entry.phrase)
+                suggestionResults.add(
+                    SuggestedWordInfo(
+                        entry.phrase,
+                        maskedLabel,
+                        "",
+                        SuggestedWordInfo.MAX_SCORE - 1 - vIndex,
+                        SuggestedWordInfo.KIND_VAULT_ENTRY,
+                        Dictionary.DICTIONARY_VAULT,
+                        SuggestedWordInfo.NOT_AN_INDEX,
+                        SuggestedWordInfo.NOT_A_CONFIDENCE
+                    )
+                )
+            }
+        }
+
         val trailingSingleQuotesCount = StringUtils.getTrailingSingleQuotesCount(typedWordString)
         val capsMode = getCapsModeForTyping(wordComposer, keyboard)
         val suggestionsContainer = ArrayList(suggestionResults)

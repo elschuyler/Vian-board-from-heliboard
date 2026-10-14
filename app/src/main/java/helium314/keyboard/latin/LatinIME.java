@@ -966,7 +966,7 @@ public class LatinIME extends InputMethodService implements
             // it can adjust its combiners if needed.
             mInputLogic.startInput(mRichImm.getCombiningRulesExtraValueOfCurrentSubtype(), currentSettingsValues);
 
-            if (currentSettingsValues.mLiteMode && mDictionaryFacilitator.shouldAutoRestoreSecondary()) {
+            if (mDictionaryFacilitator.shouldAutoRestoreSecondary()) {
                 mDictionaryFacilitator.restoreSecondaryDictionaries(this, this);
             }
             resetDictionaryFacilitatorIfNecessary();
@@ -1029,7 +1029,7 @@ public class LatinIME extends InputMethodService implements
         mainKeyboardView.setMainDictionaryAvailability(mDictionaryFacilitator.hasAtLeastOneInitializedMainDictionary());
         mainKeyboardView.setKeyPreviewPopupEnabled(currentSettingsValues.mKeyPreviewPopupOn);
         mainKeyboardView.setSlidingKeyInputPreviewEnabled(currentSettingsValues.mSlidingKeyInputPreviewEnabled);
-        final boolean isGestureAllowed = !currentSettingsValues.mLiteMode && currentSettingsValues.mGestureInputEnabled;
+        final boolean isGestureAllowed = currentSettingsValues.mGestureInputEnabled;
         mainKeyboardView.setGestureHandlingEnabledByUser(
                 isGestureAllowed,
                 isGestureAllowed && currentSettingsValues.mGestureTrailEnabled,

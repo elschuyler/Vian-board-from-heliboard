@@ -361,3 +361,73 @@
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: None.
 
+---
+
+### Receipt Entry: Phase 58 KDBX Entry Editor Bottom Action Bar Navigation Insets Elevation
+- **Timestamp**: 2026-10-13 03:10:00 UTC-7
+- **Summary of request**: Ensure Security Vault KDBX entry edit/create screen has Save and Cancel buttons above the Android bottom navigation bar, and verify all settings pages and subpages do not suffer from the same issue.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/settings/screens/KdbxEntryEditorScreen.kt`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_004.md`
+- **What was actually done**:
+  1. In `KdbxEntryEditorScreen.kt`, wrapped the bottom action bar inside a full-width `Surface` with `tonalElevation = 4.dp` and `shadowElevation = 8.dp`, and applied `.windowInsetsPadding(WindowInsets.navigationBars)` to the container column.
+  2. Elevated the "Save Entry", "Cancel", and "Delete" buttons strictly above the Android bottom navigation bar (both 3-button navigation and gesture pill navigation).
+  3. Conducted a system-wide audit of all settings pages, subpages, dialogs, and floating action buttons across `settings/screens` and `settings/dialogs`, confirming all other pages properly respect insets via `safeDrawingPadding`, `WindowInsets.safeDrawing`, or centered Compose dialogs.
+  4. Enforced Mandate 2 & 3: purged build-generated `./debug.keystore`, `./debug.keystore.base64`, and `.build-outputs/app-debug.apk` from repository workspace.
+- **How it was verified**: Verified pristine compilation via `compile_applet` (exit code 0, Build succeeded).
+- **Deviation from requested**: None. Followed exact user specifications.
+- **Known issue or follow-up needed**: Ready for on-device manual QA testing.
+
+
+---
+
+### Receipt Entry: Phase 57 Lite Mode Suggestion & Prediction Engine Parity & Privacy Vault Suggestion Integration
+- **Timestamp**: 2026-10-13 01:15:00 UTC-7
+- **Summary of request**: Fix suggestions in Lite Mode (restore normal prediction/suggestion behavior without alterations), restore Personal Dictionary and Privacy Vault suggestions in suggestion bar as in upstream HeliBoard.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/latin/dictionary/Dictionary.java`
+  - `app/src/main/java/helium314/keyboard/latin/Suggest.kt`
+  - `app/src/main/java/helium314/keyboard/latin/suggestions/SuggestionStripView.kt`
+  - `app/src/main/java/helium314/keyboard/latin/LatinIME.java`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_004.md`
+- **What was actually done**:
+  1. In `Dictionary.java`, registered `TYPE_VAULT` ("vault") and `DICTIONARY_VAULT` (`PhonyDictionary`) and added `TYPE_VAULT` to `isUserSpecific()`, providing clean metadata for vault suggestions.
+  2. In `Suggest.kt`, re-introduced in-memory $O(1)$ `VaultDao.getInstance(ctx).findSuggestions(typedWordString)` search; for matched shortcuts/phrase prefixes, injected masked suggestion pills (`SuggestedWordInfo.KIND_VAULT_ENTRY`) into `suggestionResults` at top priority, making Privacy Vault shortcuts discoverable directly in the suggestion strip.
+  3. In `SuggestionStripView.kt`, guarded `onLongClickSuggestion()` against long-press deletion for `TYPE_VAULT` entries (`Dictionary.DICTIONARY_VAULT`).
+  4. In `LatinIME.java`, removed `!currentSettingsValues.mLiteMode` restriction from `isGestureAllowed`, ensuring gesture typing and prediction scoring function consistently whether Lite Mode is enabled or disabled.
+  5. In `LatinIME.java`, removed `currentSettingsValues.mLiteMode` restriction from secondary dictionary restoration in `startInput()`, allowing all active subtype dictionaries to load and restore seamlessly.
+  6. Confined Lite Mode strictly to single-modal view lifecycle (`enforceLiteModeSingleModal`) and memory trim on hidden states, completely preventing Lite Mode from altering suggestions, predictions, or dictionaries.
+  7. Enforced Mandate 2 & 3: purged build-generated `./debug.keystore`, `./debug.keystore.base64`, and `.build-outputs/app-debug.apk` from repository workspace.
+- **How it was verified**: Verified pristine compilation via `compile_applet` (exit code 0, Build succeeded).
+- **Deviation from requested**: None. Followed exact user specifications.
+- **Known issue or follow-up needed**: Ready for on-device manual QA testing.
+
+---
+
+### Receipt Entry: Phase 59 Compact KeePassDX Magic Keyboard Chosen Entry Redesign & Settings Attachment CRUD Integration
+- **Timestamp**: 2026-10-14 01:45:00 UTC-7
+- **Summary of request**: Redesign selected entry modal to be compact like KeePassDX Magic Keyboard with zero gap between action row and bottom row; make mid-level action buttons shaped like keyboard keys in order (notes, attachment, password, username, totp) with notes and attachments as popups; add attachment CRUD in Settings security vault page; ensure explorer modal has no bottom 4 buttons.
+- **Exact files touched**:
+  - `app/src/main/res/drawable/bg_chosen_action_key.xml`
+  - `app/src/main/res/layout/chosen_entry_view.xml`
+  - `app/src/main/java/helium314/keyboard/security/vault/ui/ChosenEntryView.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/KdbxEntryEditorScreen.kt`
+  - `app/src/main/java/helium314/keyboard/security/vault/data/SecurityVaultDao.kt`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_004.md`
+- **What was actually done**:
+  1. In `chosen_entry_view.xml`, reduced header height from 44dp to 38dp, action row height to 44dp, and ordered the 5 mid-level buttons: `btn_action_note`, `btn_action_attachment`, `btn_action_password`, `btn_action_username`, and `btn_action_totp`. Positioned `bottom_row_keyboard` directly below `chosen_action_row`.
+  2. In `ChosenEntryView.kt`, eliminated the vertical gap between the action row and the bottom keyboard row by dynamically measuring each child (`chosen_top_row`, `chosen_action_row`, and `bottom_row_keyboard`) and setting exact measured layout dimensions, producing a compact ~132dp modal height matching KeePassDX Magic Keyboard.
+  3. In `ChosenEntryView.kt`, extracted `keyBackgroundId` from `R.styleable.KeyboardView_keyBackground` and applied `Colors.setBackground(btn, ColorType.KEY_BACKGROUND)`, giving all 5 action buttons the exact rounded rectangle shape, border, and pressed state of native keyboard keys.
+  4. In `ChosenEntryView.kt`, implemented themed floating drop-up popups for Notes (with scrollable text, "Insert Note", and "Copy Note") and Attachments (with scrollable file list, file details, and copy/export), dismissing smoothly when tapping outside.
+  5. In `KdbxEntryEditorScreen.kt`, integrated the Attachments Card between Notes and Custom Fields: added `+ Attach File` button using `OpenDocument()`, display list of attached files with filename, mime type, byte size badges, and deletion `[✕]`. Added database persistence on Save and cascade deletion in `SecurityVaultDao.deleteEntry()`.
+  6. In `SecurityVaultExplorerView`, verified the modal has zero bottom 4 buttons.
+  7. Enforced Mandates 2 & 3: conducted post-build security scans and purged build-generated `./debug.keystore`, `./debug.keystore.base64`, and `.build-outputs/app-debug.apk`.
+- **How it was verified**: Verified pristine compilation via `compile_applet` (exit code 0, Build succeeded).
+- **Deviation from requested**: None. Followed exact user specifications.
+- **Known issue or follow-up needed**: Ready for on-device manual QA testing.
+
+
+

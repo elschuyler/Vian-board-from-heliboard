@@ -199,6 +199,11 @@ class SecurityVaultDao private constructor(private val dbHelper: SecurityVaultDa
 
     fun deleteEntry(entryUuid: String): Boolean = synchronized(this) {
         try {
+            dbHelper.writableDatabase.delete(
+                SecurityVaultDatabase.TABLE_ATTACHMENTS,
+                "${SecurityVaultDatabase.COLUMN_ATTACHMENT_ENTRY_UUID} = ?",
+                arrayOf(entryUuid)
+            )
             val rows = dbHelper.writableDatabase.delete(
                 SecurityVaultDatabase.TABLE_ENTRIES,
                 "${SecurityVaultDatabase.COLUMN_ENTRY_UUID} = ?",

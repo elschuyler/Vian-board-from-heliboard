@@ -393,7 +393,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
             val index = wordView.tag as Int
             if (index < suggestedWords.size()) {
                 val dict = suggestedWords.getInfo(index).mSourceDict
-                if (dict == Dictionary.DICTIONARY_USER_TYPED || dict == Dictionary.DICTIONARY_HARDCODED) {
+                if (dict == Dictionary.DICTIONARY_USER_TYPED || dict == Dictionary.DICTIONARY_HARDCODED || dict == Dictionary.DICTIONARY_VAULT || dict.mDictType == Dictionary.TYPE_VAULT) {
                     showIcon = false
                 } else {
                     isPersonal = dict.mDictType == Dictionary.TYPE_USER || dict.mDictType == Dictionary.TYPE_USER_HISTORY

@@ -642,3 +642,50 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
     - Wired `onKeyDown`, `onKeyUp`, and `onWindowHidden` in `LatinIME.java` to smoothly dismiss `PatternUnlockView` via Back key or when the keyboard is hidden.
   - **Component 5: Security Enforcement**:
     - Purged build-generated `./debug.keystore` and `./debug.keystore.base64` per Mandate 2 & 3.
+
+- **2026-10-13**: Completed Phase 57 (Suggestion & Prediction Engine Parity Between Normal & Lite Modes + Privacy Vault Suggestion Strip Integration):
+  - **Component 1: Complete Normal & Lite Mode Suggestion Parity (`LatinIME.java`)**:
+    - Removed `!currentSettingsValues.mLiteMode` restriction from gesture typing initialization (`isGestureAllowed`), giving users in Lite Mode full access to gesture input according to their user preference without degrading predictions.
+    - Removed `currentSettingsValues.mLiteMode` condition from secondary dictionary auto-restoration in `startInput()`, ensuring all language dictionaries restore cleanly across input field changes.
+    - Confined Lite Mode strictly to single-modal view lifecycle (`enforceLiteModeSingleModal`) and memory trim on hidden states, completely preventing Lite Mode from altering or degrading suggestions, predictions, or dictionaries.
+  - **Component 2: Privacy Vault Suggestion Strip Matches (`Suggest.kt`, `Dictionary.java`, `SuggestionStripView.kt`)**:
+    - Re-integrated instant in-memory $O(1)$ `VaultDao.findSuggestions(typedWordString)` matching into `Suggest.kt`.
+    - Added `Dictionary.TYPE_VAULT` ("vault") and `Dictionary.DICTIONARY_VAULT` constant for distinct vault suggestion labeling.
+    - Injected matched vault entries as masked suggestion pills (e.g. `🔒 us****om`) at top priority with `SuggestedWordInfo.KIND_VAULT_ENTRY`.
+    - Maintained click handling via `pickSuggestionManually()` requiring active Privacy Vault session or prompting for unlock before autofilling.
+    - In `SuggestionStripView.kt`, guarded `onLongClickSuggestion()` against long-press deletion for `TYPE_VAULT` entries.
+  - **Component 3: Personal Dictionary Parity**:
+    - Confirmed system `UserBinaryDictionary` (`TYPE_USER`) stays active and scored consistently across normal and Lite modes.
+  - **Component 4: Security Enforcement**:
+    - Audited workspace and purged build-generated `./debug.keystore` and `./debug.keystore.base64`. Clean build verified via `compile_applet`.
+
+- **2026-10-13**: Completed Phase 58 (KDBX Entry Editor Bottom Action Bar Elevation Above Android Navigation Bar):
+  - **Component 1: KDBX Entry Editor Navigation Bar Elevation (`KdbxEntryEditorScreen.kt`)**:
+    - Wrapped the bottom action bar (`Card`) inside a full-width `Surface` with `MaterialTheme.colorScheme.surface`, `tonalElevation = 4.dp`, and `shadowElevation = 8.dp`.
+    - Applied `Modifier.windowInsetsPadding(WindowInsets.navigationBars)` to the container column, elevating the "Save Entry", "Cancel", and "Delete" buttons strictly above the Android bottom navigation bar (both 3-button navigation and gesture navigation pill) with comfortable vertical clearance.
+  - **Component 2: System-Wide Settings Navigation Bar Insets Audit**:
+    - Verified all settings pages, subpages, dialogs, and floating action buttons (`PersonalDictionaryScreen`, `PrivacyVaultScreen`, `KdbxEntriesScreen`, `ReviewScreen`, `GestureDataScreen`, and `SearchScreen`). Confirmed all other screens correctly utilize `safeDrawingPadding`, `WindowInsets.safeDrawing`, or centered Compose `Dialog` windows with zero occlusion.
+  - **Component 3: Security Enforcement**:
+    - Audited workspace and purged build-generated `./debug.keystore` and `./debug.keystore.base64`. Clean build verified via `compile_applet`.
+
+- **2026-10-14**: Completed Phase 59 (Compact KeePassDX Magic Keyboard Chosen Entry Redesign & Settings Attachment CRUD Integration):
+  - **Component 1: Compact Magic Keyboard Deck Profile & Zero-Gap Dynamic Measurement (`ChosenEntryView.kt`, `chosen_entry_view.xml`)**:
+    - Reduced Chosen Entry modal height from ~240dp to ~132dp (~50% compact height matching KeePassDX Magic Keyboard), ensuring active input fields in the host application remain fully visible.
+    - Completely eliminated the vertical gap between the action key row and the bottom utility keyboard row (`[ABC]`, `[Space]`, `[⌫]`, `[↵]`) by dynamically measuring individual children (`chosen_top_row`, `chosen_action_row`, and `bottom_row_keyboard`) and setting exact measured layout dimensions.
+  - **Component 2: Keyboard Key Button Styling & Reordering (`ChosenEntryView.kt`, `chosen_entry_view.xml`, `bg_chosen_action_key.xml`)**:
+    - Extracted `keyBackgroundId` from `R.styleable.KeyboardView_keyBackground` and applied `Colors.setBackground(..., ColorType.KEY_BACKGROUND)`, giving all 5 mid-level action buttons the authentic rounded rectangle shape, border, and pressed state of native keyboard keys.
+    - Re-ordered the 5 mid-level buttons left to right per user requirement: **Notes**, **Attachment (Files)**, **Password**, **Username (User)**, and **TOTP**.
+  - **Component 3: Themed Floating Drop-Up Popups for Notes and Attachments (`ChosenEntryView.kt`)**:
+    - Implemented rounded drop-up cards with dismiss-on-outside-touch, title headers with `[✕]`, and scrollable text.
+    - Notes popup features one-tap "Insert Note" (directly types into the active field) and "Copy Note" (copies to clipboard).
+    - Attachments popup displays list of attached files with 📎 icons, filenames, and byte sizes, with one-tap copy/export.
+  - **Component 4: Settings KDBX Entry Editor Attachment CRUD Section (`KdbxEntryEditorScreen.kt`, `SecurityVaultDao.kt`)**:
+    - Added an "Attachments" card in `KdbxEntryEditorScreen.kt` with a `+ Attach File` button using `ActivityResultContracts.OpenDocument()`.
+    - Integrated display for attached files showing filenames, mime types, encrypted size badges, and deletion `[✕]`.
+    - Persisted new attachments via `dao.insertOrUpdateAttachment()` and pruned removed files on "Save Entry".
+    - Added cascade attachment cleanup in `SecurityVaultDao.deleteEntry()`.
+  - **Component 5: Explorer Modal Bottom Button Verification (`SecurityVaultExplorerView.kt`, `security_vault_explorer_view.xml`)**:
+    - Confirmed Security Vault Explorer modal has zero bottom 4 buttons, presenting a clean list-only interface with category filter chips and sort toggles.
+  - **Component 6: Security Enforcement**:
+    - Performed silent post-build security scans and purged build-generated `./debug.keystore`, `./debug.keystore.base64`, and `.build-outputs/app-debug.apk` per Mandates 2 & 3.
+

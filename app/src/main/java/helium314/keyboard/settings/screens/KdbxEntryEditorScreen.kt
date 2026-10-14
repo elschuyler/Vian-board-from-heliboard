@@ -15,11 +15,13 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -37,6 +39,7 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -69,6 +72,10 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.provider.OpenableColumns
+import helium314.keyboard.security.vault.data.VaultAttachmentEntity
 import java.util.UUID
 
 /**
@@ -131,6 +138,48 @@ fun KdbxEntryEditorScreen(
     var genPassphraseMode by remember { mutableStateOf(false) }
     var genWordCount by remember { mutableIntStateOf(4) }
 
+    val targetEntryUuid = remember { entry?.entryUuid ?: UUID.randomUUID().toString() }
+    var attachmentsList by remember {
+        mutableStateOf(if (isEditing) dao.getAttachmentsForEntry(entry!!.entryUuid).toMutableList() else mutableListOf<VaultAttachmentEntity>())
+    }
+    val deletedAttachmentUuids = remember { mutableListOf<String>() }
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            try {
+                var fileName = "attachment.bin"
+                var mimeType = "application/octet-stream"
+                context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                    val nameIdx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (nameIdx != -1 && cursor.moveToFirst()) {
+                        fileName = cursor.getString(nameIdx)
+                    }
+                }
+                context.contentResolver.getType(uri)?.let { mimeType = it }
+
+                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                if (bytes != null && bytes.isNotEmpty()) {
+                    val encryptedBlob = VaultCryptoManager.encrypt(bytes)
+                    val newAtt = VaultAttachmentEntity(
+                        attachmentUuid = UUID.randomUUID().toString(),
+                        entryUuid = targetEntryUuid,
+                        filename = fileName,
+                        mimeType = mimeType,
+                        dataBlobEncrypted = encryptedBlob
+                    )
+                    val updated = attachmentsList.toMutableList()
+                    updated.add(newAtt)
+                    attachmentsList = updated
+                    Toast.makeText(context, "Attached: $fileName", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Failed to read file: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     fun generateNewPassword() {
         val config = PasswordGenerator.GeneratorConfig(
             length = genLength.toInt(),
@@ -162,68 +211,87 @@ fun KdbxEntryEditorScreen(
         Scaffold(
             contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom),
             bottomBar = {
-                Card(
+                Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 4.dp,
+                    shadowElevation = 8.dp
                 ) {
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .windowInsetsPadding(WindowInsets.navigationBars)
                     ) {
-                        if (isEditing) {
-                            TextButton(
-                                onClick = {
-                                    dao.deleteEntry(entry!!.entryUuid)
-                                    Toast.makeText(context, "Entry deleted", Toast.LENGTH_SHORT).show()
-                                    onClickBack()
-                                },
-                                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                            ) {
-                                Text("Delete")
-                            }
-                        }
-                        Spacer(modifier = Modifier.weight(1f))
-                        TextButton(onClick = onClickBack) {
-                            Text("Cancel")
-                        }
-                        Button(
-                            onClick = {
-                                val passEncrypted = if (password.isNotBlank()) VaultCryptoManager.encryptString(password) else null
-                                val totpEncrypted = if (totpSecret.isNotBlank()) VaultCryptoManager.encryptString(totpSecret) else null
-                                val notesEncrypted = if (notes.isNotBlank()) VaultCryptoManager.encryptString(notes) else null
-
-                                val customJson = if (customFieldsList.isNotEmpty()) {
-                                    val jsonObject = buildJsonObject {
-                                        for ((k, v) in customFieldsList) {
-                                            put(k, JsonPrimitive(v))
-                                        }
-                                    }
-                                    jsonObject.toString()
-                                } else null
-
-                                val updated = VaultEntryEntity(
-                                    entryUuid = entry?.entryUuid ?: UUID.randomUUID().toString(),
-                                    groupUuid = selectedGroupUuid,
-                                    title = title.ifBlank { "Untitled" },
-                                    username = username.ifBlank { null },
-                                    passwordEncrypted = passEncrypted,
-                                    urlOrPackage = urlOrPackage.ifBlank { null },
-                                    totpSecretEncrypted = totpEncrypted,
-                                    notesEncrypted = notesEncrypted,
-                                    customFieldsJson = customJson,
-                                    updatedAt = System.currentTimeMillis()
-                                )
-                                dao.insertOrUpdateEntry(updated)
-                                Toast.makeText(context, "Entry saved successfully", Toast.LENGTH_SHORT).show()
-                                onClickBack()
-                            },
-                            enabled = title.isNotBlank()
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                         ) {
-                            Text("Save Entry")
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (isEditing) {
+                                    TextButton(
+                                        onClick = {
+                                            dao.deleteEntry(entry!!.entryUuid)
+                                            Toast.makeText(context, "Entry deleted", Toast.LENGTH_SHORT).show()
+                                            onClickBack()
+                                        },
+                                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                                    ) {
+                                        Text("Delete")
+                                    }
+                                }
+                                Spacer(modifier = Modifier.weight(1f))
+                                TextButton(onClick = onClickBack) {
+                                    Text("Cancel")
+                                }
+                                Button(
+                                    onClick = {
+                                        val passEncrypted = if (password.isNotBlank()) VaultCryptoManager.encryptString(password) else null
+                                        val totpEncrypted = if (totpSecret.isNotBlank()) VaultCryptoManager.encryptString(totpSecret) else null
+                                        val notesEncrypted = if (notes.isNotBlank()) VaultCryptoManager.encryptString(notes) else null
+
+                                        val customJson = if (customFieldsList.isNotEmpty()) {
+                                            val jsonObject = buildJsonObject {
+                                                for ((k, v) in customFieldsList) {
+                                                    put(k, JsonPrimitive(v))
+                                                }
+                                            }
+                                            jsonObject.toString()
+                                        } else null
+
+                                        val updated = VaultEntryEntity(
+                                            entryUuid = entry?.entryUuid ?: UUID.randomUUID().toString(),
+                                            groupUuid = selectedGroupUuid,
+                                            title = title.ifBlank { "Untitled" },
+                                            username = username.ifBlank { null },
+                                            passwordEncrypted = passEncrypted,
+                                            urlOrPackage = urlOrPackage.ifBlank { null },
+                                            totpSecretEncrypted = totpEncrypted,
+                                            notesEncrypted = notesEncrypted,
+                                            customFieldsJson = customJson,
+                                            updatedAt = System.currentTimeMillis()
+                                        )
+                                        dao.insertOrUpdateEntry(updated)
+                                        for (att in attachmentsList) {
+                                            dao.insertOrUpdateAttachment(att.copy(entryUuid = updated.entryUuid))
+                                        }
+                                        for (delUuid in deletedAttachmentUuids) {
+                                            dao.deleteAttachment(delUuid)
+                                        }
+                                        Toast.makeText(context, "Entry saved successfully", Toast.LENGTH_SHORT).show()
+                                        onClickBack()
+                                    },
+                                    enabled = title.isNotBlank()
+                                ) {
+                                    Text("Save Entry")
+                                }
+                            }
                         }
                     }
                 }
@@ -450,6 +518,106 @@ fun KdbxEntryEditorScreen(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp)
                         )
+                    }
+                }
+
+                // Section 3.5: Attachments Card
+                OutlinedCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Attachments (${attachmentsList.size})",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(
+                                onClick = { filePickerLauncher.launch(arrayOf("*/*")) }
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_attachment),
+                                    contentDescription = "Add Attachment",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+
+                        if (attachmentsList.isEmpty()) {
+                            Text(
+                                text = "No files attached to this credential entry.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            for ((index, att) in attachmentsList.withIndex()) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(
+                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                            RoundedCornerShape(8.dp)
+                                        )
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_attachment),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = att.filename,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 1
+                                        )
+                                        Text(
+                                            text = "${att.mimeType} • ${((att.dataBlobEncrypted?.size ?: 0) / 1024).coerceAtLeast(1)} KB",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = {
+                                            val updated = attachmentsList.toMutableList()
+                                            val removed = updated.removeAt(index)
+                                            attachmentsList = updated
+                                            deletedAttachmentUuids.add(removed.attachmentUuid)
+                                        },
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Text("✕", fontSize = 14.sp, color = MaterialTheme.colorScheme.error)
+                                    }
+                                }
+                            }
+                        }
+
+                        OutlinedButton(
+                            onClick = { filePickerLauncher.launch(arrayOf("*/*")) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_attachment),
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("+ Attach File")
+                        }
                     }
                 }
 
