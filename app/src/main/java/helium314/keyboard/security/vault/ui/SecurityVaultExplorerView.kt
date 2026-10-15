@@ -34,6 +34,8 @@ import helium314.keyboard.security.vault.data.VaultEntryEntity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -49,6 +51,8 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
     private lateinit var chipRecent: TextView
     private lateinit var chipFolders: TextView
     private lateinit var btnSortToggle: ImageButton
+    private lateinit var timerContainer: LinearLayout
+    private lateinit var txtSessionTimer: TextView
     private lateinit var btnLock: ImageButton
     private lateinit var btnClose: ImageButton
 
@@ -58,6 +62,7 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
 
     private var keyboardActionListener: KeyboardActionListener? = null
     private val scope = CoroutineScope(Dispatchers.Main + Job())
+    private var tickerJob: Job? = null
 
     companion object {
         private const val TAG = "SecurityVaultExplorerView"
@@ -76,6 +81,8 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
         chipRecent = findViewById(R.id.chip_filter_recent)
         chipFolders = findViewById(R.id.chip_filter_folders)
         btnSortToggle = findViewById(R.id.btn_sort_toggle)
+        timerContainer = findViewById(R.id.vault_timer_container)
+        txtSessionTimer = findViewById(R.id.txt_session_timer)
         btnLock = findViewById(R.id.btn_vault_lock)
         btnClose = findViewById(R.id.btn_vault_close)
         recyclerView = findViewById(R.id.recycler_vault_items)
@@ -103,16 +110,21 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
 
         btnSortToggle.setOnClickListener {
             val newSort = adapter.toggleSortMode()
-            btnSortToggle.alpha = if (newSort == AccordionFolderAdapter.SortMode.TIME) 1f else 0.6f
+            val sortIcon = if (newSort == AccordionFolderAdapter.SortMode.TIME) {
+                R.drawable.ic_sort_chronologically
+            } else {
+                R.drawable.ic_sort_alphabetically
+            }
+            btnSortToggle.setImageResource(sortIcon)
+            btnSortToggle.alpha = if (newSort == AccordionFolderAdapter.SortMode.TIME) 1f else 0.8f
         }
         updateChipHighlight(chipAll)
 
-        // Close without lock: restores keyboard, keeps vault unlocked for remainder of session timer
+        // Zero-Trust Lock: Closing modal or pressing lock always immediately locks session
         btnClose.setOnClickListener {
-            closeWithoutLock()
+            closeAndLock()
         }
 
-        // Close and lock: immediately locks vault session and restores keyboard
         btnLock.setOnClickListener {
             closeAndLock()
         }
@@ -123,11 +135,40 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         SecurityVaultDao.getInstance(context).addListener(this)
+        if (visibility == View.VISIBLE) {
+            startCountdownTicker()
+        }
     }
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
+        stopCountdownTicker()
         SecurityVaultDao.getInstance(context).removeListener(this)
+    }
+
+    private fun startCountdownTicker() {
+        tickerJob?.cancel()
+        tickerJob = scope.launch {
+            while (isActive) {
+                val remainingMs = VaultSessionManager.getSecuritySessionRemainingMs()
+                if (remainingMs <= 0L) {
+                    txtSessionTimer.text = "00:00"
+                    LogCatcher.log('I', TAG, "Security Vault session expired: auto-locking immediately")
+                    closeAndLock()
+                    break
+                }
+                val totalSeconds = (remainingMs + 999) / 1000
+                val minutes = totalSeconds / 60
+                val seconds = totalSeconds % 60
+                txtSessionTimer.text = String.format("%02d:%02d", minutes, seconds)
+                delay(1000L)
+            }
+        }
+    }
+
+    private fun stopCountdownTicker() {
+        tickerJob?.cancel()
+        tickerJob = null
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -151,22 +192,23 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
         applyThemeColors()
         updateChipHighlight(chipAll)
         loadData()
+        startCountdownTicker()
         visibility = View.VISIBLE
     }
 
     fun stopExplorer() {
+        stopCountdownTicker()
         visibility = View.GONE
     }
 
     fun closeWithoutLock() {
-        LogCatcher.log('I', TAG, "Exiting Security Vault Explorer modal: locking session and purging keys on demand")
-        VaultSessionManager.lockSecurity()
-        stopExplorer()
-        KeyboardSwitcher.getInstance().closeSecurityVaultExplorer(true)
+        // Enforce Interpretation 1: close the security gap on modal exit
+        closeAndLock()
     }
 
     fun closeAndLock() {
-        LogCatcher.log('I', TAG, "Locking Security Vault immediately on user action")
+        LogCatcher.log('I', TAG, "Locking Security Vault immediately on modal exit/expiry")
+        stopCountdownTicker()
         VaultSessionManager.lockSecurity()
         stopExplorer()
         KeyboardSwitcher.getInstance().closeSecurityVaultExplorer(true)

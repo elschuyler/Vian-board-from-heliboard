@@ -8,15 +8,16 @@ import android.util.AttributeSet
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.ImageButton
-import android.widget.TextView
 import helium314.keyboard.keyboard.KeyboardActionListener
 import helium314.keyboard.keyboard.KeyboardSwitcher
-import helium314.keyboard.keyboard.KeyboardTypeface
 import helium314.keyboard.keyboard.internal.KeyVisualAttributes
+import helium314.keyboard.keyboard.internal.KeyboardIconsSet
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.common.ColorType
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.ResourceUtils
+import helium314.keyboard.latin.utils.ToolbarKey
+import kotlin.math.min
 
 @SuppressLint("CustomViewStyleable")
 class PatternUnlockView @JvmOverloads constructor(
@@ -26,8 +27,9 @@ class PatternUnlockView @JvmOverloads constructor(
 ) : FrameLayout(context, attrs, defStyle) {
 
     private lateinit var gridView: PatternGridView
-    private var statusText: TextView? = null
-    private var closeButton: ImageButton? = null
+    private var chevronButton: ImageButton? = null
+    private var selectButton: ImageButton? = null
+    private var copyButton: ImageButton? = null
     private var pasteButton: ImageButton? = null
     private var spacerView: View? = null
 
@@ -35,7 +37,7 @@ class PatternUnlockView @JvmOverloads constructor(
     private var onUnlockSuccessCallback: (() -> Unit)? = null
     private var isUnlocked = false
 
-    var isStealth: Boolean = false
+    var isStealth: Boolean = true
         private set
 
     var isShowingPattern: Boolean = false
@@ -51,9 +53,7 @@ class PatternUnlockView @JvmOverloads constructor(
         gridView = findViewById(R.id.pattern_grid_view)
 
         gridView.onPatternStarted = {
-            if (!isStealth) {
-                statusText?.text = context.getString(R.string.pattern_verifying)
-            }
+            // Stealth mode: completely silent with zero visual tell on strip
         }
 
         gridView.onPatternCompleted = { pattern ->
@@ -73,48 +73,42 @@ class PatternUnlockView @JvmOverloads constructor(
     fun startPatternUnlock(
         listener: KeyboardActionListener,
         keyVisualAttributes: KeyVisualAttributes?,
-        isStealthMode: Boolean = false,
+        isStealthMode: Boolean = true,
         onSuccess: () -> Unit
     ) {
         keyboardActionListener = listener
         onUnlockSuccessCallback = onSuccess
         isUnlocked = false
-        isStealth = isStealthMode
+        isStealth = true // Only stealth mode now, no separate normal mode
         isShowingPattern = true
-        gridView.isStealthMode = isStealthMode
+        gridView.isStealthMode = true
 
         val strip = KeyboardSwitcher.getInstance().patternUnlockStrip
         if (strip != null) {
-            statusText = strip.findViewById(R.id.pattern_strip_status_text)
-            closeButton = strip.findViewById(R.id.pattern_strip_close_btn)
+            chevronButton = strip.findViewById(R.id.pattern_strip_chevron_btn)
+            selectButton = strip.findViewById(R.id.pattern_strip_select_btn)
+            copyButton = strip.findViewById(R.id.pattern_strip_copy_btn)
             pasteButton = strip.findViewById(R.id.pattern_strip_paste_btn)
             spacerView = strip.findViewById(R.id.pattern_strip_spacer)
 
-            val closeAction = View.OnClickListener {
+            // Disguised paste button acts as dismiss/close
+            pasteButton?.setOnClickListener {
                 stopPatternUnlock()
                 KeyboardSwitcher.getInstance().closeSecondaryKeyboard()
             }
-            closeButton?.setOnClickListener(closeAction)
-            pasteButton?.setOnClickListener(closeAction)
 
-            if (isStealthMode) {
-                statusText?.visibility = View.GONE
-                closeButton?.visibility = View.GONE
-                spacerView?.visibility = View.VISIBLE
-                pasteButton?.visibility = View.VISIBLE
-            } else {
-                statusText?.visibility = View.VISIBLE
-                closeButton?.visibility = View.VISIBLE
-                spacerView?.visibility = View.GONE
-                pasteButton?.visibility = View.GONE
-            }
+            // Chevron, Select, Copy: "Only look not action. So better disguise."
+            chevronButton?.setOnClickListener(null)
+            chevronButton?.isClickable = false
+            selectButton?.setOnClickListener(null)
+            selectButton?.isClickable = false
+            copyButton?.setOnClickListener(null)
+            copyButton?.isClickable = false
+
             strip.visibility = View.VISIBLE
         }
 
         applyThemeColors()
-        if (!isStealthMode) {
-            statusText?.text = context.getString(R.string.pattern_draw_to_unlock)
-        }
         gridView.clearPattern()
         visibility = View.VISIBLE
     }
@@ -131,64 +125,63 @@ class PatternUnlockView @JvmOverloads constructor(
         val matches = VaultSessionManager.verifyPattern(context, pattern)
         if (matches) {
             isUnlocked = true
-            if (!isStealth) {
-                statusText?.text = context.getString(R.string.pattern_unlocked)
-            }
             VaultSessionManager.startSecuritySession()
             postDelayed({
                 val cb = onUnlockSuccessCallback
                 stopPatternUnlock()
                 cb?.invoke()
-            }, if (isStealth) 80 else 250)
+            }, 80)
         } else {
-            if (!isStealth) {
-                statusText?.text = context.getString(R.string.pattern_incorrect)
-                gridView.setErrorState()
-                postDelayed({
-                    if (!isUnlocked) {
-                        gridView.clearPattern()
-                        statusText?.text = context.getString(R.string.pattern_draw_to_unlock)
-                    }
-                }, 650)
-            } else {
-                gridView.clearPattern()
-            }
+            // Stealth mode: silently clear pattern with no error banners or visual tells
+            gridView.clearPattern()
         }
     }
 
     private fun applyThemeColors() {
         val colors = runCatching { Settings.getValues().mColors }.getOrNull()
         val strip = KeyboardSwitcher.getInstance().patternUnlockStrip
+        val toolbarHeight = min(
+            resources.getDimensionPixelSize(R.dimen.config_suggestions_strip_edge_key_width),
+            resources.getDimension(R.dimen.config_suggestions_strip_height).toInt()
+        )
         if (colors != null) {
-            val textColor = colors.get(ColorType.KEY_TEXT)
-
-            statusText?.let { tv: TextView ->
-                tv.setTextColor(textColor)
-                KeyboardTypeface.applyToTextView(tv)
-            }
-            closeButton?.let { btn: ImageButton ->
-                colors.setColor(btn, ColorType.KEY_ICON)
-            }
-            pasteButton?.let { btn: ImageButton ->
-                colors.setColor(btn, ColorType.TOOL_BAR_KEY)
-            }
             strip?.let {
                 colors.setBackground(it, ColorType.STRIP_BACKGROUND)
             }
-            if (isStealth) {
-                setBackgroundColor(Color.TRANSPARENT)
-            } else {
-                colors.setBackground(this, ColorType.MAIN_BACKGROUND)
+            chevronButton?.let { btn ->
+                btn.layoutParams.height = toolbarHeight
+                btn.layoutParams.width = toolbarHeight
+                colors.setBackground(btn, ColorType.STRIP_BACKGROUND)
+                colors.setColor(btn, ColorType.TOOL_BAR_EXPAND_KEY)
+                colors.setColor(btn.background, ColorType.TOOL_BAR_EXPAND_KEY_BACKGROUND)
+                val arrowIcon = KeyboardIconsSet.instance.getNewDrawable(KeyboardIconsSet.NAME_TOOLBAR_KEY, context)
+                if (arrowIcon != null) btn.setImageDrawable(arrowIcon)
+                val isRtl = strip?.layoutDirection == View.LAYOUT_DIRECTION_RTL
+                btn.scaleX = if (isRtl) -1f else 1f
             }
+            selectButton?.let { btn ->
+                colors.setColor(btn, ColorType.TOOL_BAR_KEY)
+                val selectIcon = KeyboardIconsSet.instance.getNewDrawable(ToolbarKey.SELECT_WORD.name, context)
+                if (selectIcon != null) btn.setImageDrawable(selectIcon)
+            }
+            copyButton?.let { btn ->
+                colors.setColor(btn, ColorType.TOOL_BAR_KEY)
+                val copyIcon = KeyboardIconsSet.instance.getNewDrawable(ToolbarKey.COPY.name, context)
+                if (copyIcon != null) btn.setImageDrawable(copyIcon)
+            }
+            pasteButton?.let { btn ->
+                colors.setColor(btn, ColorType.TOOL_BAR_KEY)
+                val pasteIcon = KeyboardIconsSet.instance.getNewDrawable(ToolbarKey.PASTE.name, context)
+                if (pasteIcon != null) btn.setImageDrawable(pasteIcon)
+            }
+            setBackgroundColor(Color.TRANSPARENT)
         } else {
-            statusText?.setTextColor(Color.WHITE)
-            closeButton?.setColorFilter(Color.WHITE)
+            strip?.setBackgroundColor(Color.parseColor("#202124"))
+            chevronButton?.setColorFilter(Color.WHITE)
+            selectButton?.setColorFilter(Color.WHITE)
+            copyButton?.setColorFilter(Color.WHITE)
             pasteButton?.setColorFilter(Color.WHITE)
-            if (isStealth) {
-                setBackgroundColor(Color.TRANSPARENT)
-            } else {
-                setBackgroundColor(Color.parseColor("#202124"))
-            }
+            setBackgroundColor(Color.TRANSPARENT)
         }
     }
 }

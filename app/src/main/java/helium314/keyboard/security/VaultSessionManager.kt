@@ -44,10 +44,17 @@ object VaultSessionManager {
         }
     }
 
-    // Session durations
-    const val PRIVACY_SESSION_DURATION_MS = 5 * 60 * 1000L  // 5 minutes
-    const val SECURITY_SESSION_DURATION_MS = 3 * 60 * 1000L // 3 minutes
-    const val SETTINGS_SESSION_DURATION_MS = 3 * 60 * 1000L // 3 minutes (isolated to Security Settings UI)
+    const val PREF_SECURITY_VAULT_TIMEOUT = "pref_security_vault_timeout"
+    const val PREF_PRIVACY_VAULT_TIMEOUT = "pref_privacy_vault_timeout"
+
+    // Default session durations
+    const val DEFAULT_PRIVACY_SESSION_DURATION_MS = 5 * 60 * 1000L  // 5 minutes
+    const val DEFAULT_SECURITY_SESSION_DURATION_MS = 3 * 60 * 1000L // 3 minutes
+    const val SETTINGS_SESSION_DURATION_MS = 3 * 60 * 1000L         // 3 minutes (isolated to Security Settings UI)
+
+    // Backward compatibility aliases
+    const val PRIVACY_SESSION_DURATION_MS = DEFAULT_PRIVACY_SESSION_DURATION_MS
+    const val SECURITY_SESSION_DURATION_MS = DEFAULT_SECURITY_SESSION_DURATION_MS
 
     @Volatile
     private var privacySessionExpiryMs: Long = 0L
@@ -278,6 +285,28 @@ object VaultSessionManager {
         LogCatcher.log('I', TAG, "clearPattern: Master pattern removed, all sessions purged")
     }
 
+    // --- Session Timeout Preferences ---
+
+    fun getSecurityTimeoutMs(context: Context?): Long {
+        if (context == null) return DEFAULT_SECURITY_SESSION_DURATION_MS
+        return context.prefs().getLong(PREF_SECURITY_VAULT_TIMEOUT, DEFAULT_SECURITY_SESSION_DURATION_MS)
+    }
+
+    fun getPrivacyTimeoutMs(context: Context?): Long {
+        if (context == null) return DEFAULT_PRIVACY_SESSION_DURATION_MS
+        return context.prefs().getLong(PREF_PRIVACY_VAULT_TIMEOUT, DEFAULT_PRIVACY_SESSION_DURATION_MS)
+    }
+
+    fun setSecurityTimeoutMs(context: Context, timeoutMs: Long) {
+        context.prefs().edit { putLong(PREF_SECURITY_VAULT_TIMEOUT, timeoutMs) }
+        LogCatcher.log('I', TAG, "setSecurityTimeoutMs: Security timeout updated to ${timeoutMs / 60000}m")
+    }
+
+    fun setPrivacyTimeoutMs(context: Context, timeoutMs: Long) {
+        context.prefs().edit { putLong(PREF_PRIVACY_VAULT_TIMEOUT, timeoutMs) }
+        LogCatcher.log('I', TAG, "setPrivacyTimeoutMs: Privacy timeout updated to ${timeoutMs / 60000}m")
+    }
+
     // --- Session Management ---
 
     fun isPrivacySessionValid(): Boolean = System.currentTimeMillis() < privacySessionExpiryMs
@@ -286,14 +315,24 @@ object VaultSessionManager {
 
     fun isSettingsSessionValid(): Boolean = System.currentTimeMillis() < settingsSessionExpiryMs
 
-    fun startPrivacySession() {
-        privacySessionExpiryMs = System.currentTimeMillis() + PRIVACY_SESSION_DURATION_MS
-        LogCatcher.log('I', TAG, "startPrivacySession: 5-minute session started")
+    fun getSecuritySessionRemainingMs(): Long = maxOf(0L, securitySessionExpiryMs - System.currentTimeMillis())
+
+    fun getPrivacySessionRemainingMs(): Long = maxOf(0L, privacySessionExpiryMs - System.currentTimeMillis())
+
+    fun getSettingsSessionRemainingMs(): Long = maxOf(0L, settingsSessionExpiryMs - System.currentTimeMillis())
+
+    @JvmOverloads
+    fun startPrivacySession(context: Context? = null) {
+        val duration = getPrivacyTimeoutMs(context)
+        privacySessionExpiryMs = System.currentTimeMillis() + duration
+        LogCatcher.log('I', TAG, "startPrivacySession: ${duration / 60000}m session started (expires at $privacySessionExpiryMs)")
     }
 
-    fun startSecuritySession() {
-        securitySessionExpiryMs = System.currentTimeMillis() + SECURITY_SESSION_DURATION_MS
-        LogCatcher.log('I', TAG, "startSecuritySession: 3-minute session started")
+    @JvmOverloads
+    fun startSecuritySession(context: Context? = null) {
+        val duration = getSecurityTimeoutMs(context)
+        securitySessionExpiryMs = System.currentTimeMillis() + duration
+        LogCatcher.log('I', TAG, "startSecuritySession: ${duration / 60000}m session started (expires at $securitySessionExpiryMs)")
     }
 
     fun startSettingsSession() {

@@ -77,6 +77,7 @@ import androidx.core.content.edit
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.utils.LogCatcher
 import helium314.keyboard.latin.utils.prefs
+import helium314.keyboard.security.VaultSessionManager
 import helium314.keyboard.security.vault.crypto.VaultCryptoManager
 import helium314.keyboard.security.vault.data.SecurityVaultDao
 import helium314.keyboard.security.vault.data.VaultEntryEntity
@@ -460,7 +461,7 @@ fun SecurityVaultScreen(
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = "In-memory session timeout: 3 minutes idle auto-lock",
+                                        text = "In-memory session timeout: ${VaultSessionManager.getSecurityTimeoutMs(context) / 60000} minutes idle auto-lock",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )

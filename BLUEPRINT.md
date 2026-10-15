@@ -689,3 +689,42 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
   - **Component 6: Security Enforcement**:
     - Performed silent post-build security scans and purged build-generated `./debug.keystore`, `./debug.keystore.base64`, and `.build-outputs/app-debug.apk` per Mandates 2 & 3.
 
+- **2026-10-15**: Completed Phase 60 (Stealth Pattern Disguise Suggestion Strip & Pinned Keys Parity):
+  - **Component 1: Stealth-Only Pattern Unlock Mode (`KeyboardSwitcher.java`, `PatternUnlockView.kt`)**:
+    - Unified pattern unlock to strictly and permanently operate in stealth mode (`isStealth = true`), retiring the conspicuous "normal mode" with status text banners ("Draw pattern to unlock") and `[X]` corner buttons.
+    - Standard alphabet keyboard underlay (`mKeyboardView`) remains 100% visible beneath the transparent `PatternUnlockView` canvas across all triggers, whether `pref_vault_stealth_gatekeeper` is on or off.
+    - Silent clear on pattern mismatch (`gridView.clearPattern()`) with zero error banners, preserving flawless disguise.
+  - **Component 2: Suggestion Strip Full-Width Disguise & Pinned Keys Order (`strip_container.xml`, `PatternUnlockView.kt`)**:
+    - Removed arbitrary `paddingStart="12dp"` and `paddingEnd="8dp"` on `pattern_unlock_strip`, matching standard suggestion strip geometry flush to window edges.
+    - Added toolbar expand chevron (`pattern_strip_chevron_btn`) on the far left with `toolbar_expand_key_background`, `NAME_TOOLBAR_KEY` arrow icon, and RTL mirroring.
+    - Set center spacer (`pattern_strip_spacer`) with `layout_weight="1"` matching idle empty suggestion strip.
+    - Configured right-aligned pinned keys cluster in exact order: **Select Word** (`pattern_strip_select_btn`), **Copy** (`pattern_strip_copy_btn`), and **Paste** (`pattern_strip_paste_btn`).
+    - Styled with theme colors: `STRIP_BACKGROUND`, `TOOL_BAR_EXPAND_KEY`, `TOOL_BAR_EXPAND_KEY_BACKGROUND`, and `TOOL_BAR_KEY`.
+  - **Component 3: Look-Only Disguise Behavior ("Only look not action") (`PatternUnlockView.kt`)**:
+    - Chevron, Select, and Copy buttons configured with zero actions (`setOnClickListener(null)`, `isClickable = false`), serving purely as authentic visual disguise.
+    - Paste button retains disguised dismiss action, allowing the user to cleanly close the secondary keyboard / pattern lock when tapped.
+  - **Component 4: Security Enforcement**:
+    - Performed silent post-build security scan and purged build-generated `./debug.keystore`, `./debug.keystore.base64`, and `.build-outputs/app-debug.apk` per Mandates 2 & 3. Clean build verified via `compile_applet`.
+
+- **2026-10-15**: Completed Phase 61 (Zero-Trust Lockout on Minimize & Close, Live Vault Countdown Timers, & Dynamic Auto-Lock Timeouts):
+  - **Component 1: Zero-Trust Strict Lockout Enforcement (Interpretation 1)**:
+    - Enforced immediate security purge on all minimize, close, and navigation events:
+      - In `LatinIME.java`: added `VaultSessionManager.INSTANCE.lockAll()` inside `onWindowHidden()` and verified `cleanupInternalStateForFinishInput()`.
+      - In `KeyboardSwitcher.java`: confirmed `closeSecurityVaultExplorer()` and `closeChosenEntry()` unconditionally call `VaultSessionManager.INSTANCE.lockSecurity()`.
+      - In `SecurityVaultExplorerView.kt`: both `btnClose` and `btnLock` execute `closeAndLock()`, terminating in-memory keys and restoring the keyboard.
+      - In `PrivacyVaultScreen.kt`: added `DisposableEffect` with `onDispose { VaultSessionManager.lockPrivacy() }` and `onClickBack` handler to immediately lock the privacy vault upon navigating away.
+  - **Component 2: Dynamic Auto-Lock Engine & Preferences (`VaultSessionManager.kt`)**:
+    - Introduced preference keys `PREF_SECURITY_VAULT_TIMEOUT` (default: 3 min = 180,000ms) and `PREF_PRIVACY_VAULT_TIMEOUT` (default: 5 min = 300,000ms).
+    - Added `getSecurityTimeoutMs()`, `getPrivacyTimeoutMs()`, `setSecurityTimeoutMs()`, `setPrivacyTimeoutMs()`, `getSecuritySessionRemainingMs()`, and `getPrivacySessionRemainingMs()`.
+    - Updated `startSecuritySession(context)` and `startPrivacySession(context)` with `@JvmOverloads` to read configured durations dynamically.
+  - **Component 3: Live Visual Countdown Tickers in UI**:
+    - In `security_vault_explorer_view.xml` & `SecurityVaultExplorerView.kt`: added `vault_timer_container` with `ic_timer` and `txt_session_timer`; replaced confusing `ic_timer` on `btn_sort_toggle` with `ic_sort_alphabetically` and dynamic icon toggling; runs a 1,000ms coroutine ticker that automatically locks and exits when session hits `00:00`.
+    - In `chosen_entry_view.xml` & `ChosenEntryView.kt`: added `chosen_timer_container` with `txt_chosen_timer` in the top header row; runs live session ticker, dismisses popups, and auto-locks on timeout.
+    - In `PrivacyVaultScreen.kt`: added live countdown chip in `SearchScreen` top bar (`⏱ mm:ss`) with a 1,000ms `LaunchedEffect` ticker that auto-locks and prompts re-authentication upon expiry.
+  - **Component 4: Settings Timeout Pickers (`UnlockMethodsScreen.kt`, `SecurityVaultScreen.kt`)**:
+    - In `UnlockMethodsScreen.kt`: added "Security Vault Auto-Lock Timeout" (`1m | 3m (Default) | 5m | 10m`) and "Privacy Vault Auto-Lock Timeout" (`1m | 5m (Default) | 15m | 30m`) dialog pickers under Section 4 ("Stealth & Session Control").
+    - In `SecurityVaultScreen.kt`: bound Active Session Timeout badge in Card 3 to dynamically reflect the configured timeout.
+  - **Component 5: Security Enforcement**:
+    - Conducted post-build security scans and purged build-generated `./debug.keystore`, `./debug.keystore.base64`, and `.build-outputs/app-debug.apk` per Mandates 2 & 3. Verified compilation with `compile_applet`.
+
+

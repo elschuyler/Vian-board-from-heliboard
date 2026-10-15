@@ -53,6 +53,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="6dp"
+            android:layout_marginEnd="6dp"
             android:orientation="vertical">
 
             <TextView
@@ -71,6 +72,35 @@
                 android:textSize="11sp"
                 android:singleLine="true"
                 android:ellipsize="end" />
+        </LinearLayout>
+
+        <!-- Session Countdown Timer Pill -->
+        <LinearLayout
+            android:id="@+id/chosen_timer_container"
+            android:layout_width="wrap_content"
+            android:layout_height="26dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:background="@drawable/bg_vault_chip_inactive">
+
+            <ImageView
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_timer"
+                android:contentDescription="Session Timer" />
+
+            <TextView
+                android:id="@+id/txt_chosen_timer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text="03:00"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="#EEFFFFFF" />
         </LinearLayout>
     </LinearLayout>
 

@@ -64,6 +64,14 @@ fun UnlockMethodsScreen(
     var backupUnlockMethod by remember { mutableStateOf(VaultSessionManager.getBackupUnlockMethod(context)) }
     var showPrimaryMethodDialog by remember { mutableStateOf(false) }
     var showBackupMethodDialog by remember { mutableStateOf(false) }
+    var securityTimeoutMs by remember {
+        mutableStateOf(VaultSessionManager.getSecurityTimeoutMs(context))
+    }
+    var privacyTimeoutMs by remember {
+        mutableStateOf(VaultSessionManager.getPrivacyTimeoutMs(context))
+    }
+    var showSecurityTimeoutDialog by remember { mutableStateOf(false) }
+    var showPrivacyTimeoutDialog by remember { mutableStateOf(false) }
     var isStealthGatekeeper by remember {
         mutableStateOf(context.prefs().getBoolean("pref_vault_stealth_gatekeeper", false))
     }
@@ -265,6 +273,20 @@ fun UnlockMethodsScreen(
                 }
 
                 Preference(
+                    name = "Security Vault Auto-Lock Timeout",
+                    description = "In-memory session idle timeout before KeePass vault locks (${securityTimeoutMs / 60000} minutes)",
+                    onClick = { showSecurityTimeoutDialog = true },
+                    icon = R.drawable.ic_timer
+                ) { NextScreenIcon() }
+
+                Preference(
+                    name = "Privacy Vault Auto-Lock Timeout",
+                    description = "In-memory session idle timeout before protected phrases vault locks (${privacyTimeoutMs / 60000} minutes)",
+                    onClick = { showPrivacyTimeoutDialog = true },
+                    icon = R.drawable.ic_timer
+                ) { NextScreenIcon() }
+
+                Preference(
                     name = "Lock All Vault Sessions",
                     description = "Immediately purge active Privacy, Security, and Settings sessions",
                     onClick = {
@@ -439,6 +461,104 @@ fun UnlockMethodsScreen(
                 },
                 confirmButton = {
                     TextButton(onClick = { showBackupMethodDialog = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
+
+        // Security Vault Timeout Dialog
+        if (showSecurityTimeoutDialog) {
+            val options = listOf(
+                60_000L to "1 minute",
+                180_000L to "3 minutes (Default)",
+                300_000L to "5 minutes",
+                600_000L to "10 minutes"
+            )
+            AlertDialog(
+                onDismissRequest = { showSecurityTimeoutDialog = false },
+                title = { Text("Security Vault Auto-Lock Timeout") },
+                text = {
+                    Column(Modifier.fillMaxWidth()) {
+                        Text(
+                            "KeePass database will automatically lock after this duration of inactivity while active on screen.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        options.forEach { (duration, label) ->
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        securityTimeoutMs = duration
+                                        VaultSessionManager.setSecurityTimeoutMs(context, duration)
+                                        showSecurityTimeoutDialog = false
+                                    }
+                                    .padding(vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = securityTimeoutMs == duration,
+                                    onClick = null
+                                )
+                                Spacer(Modifier.width(12.dp))
+                                Text(label, fontWeight = if (securityTimeoutMs == duration) FontWeight.Bold else FontWeight.Normal)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showSecurityTimeoutDialog = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
+
+        // Privacy Vault Timeout Dialog
+        if (showPrivacyTimeoutDialog) {
+            val options = listOf(
+                60_000L to "1 minute",
+                300_000L to "5 minutes (Default)",
+                900_000L to "15 minutes",
+                1_800_000L to "30 minutes"
+            )
+            AlertDialog(
+                onDismissRequest = { showPrivacyTimeoutDialog = false },
+                title = { Text("Privacy Vault Auto-Lock Timeout") },
+                text = {
+                    Column(Modifier.fillMaxWidth()) {
+                        Text(
+                            "Privacy Vault phrases will automatically lock after this duration of inactivity while active on screen.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        options.forEach { (duration, label) ->
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        privacyTimeoutMs = duration
+                                        VaultSessionManager.setPrivacyTimeoutMs(context, duration)
+                                        showPrivacyTimeoutDialog = false
+                                    }
+                                    .padding(vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = privacyTimeoutMs == duration,
+                                    onClick = null
+                                )
+                                Spacer(Modifier.width(12.dp))
+                                Text(label, fontWeight = if (privacyTimeoutMs == duration) FontWeight.Bold else FontWeight.Normal)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showPrivacyTimeoutDialog = false }) {
                         Text("Cancel")
                     }
                 }

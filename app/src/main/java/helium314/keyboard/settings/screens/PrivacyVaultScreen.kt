@@ -68,6 +68,8 @@ import helium314.keyboard.security.VaultSessionManager
 import helium314.keyboard.settings.SearchScreen
 import helium314.keyboard.settings.SearchSettingsScreen
 import helium314.keyboard.settings.dialogs.ThreeButtonAlertDialog
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 @Composable
 fun PrivacyVaultScreen(
@@ -80,12 +82,24 @@ fun PrivacyVaultScreen(
         mutableStateOf(!isPatternSet || VaultSessionManager.isPrivacySessionValid())
     }
 
+    // Zero-Trust Lock: Leaving the Privacy Vault screen immediately locks the session
+    DisposableEffect(Unit) {
+        onDispose {
+            VaultSessionManager.lockPrivacy()
+        }
+    }
+
+    val handleBack = {
+        VaultSessionManager.lockPrivacy()
+        onClickBack()
+    }
+
     if (!isUnlocked) {
         // Pattern authentication challenge screen
         VaultUnlockScreen(
-            onClickBack = onClickBack,
+            onClickBack = handleBack,
             onUnlocked = {
-                VaultSessionManager.startPrivacySession()
+                VaultSessionManager.startPrivacySession(context)
                 isUnlocked = true
                 Toast.makeText(context, "Privacy Vault Unlocked", Toast.LENGTH_SHORT).show()
             }
@@ -93,7 +107,7 @@ fun PrivacyVaultScreen(
     } else {
         // Vault entries management screen
         VaultListScreen(
-            onClickBack = onClickBack,
+            onClickBack = handleBack,
             vaultDao = vaultDao,
             isPatternSet = isPatternSet,
             onLockVault = {
@@ -226,7 +240,7 @@ private fun VaultUnlockScreen(
                 Spacer(modifier = Modifier.height(20.dp))
 
                 Text(
-                    text = "Pattern unlocks the Privacy Vault for 5 minutes.",
+                    text = "Pattern unlocks the Privacy Vault for ${VaultSessionManager.getPrivacyTimeoutMs(context) / 60000} minutes.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -247,6 +261,29 @@ private fun VaultListScreen(
     var selectedEntry by remember { mutableStateOf<VaultEntry?>(null) }
     var revealedIds by remember { mutableStateOf(setOf<Long>()) }
 
+    var remainingTimeFormatted by remember {
+        val remainingMs = VaultSessionManager.getPrivacySessionRemainingMs()
+        val totalSec = (remainingMs + 999) / 1000
+        mutableStateOf(String.format("%02d:%02d", totalSec / 60, totalSec % 60))
+    }
+
+    LaunchedEffect(Unit) {
+        while (isActive) {
+            val remainingMs = VaultSessionManager.getPrivacySessionRemainingMs()
+            if (remainingMs <= 0L) {
+                remainingTimeFormatted = "00:00"
+                Toast.makeText(context, "Privacy Vault session expired", Toast.LENGTH_SHORT).show()
+                onLockVault()
+                break
+            }
+            val totalSeconds = (remainingMs + 999) / 1000
+            val minutes = totalSeconds / 60
+            val seconds = totalSeconds % 60
+            remainingTimeFormatted = String.format("%02d:%02d", minutes, seconds)
+            delay(1000L)
+        }
+    }
+
     DisposableEffect(vaultDao) {
         val listener = object : VaultDao.Listener {
             override fun onVaultEntriesChanged() {
@@ -263,14 +300,45 @@ private fun VaultListScreen(
 
     SearchScreen(
         onClickBack = onClickBack,
+        menu = listOf("Lock Vault" to onLockVault),
         title = {
-            Column {
-                Text("Privacy Vault")
-                Text(
-                    text = "${entries.size} protected phrases",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth().padding(end = 4.dp)
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Privacy Vault")
+                    Text(
+                        text = "${entries.size} protected phrases",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.padding(end = 4.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_timer),
+                            contentDescription = "Session Timer",
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = remainingTimeFormatted,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
         },
         filteredItems = { term ->

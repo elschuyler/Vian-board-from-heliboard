@@ -84,13 +84,45 @@
                     android:layout_height="32dp"
                     android:padding="6dp"
                     android:scaleType="fitCenter"
-                    android:src="@drawable/ic_timer"
+                    android:src="@drawable/ic_sort_alphabetically"
                     android:contentDescription="Sort order toggle"
                     android:background="@drawable/bg_vault_circle_button" />
             </LinearLayout>
         </HorizontalScrollView>
 
-        <!-- Top Right Action Cluster: Lock (Close & Lock) and Close (Close Without Lock) -->
+        <!-- Session Countdown Timer Pill -->
+        <LinearLayout
+            android:id="@+id/vault_timer_container"
+            android:layout_width="wrap_content"
+            android:layout_height="28dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:background="@drawable/bg_vault_chip_inactive">
+
+            <ImageView
+                android:id="@+id/img_timer_icon"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_timer"
+                android:contentDescription="Session Timer" />
+
+            <TextView
+                android:id="@+id/txt_session_timer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text="03:00"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="#EEFFFFFF" />
+        </LinearLayout>
+
+        <!-- Top Right Action Cluster: Unified Close & Lock -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
@@ -99,9 +131,9 @@
 
             <ImageButton
                 android:id="@+id/btn_vault_lock"
-                android:layout_width="44dp"
+                android:layout_width="38dp"
                 android:layout_height="match_parent"
-                android:padding="10dp"
+                android:padding="8dp"
                 android:scaleType="fitCenter"
                 android:src="@drawable/ic_lock"
                 android:contentDescription="Close &amp; Lock Vault"
@@ -109,12 +141,12 @@
 
             <ImageButton
                 android:id="@+id/btn_vault_close"
-                android:layout_width="44dp"
+                android:layout_width="38dp"
                 android:layout_height="match_parent"
-                android:padding="10dp"
+                android:padding="8dp"
                 android:scaleType="fitCenter"
                 android:src="@drawable/ic_close_rounded"
-                android:contentDescription="Close Vault (remain unlocked)"
+                android:contentDescription="Close &amp; Lock Vault"
                 android:background="?android:attr/selectableItemBackgroundBorderless" />
         </LinearLayout>
     </LinearLayout>

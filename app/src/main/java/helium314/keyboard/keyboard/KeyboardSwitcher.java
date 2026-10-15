@@ -700,15 +700,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     }
 
     private void triggerPatternFallback(Runnable onUnlock) {
-        final boolean stealthEnabled = KtxKt.prefs(mLatinIME).getBoolean("pref_vault_stealth_gatekeeper", true);
-        if (stealthEnabled) {
-            showStealthPatternUnlock(
-                onUnlock,
-                () -> {}
-            );
-        } else {
-            showPatternUnlockView(onUnlock);
-        }
+        showStealthPatternUnlock(
+            onUnlock,
+            () -> {}
+        );
     }
 
     public void showStealthPatternUnlock(@NonNull final Runnable onUnlockSuccess, @Nullable final Runnable onCancel) {
@@ -752,14 +747,13 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                                     if (pinSuccess) {
                                         if (onUnlockSuccess != null) onUnlockSuccess.run();
                                     } else {
-                                        showPatternUnlockView(onUnlockSuccess, false);
+                                        showPatternUnlockView(onUnlockSuccess, true);
                                     }
                                     return kotlin.Unit.INSTANCE;
                                 }
                             );
                         } else {
-                            final boolean isStealth = helium314.keyboard.latin.utils.DeviceProtectedUtils.getSharedPreferences(mLatinIME).getBoolean("pref_vault_stealth_gatekeeper", false);
-                            showPatternUnlockView(onUnlockSuccess, isStealth);
+                            showPatternUnlockView(onUnlockSuccess, true);
                         }
                     }
                     return kotlin.Unit.INSTANCE;
@@ -767,18 +761,17 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             );
             return;
         }
-        final boolean isStealth = helium314.keyboard.latin.utils.DeviceProtectedUtils.getSharedPreferences(mLatinIME).getBoolean("pref_vault_stealth_gatekeeper", false);
-        showPatternUnlockView(onUnlockSuccess, isStealth);
+        showPatternUnlockView(onUnlockSuccess, true);
     }
 
     public void showPatternUnlockView(Runnable onUnlockSuccess) {
-        showPatternUnlockView(onUnlockSuccess, false);
+        showPatternUnlockView(onUnlockSuccess, true);
     }
 
     public void showPatternUnlockView(Runnable onUnlockSuccess, boolean isStealth) {
         if (mPatternUnlockView == null) return;
         mMainKeyboardFrame.setVisibility(View.VISIBLE);
-        mKeyboardView.setVisibility(isStealth ? View.VISIBLE : View.GONE);
+        mKeyboardView.setVisibility(View.VISIBLE);
         mEmojiTabStripView.setVisibility(View.GONE);
         mSuggestionStripView.setVisibility(View.GONE);
         mStripContainer.setVisibility(View.VISIBLE);

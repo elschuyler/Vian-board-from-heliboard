@@ -429,5 +429,27 @@
 - **Deviation from requested**: None. Followed exact user specifications.
 - **Known issue or follow-up needed**: Ready for on-device manual QA testing.
 
+---
+
+### Receipt Entry: Phase 60 Stealth Pattern Disguise Suggestion Strip & Pinned Keys Parity
+- **Timestamp**: 2026-10-15 01:05:00 UTC-7
+- **Summary of request**: In stealth mode (only stealth mode now, no separate normal mode whether on or off), suggestion bar had only a lone paste button slightly offset. Wanted chevron on left, and select and copy before paste on right, with only look not action for superior disguise.
+- **Exact files touched**:
+  - `app/src/main/res/layout/strip_container.xml`
+  - `app/src/main/java/helium314/keyboard/security/PatternUnlockView.kt`
+  - `app/src/main/java/helium314/keyboard/keyboard/KeyboardSwitcher.java`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_004.md`
+- **What was actually done**:
+  1. In `strip_container.xml`, completely restructured `pattern_unlock_strip`: eliminated arbitrary `paddingStart="12dp"` and `paddingEnd="8dp"` so the bar spans flush to keyboard edges identical to `suggestions_strip_wrapper`. Added `pattern_strip_chevron_btn` on the far left, centered `pattern_strip_spacer` with `layout_weight="1"` to mimic an idle suggestions strip, and grouped right-aligned pinned keys cluster `pattern_strip_pinned_keys` containing `pattern_strip_select_btn`, `pattern_strip_copy_btn`, and `pattern_strip_paste_btn`.
+  2. In `PatternUnlockView.kt`, bound `chevronButton`, `selectButton`, `copyButton`, and `pasteButton`. Configured `chevronButton`, `selectButton`, and `copyButton` with `setOnClickListener(null)` and `isClickable = false` ("Only look not action"), serving strictly as authentic visual disguise. Preserved `pasteButton` disguised dismiss action closing the secondary keyboard / pattern lock.
+  3. In `PatternUnlockView.kt`, themed all components with native colors (`STRIP_BACKGROUND`, `TOOL_BAR_EXPAND_KEY`, `TOOL_BAR_EXPAND_KEY_BACKGROUND`, and `TOOL_BAR_KEY`). Permanently enforced stealth mode (`isStealth = true`, `gridView.isStealthMode = true`, `setBackgroundColor(Color.TRANSPARENT)`), silently clearing erroneous gestures with zero status text or error banners.
+  4. In `KeyboardSwitcher.java`, removed the "normal mode" toggle branches in `showPatternUnlockView` and `triggerPatternFallback`; pattern unlock now always displays in stealth mode with the full alphabet keyboard underlay visible beneath the transparent pattern view.
+  5. Enforced Mandates 2 & 3: conducted post-build security scans and purged build-generated `./debug.keystore`, `./debug.keystore.base64`, and `.build-outputs/app-debug.apk`.
+- **How it was verified**: Verified pristine compilation via `compile_applet` (exit code 0, Build succeeded).
+- **Deviation from requested**: None. Followed exact user specifications.
+- **Known issue or follow-up needed**: Ready for on-device manual QA testing.
+
+
 
 

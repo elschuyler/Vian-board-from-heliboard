@@ -60,6 +60,7 @@ class ChosenEntryView @JvmOverloads constructor(
     private lateinit var btnLock: ImageButton
     private lateinit var txtTitle: TextView
     private lateinit var txtSubtitle: TextView
+    private lateinit var txtChosenTimer: TextView
 
     private lateinit var btnActionNote: LinearLayout
     private lateinit var iconActionNote: ImageView
@@ -81,6 +82,8 @@ class ChosenEntryView @JvmOverloads constructor(
 
     private val scope = CoroutineScope(Dispatchers.Main + Job())
     private var totpTickerJob: Job? = null
+    private var sessionTickerJob: Job? = null
+    private var activePopupWindow: PopupWindow? = null
 
     companion object {
         private const val TAG = "ChosenEntryView"
@@ -101,6 +104,7 @@ class ChosenEntryView @JvmOverloads constructor(
         btnLock = findViewById(R.id.btn_chosen_lock)
         txtTitle = findViewById(R.id.txt_chosen_title)
         txtSubtitle = findViewById(R.id.txt_chosen_subtitle)
+        txtChosenTimer = findViewById(R.id.txt_chosen_timer)
 
         btnActionNote = findViewById(R.id.btn_action_note)
         iconActionNote = findViewById(R.id.icon_action_note)
@@ -179,10 +183,59 @@ class ChosenEntryView @JvmOverloads constructor(
 
         applyThemeColors()
         startTotpTicker()
+        startSessionTicker()
         visibility = View.VISIBLE
     }
 
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        if (visibility == View.VISIBLE) {
+            startSessionTicker()
+        }
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        activePopupWindow?.dismiss()
+        activePopupWindow = null
+        stopSessionTicker()
+        totpTickerJob?.cancel()
+        totpTickerJob = null
+    }
+
+    private fun startSessionTicker() {
+        sessionTickerJob?.cancel()
+        sessionTickerJob = scope.launch {
+            while (isActive) {
+                val remainingMs = VaultSessionManager.getSecuritySessionRemainingMs()
+                if (remainingMs <= 0L) {
+                    txtChosenTimer.text = "00:00"
+                    LogCatcher.log('I', TAG, "Security Vault session expired in ChosenEntryView: auto-locking immediately")
+                    activePopupWindow?.dismiss()
+                    activePopupWindow = null
+                    VaultSessionManager.lockSecurity()
+                    stopChosenEntry()
+                    KeyboardSwitcher.getInstance().closeChosenEntry(true)
+                    break
+                }
+                val totalSeconds = (remainingMs + 999) / 1000
+                val minutes = totalSeconds / 60
+                val seconds = totalSeconds % 60
+                txtChosenTimer.text = String.format("%02d:%02d", minutes, seconds)
+                delay(1000L)
+            }
+        }
+    }
+
+    private fun stopSessionTicker() {
+        sessionTickerJob?.cancel()
+        sessionTickerJob = null
+    }
+
     fun stopChosenEntry() {
+        activePopupWindow?.dismiss()
+        activePopupWindow = null
+        stopSessionTicker()
         totpTickerJob?.cancel()
         totpTickerJob = null
         currentEntry = null
@@ -397,6 +450,7 @@ class ChosenEntryView @JvmOverloads constructor(
         container.addView(actionRow)
 
         val popupWidth = (ResourceUtils.getKeyboardWidth(context, Settings.getValues()) * 0.9f).toInt()
+        activePopupWindow?.dismiss()
         popupWindow = PopupWindow(
             container,
             popupWidth,
@@ -406,7 +460,11 @@ class ChosenEntryView @JvmOverloads constructor(
             isOutsideTouchable = true
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
             elevation = 16 * density
+            setOnDismissListener {
+                if (activePopupWindow === this) activePopupWindow = null
+            }
         }
+        activePopupWindow = popupWindow
         popupWindow.showAtLocation(this, Gravity.CENTER, 0, 0)
     }
 
@@ -518,6 +576,7 @@ class ChosenEntryView @JvmOverloads constructor(
         container.addView(scrollView)
 
         val popupWidth = (ResourceUtils.getKeyboardWidth(context, Settings.getValues()) * 0.9f).toInt()
+        activePopupWindow?.dismiss()
         popupWindow = PopupWindow(
             container,
             popupWidth,
@@ -527,7 +586,11 @@ class ChosenEntryView @JvmOverloads constructor(
             isOutsideTouchable = true
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
             elevation = 16 * density
+            setOnDismissListener {
+                if (activePopupWindow === this) activePopupWindow = null
+            }
         }
+        activePopupWindow = popupWindow
         popupWindow.showAtLocation(this, Gravity.CENTER, 0, 0)
     }
 

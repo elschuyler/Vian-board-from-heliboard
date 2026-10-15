@@ -1065,6 +1065,7 @@ public class LatinIME extends InputMethodService implements
         super.onWindowHidden();
         Log.i(TAG, "onWindowHidden");
         TempIncognitoManager.onKeyboardClosed();
+        VaultSessionManager.INSTANCE.lockAll();
         if (!mKeyboardSwitcher.isPendingVoiceLaunch() && mKeyboardSwitcher.isShowingVoiceInput()) {
             mKeyboardSwitcher.closeSecondaryKeyboard();
         }
