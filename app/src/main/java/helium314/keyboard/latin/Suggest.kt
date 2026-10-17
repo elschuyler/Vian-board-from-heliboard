@@ -105,81 +105,6 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
             }
         }
 
-        if (wordComposer.isAccidentalDigitWord) {
-            val candidates = wordComposer.getNearbyLetterCandidatesForDigit(keyboard)
-            var scoreOffset = 100
-            var candidateCount = 0
-            for (candidate in candidates) {
-                if (mDictionaryFacilitator.isValidSpellingWord(candidate) || mDictionaryFacilitator.isValidSpellingWord(candidate.lowercase(mDictionaryFacilitator.mainLocale))) {
-                    val candidateInfo = SuggestedWordInfo(
-                        candidate,
-                        "",
-                        SuggestedWordInfo.MAX_SCORE - scoreOffset,
-                        if (scoreOffset == 100) SuggestedWordInfo.KIND_WHITELIST else SuggestedWordInfo.KIND_CORRECTION or SuggestedWordInfo.KIND_FLAG_APPROPRIATE_FOR_AUTO_CORRECTION,
-                        Dictionary.DICTIONARY_USER_TYPED,
-                        SuggestedWordInfo.NOT_AN_INDEX,
-                        SuggestedWordInfo.NOT_A_CONFIDENCE
-                    )
-                    suggestionResults.add(candidateInfo)
-                    scoreOffset += 10
-                    candidateCount++
-                }
-            }
-        }
-
-        // Accidental space-neighbor consonant typo recovery (e.g. typing 'v', 'b', 'n' instead of spacebar)
-        val isSpellingValid = mDictionaryFacilitator.isValidSpellingWord(typedWordString) ||
-                mDictionaryFacilitator.isValidSpellingWord(typedWordString.lowercase(mDictionaryFacilitator.mainLocale))
-        if (!isSpellingValid && typedWordString.length >= 3) {
-            val spaceNeighbors = charArrayOf('v', 'b', 'n')
-            val lastChar = typedWordString.last()
-            if (lastChar in spaceNeighbors) {
-                val trimmed = typedWordString.substring(0, typedWordString.length - 1)
-                if (trimmed.length >= 2 && (mDictionaryFacilitator.isValidSpellingWord(trimmed) || mDictionaryFacilitator.isValidSpellingWord(trimmed.lowercase(mDictionaryFacilitator.mainLocale)))) {
-                    suggestionResults.add(
-                        SuggestedWordInfo(
-                            trimmed,
-                            "",
-                            999950,
-                            SuggestedWordInfo.KIND_WHITELIST or SuggestedWordInfo.KIND_CORRECTION or SuggestedWordInfo.KIND_FLAG_APPROPRIATE_FOR_AUTO_CORRECTION,
-                            Dictionary.DICTIONARY_USER_TYPED,
-                            SuggestedWordInfo.NOT_AN_INDEX,
-                            SuggestedWordInfo.NOT_A_CONFIDENCE
-                        )
-                    )
-                }
-            }
-            if (typedWordString.length >= 4) {
-                for (sep in spaceNeighbors) {
-                    var idx = typedWordString.indexOf(sep)
-                    while (idx > 0 && idx < typedWordString.length - 1) {
-                        val part1 = typedWordString.substring(0, idx)
-                        val part2 = typedWordString.substring(idx + 1)
-                        if (part1.length >= 2 && part2.isNotEmpty()) {
-                            val valid1 = mDictionaryFacilitator.isValidSpellingWord(part1) || mDictionaryFacilitator.isValidSpellingWord(part1.lowercase(mDictionaryFacilitator.mainLocale))
-                            val valid2 = mDictionaryFacilitator.isValidSpellingWord(part2) || mDictionaryFacilitator.isValidSpellingWord(part2.lowercase(mDictionaryFacilitator.mainLocale))
-                            if (valid1 && valid2) {
-                                val splitCandidate = "$part1 $part2"
-                                suggestionResults.add(
-                                    SuggestedWordInfo(
-                                        splitCandidate,
-                                        "",
-                                        999960,
-                                        SuggestedWordInfo.KIND_WHITELIST or SuggestedWordInfo.KIND_CORRECTION or SuggestedWordInfo.KIND_FLAG_APPROPRIATE_FOR_AUTO_CORRECTION,
-                                        Dictionary.DICTIONARY_USER_TYPED,
-                                        idx,
-                                        SuggestedWordInfo.NOT_A_CONFIDENCE
-                                    )
-                                )
-                                break
-                            }
-                        }
-                        idx = typedWordString.indexOf(sep, idx + 1)
-                    }
-                }
-            }
-        }
-
         // Privacy Vault shortcuts and phrases matching (in-memory O(1) cache)
         val ctx = mDictionaryFacilitator.context
         if (typedWordString.isNotEmpty() && ctx != null) {
@@ -204,9 +129,6 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         val trailingSingleQuotesCount = StringUtils.getTrailingSingleQuotesCount(typedWordString)
         val capsMode = getCapsModeForTyping(wordComposer, keyboard)
         val suggestionsContainer = ArrayList(suggestionResults)
-        if (DemotionManager.hasDemotions()) {
-            suggestionsContainer.sortBy { if (DemotionManager.isDemoted(it.mWord)) 1 else 0 }
-        }
         capitalizeAndAddTrailingSingleQuotes(suggestionsContainer, capsMode, trailingSingleQuotesCount, mDictionaryFacilitator.mainLocale)
         val capitalizedTypedWord = capitalize(typedWordString, capsMode, mDictionaryFacilitator.mainLocale)
 
@@ -215,6 +137,7 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         // we check against the capitalizedTypedWord because getTransformedSuggestedWordInfoList adjusts for capsMode
         val typedWordFirstOccurrenceWordInfo = suggestionsContainer.firstOrNull { it.mWord == capitalizedTypedWord }
         val firstOccurrenceOfTypedWordInSuggestions = SuggestedWordInfo.removeDupsAndTypedWord(capitalizedTypedWord, suggestionsContainer)
+        makeFirstTwoSuggestionsNonEmoji(suggestionsContainer)
 
         val (allowsToBeAutoCorrected, hasAutoCorrection) = shouldBeAutoCorrected(
             trailingSingleQuotesCount,
@@ -233,10 +156,29 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
             firstOccurrenceOfTypedWordInSuggestions,
             typedWordFirstOccurrenceWordInfo
         )
-        val typedWordInfo = SuggestedWordInfo(typedWordString, "", typedWordFirstOccurrenceWordInfo?.mScore ?: 0,
+        val typedWordInfo = SuggestedWordInfo(typedWordString, "", SuggestedWordInfo.MAX_SCORE,
             SuggestedWordInfo.KIND_TYPED, typedWordFirstOccurrenceWordInfo?.mSourceDict,
-            SuggestedWordInfo.NOT_AN_INDEX , SuggestedWordInfo.NOT_A_CONFIDENCE)
-        if (typedWordString.isNotEmpty() && suggestionsContainer.isEmpty() && NumberSuggestionsHelper.isNumeric(typedWordString)) {
+            SuggestedWordInfo.NOT_AN_INDEX, SuggestedWordInfo.NOT_A_CONFIDENCE)
+        if (typedWordString.isNotEmpty()) {
+            suggestionsContainer.add(0, typedWordInfo)
+        }
+
+        // Apply demotion to suggestionsContainer (preserving typedWordInfo at index 0 and relative order of non-demoted candidates)
+        if (DemotionManager.hasDemotions() && suggestionsContainer.size > 2) {
+            val demotedList = mutableListOf<SuggestedWordInfo>()
+            var i = 1
+            while (i < suggestionsContainer.size) {
+                val candidate = suggestionsContainer[i]
+                if (DemotionManager.isDemoted(candidate.mWord)) {
+                    demotedList.add(suggestionsContainer.removeAt(i))
+                } else {
+                    i++
+                }
+            }
+            suggestionsContainer.addAll(demotedList)
+        }
+
+        if (typedWordString.isNotEmpty() && suggestionsContainer.size <= 1 && NumberSuggestionsHelper.isNumeric(typedWordString)) {
             val suffixes = NumberSuggestionsHelper.getSuffixes(mDictionaryFacilitator.context)
             for ((index, suffix) in suffixes.withIndex()) {
                 val wordToCommit = if (suffix.startsWith('/') || suffix.startsWith('-') || suffix.startsWith('%')) {
@@ -268,6 +210,8 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         } else {
             inputStyleIfNotPrediction
         }
+
+        useDefaultEmojiSkinTone(suggestionsList)
 
         // If there is an incoming autocorrection, make sure typed word is shown, so user is able to override it.
         // Otherwise, if the relevant setting is enabled, show the typed word in the middle.
@@ -347,7 +291,7 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
             || !allowsToBeAutoCorrected // If the word does not allow to be auto-corrected, then we don't auto-correct.
             || !wordComposer.isComposingWord // If we are doing prediction, then we never auto-correct of course
             || suggestionResults.isEmpty() // If we don't have suggestion results, we can't evaluate the first suggestion for auto-correction
-            || (wordComposer.hasDigits() && !wordComposer.isAccidentalDigitWord) // Relaxed: allow autocorrect if accidental digit typo in word
+            || wordComposer.hasDigits() // If the word has digits, we never auto-correct because it's likely the word was type with a lot of care // todo: but what if user touched the number row?
             || (wordComposer.isMostlyCaps && !wordComposer.isAllUpperCase) // If the word is mostly caps, we never auto-correct because this is almost certainly intentional
             || wordComposer.isResumed // We never auto-correct when suggestions are resumed because it would be unexpected
             // If we don't have a main dictionary, we never want to auto-correct. The reason
@@ -423,9 +367,6 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         val locale = mDictionaryFacilitator.mainLocale
         val capsMode = getCapsModeForGesture(wordComposer, keyboard)
         val suggestionsContainer = ArrayList(suggestionResults)
-        if (DemotionManager.hasDemotions()) {
-            suggestionsContainer.sortBy { if (DemotionManager.isDemoted(it.mWord)) 1 else 0 }
-        }
         replaceSingleLetterFirstSuggestion(suggestionsContainer)
 
         val rejected: SuggestedWordInfo?
@@ -440,6 +381,7 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
             rejected = null
         }
         SuggestedWordInfo.removeDupsAndTypedWord(null, suggestionsContainer)
+        makeFirstTwoSuggestionsNonEmoji(suggestionsContainer)
         val pseudoTypedWord = suggestionsContainer.firstOrNull() // unchanged first suggestion, but considering adjusted order
         capitalizeAndAddTrailingSingleQuotes(suggestionsContainer, capsMode, 0, locale)
 
@@ -459,6 +401,8 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
                     Dictionary.DICTIONARY_USER_TYPED, SuggestedWordInfo.NOT_AN_INDEX, SuggestedWordInfo.NOT_A_CONFIDENCE)
             )
         }
+
+        useDefaultEmojiSkinTone(suggestionsContainer)
 
         // In the batch input mode, the most relevant suggested word should act as a "typed word"
         // (typedWordValid=true), not as an "auto correct word" (willAutoCorrect=false).
@@ -647,7 +591,16 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         }
 
         private fun makeFirstTwoSuggestionsNonEmoji(words: MutableList<SuggestedWordInfo>) {
-            // No-op: emoji dictionary decoupled
+            for (i in 0..1) {
+                if (words.size > 2 && words[i].isEmoji) {
+                    val relativeIndex = words.subList(2, words.size).indexOfFirst { !it.isEmoji }
+                    if (relativeIndex < 0) break
+                    val firstNonEmojiIndex = relativeIndex + 2
+                    if (firstNonEmojiIndex > i) {
+                        words.add(i, words.removeAt(firstNonEmojiIndex))
+                    }
+                }
+            }
         }
 
         /** reduces score of the first suggestion if next one is close and has more than a single letter */

@@ -727,4 +727,21 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
   - **Component 5: Security Enforcement**:
     - Conducted post-build security scans and purged build-generated `./debug.keystore`, `./debug.keystore.base64`, and `.build-outputs/app-debug.apk` per Mandates 2 & 3. Verified compilation with `compile_applet`.
 
+- **2026-10-17**: Completed Phase 63 (Upstream HeliBoard Suggestion & Prediction Engine Parity, Pristine Strip Layout Alignment, Demotion Integration & Number Row Retention):
+  - **Component 1: Upstream HeliBoard Suggest Engine Restoration (`Suggest.kt`)**:
+    - Restored `typedWordInfo` positioning at index 0 of `suggestionsContainer` (`suggestionsContainer.add(0, typedWordInfo)`), re-aligning the candidate list with `SuggestionStripLayoutHelper` where index 0 is `INDEX_OF_TYPED_WORD` and index 1 is `INDEX_OF_AUTO_CORRECTION`.
+    - Restored `typedWordInfo.mSourceDict` to `typedWordFirstOccurrenceWordInfo?.mSourceDict` (nullable without phony fallback), ensuring `typedWordInfo?.mSourceDict == null` properly detects non-dictionary typos for auto-correction.
+    - Restored upstream `makeFirstTwoSuggestionsNonEmoji(suggestionsContainer)` and `useDefaultEmojiSkinTone(suggestionsList)`.
+    - Removed experimental `isAccidentalDigitWord` whitelist injection from `Suggest.kt` and restored upstream `wordComposer.hasDigits()` guard in `shouldBeAutoCorrected`.
+    - Preserved instant in-memory Privacy Vault shortcut suggestions (`VaultDao.getInstance(ctx).findSuggestions`) and numerical suffix completions (`NumberSuggestionsHelper`).
+  - **Component 2: Dictionary Engine Optimization & Multilingual Parity (`DictionaryFacilitatorImpl.kt`)**:
+    - Restored exact upstream HeliBoard `includeAtLeastTwoWordSuggestions(suggestionResults, suggestionsArray, typedWord)` to ensure non-emoji word suggestions populate correctly.
+    - Standardized `resetDictionaries` to `getUsedLocales(newLocale, context)` directly, ensuring full multilingual prediction parity across normal and Lite modes.
+  - **Component 3: Suggestion Strip Long-Press Demote Native Re-ranking (`Suggest.kt`, `DictionaryFacilitatorImpl.kt`, `DemotionManager.kt`)**:
+    - Aligned demotion behavior with natural native dictionary re-ranking: long-pressing a main-dictionary candidate and tapping Demote unlearns it from `UserHistoryDictionary` and marks it in `DemotionManager`.
+    - In `Suggest.kt`, dynamically sinks demoted candidates to the tail of `suggestionsContainer` while preserving `typedWordInfo` at index 0 and maintaining the exact relative order and scores of all non-demoted candidates.
+  - **Component 4: Security & Build Verification**:
+    - Conducted silent security self-scan (zero exposed keys/tokens/keystores) and purged build-generated `./debug.keystore`, `./debug.keystore.base64`, and `.build-outputs/app-debug.apk`. Clean compilation verified via `compile_applet`.
+
+
 

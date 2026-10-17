@@ -70,8 +70,7 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
 
     init {
         orientation = VERTICAL
-        fitsSystemWindows = false
-        setPadding(0, 0, 0, 0)
+        fitsSystemWindows = true
     }
 
     override fun onFinishInflate() {
@@ -173,9 +172,8 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val res = context.resources
-        val width = ResourceUtils.getKeyboardWidth(context, Settings.getValues())
-        val stripHeight = res.getDimensionPixelSize(R.dimen.config_suggestions_strip_height)
-        val height = ResourceUtils.getSecondaryKeyboardHeight(res, Settings.getValues()) + stripHeight
+        val width = ResourceUtils.getKeyboardWidth(context, Settings.getValues()) + paddingLeft + paddingRight
+        val height = ResourceUtils.getSecondaryKeyboardHeight(res, Settings.getValues()) + paddingTop + paddingBottom
         val widthSpec = MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY)
         val heightSpec = MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
         super.onMeasure(widthSpec, heightSpec)

@@ -4,6 +4,7 @@ package helium314.keyboard.keyboard.clipboard
 
 import android.content.Context
 import android.view.View
+import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.recyclerview.widget.RecyclerView
 import helium314.keyboard.keyboard.internal.KeyboardParams
@@ -48,7 +49,7 @@ class ClipboardLayoutParams(ctx: Context) {
     }
 
     fun setItemProperties(view: View) {
-        (view.layoutParams as RecyclerView.LayoutParams).apply {
+        (view.layoutParams as? ViewGroup.MarginLayoutParams ?: return).apply {
             topMargin = keyHorizontalGap / 2
             bottomMargin = keyVerticalGap / 2
             marginStart = keyHorizontalGap / 2

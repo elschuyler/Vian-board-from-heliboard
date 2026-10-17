@@ -154,7 +154,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         Log.i(TAG, "resetDictionaries, force reloading main dictionary: $forceReloadMainDictionary")
         this.context = context
 
-        val locales = if (isSecondaryDropped) listOf(newLocale) else getUsedLocales(newLocale, context)
+        val locales = getUsedLocales(newLocale, context)
 
         val subDictTypesToUse = listOfNotNull(
             Dictionary.TYPE_USER,
@@ -682,27 +682,35 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
             return locales
         }
 
+        /** Include at least two non-emoji, non-typed word results if possible, so that the first two shown suggestions can be non-emoji */
         private fun includeAtLeastTwoWordSuggestions(
             suggestionResults: SuggestionResults,
             suggestionsArray: Array<List<SuggestedWordInfo>?>,
             typedWord: String
         ) {
-            var count = 0
-            for (info in suggestionResults) {
-                if (!isEmojiOrTypedWord(info, typedWord)) {
-                    count++
-                    if (count >= 2) return
-                }
+            if (suggestionResults.size <= 2) return
+            var nonEmojiNonTypedWordCount = 0
+            suggestionResults.forEach {
+                if (isEmojiOrTypedWord(it, typedWord)) return@forEach
+                ++nonEmojiNonTypedWordCount
+                if (nonEmojiNonTypedWordCount >= 2) return
             }
-            for (suggestions in suggestionsArray) {
-                if (suggestions == null) continue
-                for (info in suggestions) {
-                    if (!isEmojiOrTypedWord(info, typedWord)) {
-                        suggestionResults.add(info)
-                        count++
-                        if (count >= 2) return
-                    }
-                }
+            val allResults = SuggestionResults(Int.MAX_VALUE, false, false)
+            suggestionsArray.forEach {
+                if (it == null) return@forEach
+                allResults.addAll(it)
+            }
+            var addedWord: String? = null
+            for (i in 0 until 2 - nonEmojiNonTypedWordCount) {
+                val firstNonEmojiNonTypedWord = allResults.firstOrNull {
+                    !suggestionResults.contains(it) && !isEmojiOrTypedWord(it, typedWord)
+                        && addedWord?.compareTo(it.word, true) != 0
+                } ?: continue
+                // The conditions above guarantee that there are at least two EmojiOrTypedWord items
+                val lastEmojiOrTypedWord = suggestionResults.last { isEmojiOrTypedWord(it, typedWord) }
+                suggestionResults.remove(lastEmojiOrTypedWord)
+                suggestionResults.add(firstNonEmojiNonTypedWord)
+                addedWord = firstNonEmojiNonTypedWord.word
             }
         }
 

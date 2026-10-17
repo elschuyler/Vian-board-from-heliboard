@@ -12,7 +12,7 @@ import android.view.inputmethod.EditorInfo
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import helium314.keyboard.event.HapticEvent
 import helium314.keyboard.keyboard.KeyboardActionListener
 import helium314.keyboard.keyboard.KeyboardElement
@@ -99,9 +99,8 @@ class ClipboardHistoryView @JvmOverloads constructor(
         placeholderView = findViewById(R.id.clipboard_empty_view)
         clipboardRecyclerView = findViewById<ClipboardHistoryRecyclerView>(R.id.clipboard_list).apply {
             val colCount = resources.getInteger(R.integer.config_clipboard_keyboard_col_count)
-            layoutManager = GridLayoutManager(context, colCount)
+            layoutManager = StaggeredGridLayoutManager(colCount, StaggeredGridLayoutManager.VERTICAL)
             itemAnimator = null // Eliminate animator pipeline allocations on low-end chipsets
-            setHasFixedSize(true) // Prevent parent re-measurements during list scrolling
             recycledViewPool.setMaxRecycledViews(ClipboardAdapter.VIEW_TYPE_CLIPBOARD_ITEM, 20)
             recycledViewPool.setMaxRecycledViews(ClipboardAdapter.VIEW_TYPE_PROMPT_ITEM, 20)
             @Suppress("deprecation") // "no cache" should be fine according to warning in https://developer.android.com/reference/android/view/ViewGroup#setPersistentDrawingCache(int)
