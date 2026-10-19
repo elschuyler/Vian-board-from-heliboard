@@ -39,8 +39,9 @@ class VoicePulseView @JvmOverloads constructor(
 
     var pulseState: PulseState = PulseState.IDLE
         set(value) {
-            if (field != value) {
-                field = value
+            val stateChanged = field != value
+            field = value
+            if (stateChanged || (value == PulseState.LISTENING && animator == null)) {
                 updateAnimationState()
                 invalidate()
             }
@@ -219,6 +220,13 @@ class VoicePulseView @JvmOverloads constructor(
 
             barRect.set(barX, top, barX + barWidth, bottom)
             canvas.drawRoundRect(barRect, cornerRadius, cornerRadius, barPaint)
+        }
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        if (pulseState == PulseState.LISTENING && animator == null) {
+            updateAnimationState()
         }
     }
 

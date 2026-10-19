@@ -146,7 +146,9 @@ class VoiceInputView @JvmOverloads constructor(
                         pulseView.pulseState = VoicePulseView.PulseState.ERROR
                     }
                     VoiceIpcProtocol.ServiceState.IDLE -> {
-                        pulseView.pulseState = VoicePulseView.PulseState.IDLE
+                        if (!isVoiceActive) {
+                            pulseView.pulseState = VoicePulseView.PulseState.IDLE
+                        }
                     }
                 }
             }

@@ -154,6 +154,8 @@ class VoiceInputConnection(
                     messenger.send(unregisterMsg)
                     val stopMsg = Message.obtain(null, VoiceIpcProtocol.CMD_STOP_RECORDING)
                     messenger.send(stopMsg)
+                    val releaseMsg = Message.obtain(null, VoiceIpcProtocol.CMD_FORCE_RELEASE)
+                    messenger.send(releaseMsg)
                     messenger.binder?.unlinkToDeath(deathRecipient, 0)
                 } catch (e: Exception) {
                     // Ignore unregister errors during teardown

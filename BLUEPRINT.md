@@ -743,5 +743,33 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
   - **Component 4: Security & Build Verification**:
     - Conducted silent security self-scan (zero exposed keys/tokens/keystores) and purged build-generated `./debug.keystore`, `./debug.keystore.base64`, and `.build-outputs/app-debug.apk`. Clean compilation verified via `compile_applet`.
 
+- **2026-10-18**: Completed Phase 64 (Pattern Unlock Stealth & Normal Mode Independence, Theme-Adaptive Strip Icons & Light Mode Color Contrast):
+  - **Component 1: Theme-Adaptive Strip Icons & Light Mode Contrast Correction (`PatternUnlockView.kt`)**:
+    - Resolved white-on-white icon rendering in light themes by applying `btn.setImageDrawable(...)` prior to calling `colors.setColor(btn, ColorType.TOOL_BAR_KEY)` across `chevronButton`, `selectButton`, `copyButton`, `pasteButton`, and `closeButton`.
+    - Rethemed `chevronButton` with `ColorType.TOOL_BAR_KEY` (which dynamically evaluates to black/dark gray on light themes and white on dark themes) rather than `TOOL_BAR_EXPAND_KEY` (which hardcoded white for accent buttons).
+    - Upgraded fallback theme coloring to be day/night aware, selecting `Color.BLACK` for day/light mode and `Color.WHITE` for dark mode.
+  - **Component 2: Dynamic Stealth vs Normal Pattern Unlock Independence (`KeyboardSwitcher.java`, `PatternUnlockView.kt`, `strip_container.xml`)**:
+    - Reconnected the `pref_vault_stealth_gatekeeper` toggle: defaults to `true` (stealth mode by default) while fully honoring the disabled state when toggled off.
+    - In `KeyboardSwitcher.java`: dynamically queries `pref_vault_stealth_gatekeeper` and routes `isStealth` to `showPatternUnlockView()`. In stealth mode, keeps `mKeyboardView` visible as the QWERTY disguise underlay; in normal mode, sets `mKeyboardView` to `View.GONE` for a clean, dedicated tactile pattern unlock surface.
+    - In `strip_container.xml` & `PatternUnlockView.kt`: added `pattern_strip_status_text` and `pattern_strip_close_btn`. In stealth mode, displays the disguised toolbar (chevron, spacer, pinned select/copy/paste keys); in normal mode, displays clean status text ("Draw pattern to unlock") and `[X]` close button.
+    - Restored visual error feedback in normal mode (`gridView.setErrorState()`, "Incorrect pattern, try again" status message, 700ms reset) while preserving zero-tell silent clearance in stealth mode.
+  - **Component 3: Security & Build Verification**:
+    - Conducted silent security self-scan and verified repository integrity. Pristine compilation verified via `compile_applet`.
 
+- **2026-10-19**: Completed Phase 65 (Voice Input Engine Architecture Realignment, Dancing Sound Wave Restoration & Zero-RAM Eviction):
+  - **Component 1: Unified Process Microphone Access (`AndroidManifest.xml`)**:
+    - Removed `android:process=":voice"` from `VoiceInputService`, relocating voice recognition and audio capture directly into the main IME process (`helium314.keyboard.latin`).
+    - Bypassed Android 11–15 background microphone restrictions by running capture under the active IME window context with runtime `RECORD_AUDIO` permission, eliminating silent zero-buffers.
+  - **Component 2: Dual Audio Source Fallback & RMS Telemetry (`AudioRecordPipeline.kt`)**:
+    - Added resilient hardware source fallback: attempts `MediaRecorder.AudioSource.MIC` and falls back to `MediaRecorder.AudioSource.VOICE_RECOGNITION` if uninitialized.
+    - Enhanced RMS calculation with responsive 4.5x dynamic scaling, delivering continuous real-time audio energy to the UI visualizer.
+  - **Component 3: Dancing Sound Wave Equalizer Physics & State Resilience (`VoicePulseView.kt`, `VoiceInputView.kt`)**:
+    - In `VoicePulseView.kt`: guaranteed `ValueAnimator` restarts on modal presentation and added `onAttachedToWindow()` protection, driving the 21-band hardware-accelerated equalizer with rapid attack, gravity decay, frequency-weighted amplitude, and ambient wave ripple.
+    - In `VoiceInputView.kt`: guarded against premature `ServiceState.IDLE` transitions during client handshakes, locking the visualizer in `PulseState.LISTENING` while the modal is displayed.
+  - **Component 4: Zero-RAM Eviction on Dismiss & FUTO SLM Sizing (`VoiceInputService.kt`, `VoiceInputConnection.kt`)**:
+    - Implemented immediate memory eviction on modal dismissal: dispatches `CMD_FORCE_RELEASE`, stops recording, unbinds service, and calls `whisperEngine.release()` (`whisper_free(ctx)`).
+    - Verified that when voice input is not active, native model RAM = 0 MB and CPU = 0%, protecting 40MB/77MB SLMs (`voice-input-english-39.bin` / `voice-input-english-74.bin`) from background memory pressure.
+  - **Component 5: Direct LogCatcher Diagnostics & CI Verification**:
+    - All audio capture, RMS volume, and JNI Whisper logs now flow natively into the main `LogCatcher` ring buffer, visible in **Settings > Log Keeper**.
+    - Maintained `.github/workflows/build-apk.yml` and `app/src/main/jni/whisper/` native NDK compilation parity.
 

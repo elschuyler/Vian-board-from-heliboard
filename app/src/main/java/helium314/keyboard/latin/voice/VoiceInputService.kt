@@ -74,12 +74,14 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
-        LogCatcher.i(TAG, "Client unbound from VoiceInputService")
-        LogCatcher.markComponentActive(COMPONENT_NAME, "IPC Service", "Client Unbound (Idle Timer Active)")
+        LogCatcher.i(TAG, "Client unbound from VoiceInputService - Immediate Zero-RAM eviction")
+        LogCatcher.markComponentActive(COMPONENT_NAME, "IPC Service", "Client Unbound (Freeing Model)")
         clientMessenger = null
         pauseRecording()
-        resetIdleTimeout()
-        return true
+        releaseAudioPipeline()
+        whisperEngine.release()
+        stopSelf()
+        return false
     }
 
     override fun onDestroy() {
@@ -101,7 +103,9 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
         when (msg.what) {
             VoiceIpcProtocol.CMD_REGISTER_CLIENT -> {
                 clientMessenger = msg.replyTo
-                notifyStateChanged(currentState)
+                if (currentState != VoiceIpcProtocol.ServiceState.IDLE) {
+                    notifyStateChanged(currentState)
+                }
             }
             VoiceIpcProtocol.CMD_UNREGISTER_CLIENT -> {
                 clientMessenger = null
@@ -125,6 +129,7 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
             }
             VoiceIpcProtocol.CMD_FORCE_RELEASE -> {
                 releaseAudioPipeline()
+                whisperEngine.release()
                 stopSelf()
             }
         }

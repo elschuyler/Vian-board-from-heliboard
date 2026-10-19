@@ -70,19 +70,32 @@ class AudioRecordPipeline(
         val bufferSize = (minBufferSize * 2).coerceAtLeast(4096)
 
         try {
-            // Lock audio source strictly to standard hardware MIC for 100% offline compatibility on all ROMs/devices
-            LogCatcher.i(TAG, "Initializing AudioRecord strictly with hardware source: MIC")
-            val record = AudioRecord(
+            var record: AudioRecord? = null
+            val audioSources = listOf(
                 MediaRecorder.AudioSource.MIC,
-                SAMPLE_RATE_HZ,
-                CHANNEL_CONFIG,
-                AUDIO_FORMAT,
-                bufferSize
+                MediaRecorder.AudioSource.VOICE_RECOGNITION
             )
+            for (source in audioSources) {
+                val candidate = AudioRecord(
+                    source,
+                    SAMPLE_RATE_HZ,
+                    CHANNEL_CONFIG,
+                    AUDIO_FORMAT,
+                    bufferSize
+                )
+                if (candidate.state == AudioRecord.STATE_INITIALIZED) {
+                    record = candidate
+                    LogCatcher.i(TAG, "AudioRecord successfully initialized with source: $source")
+                    break
+                } else {
+                    candidate.release()
+                    LogCatcher.w(TAG, "AudioRecord state not initialized with source: $source")
+                }
+            }
 
-            if (record.state != AudioRecord.STATE_INITIALIZED) {
-                record.release()
-                LogCatcher.e(TAG, "Failed to initialize AudioRecord with source MIC (state=${record.state})")
+            if (record == null || record.state != AudioRecord.STATE_INITIALIZED) {
+                record?.release()
+                LogCatcher.e(TAG, "Failed to initialize AudioRecord with all available audio sources")
                 listener.onError("Failed to initialize AudioRecord (mic may be in use)")
                 return false
             }
@@ -97,7 +110,7 @@ class AudioRecordPipeline(
                 priority = Thread.MAX_PRIORITY
                 start()
             }
-            LogCatcher.i(TAG, "AudioRecordPipeline started successfully at 16kHz mono (source: MIC, buffer: $bufferSize bytes, gain: ${gainMultiplier}x)")
+            LogCatcher.i(TAG, "AudioRecordPipeline started successfully at 16kHz mono (buffer: $bufferSize bytes, gain: ${gainMultiplier}x)")
             LogCatcher.markComponentActive(COMPONENT_NAME, "AudioCapture", "Recording (16kHz mono, ${gainMultiplier}x)")
             return true
         } catch (t: Throwable) {
@@ -151,7 +164,7 @@ class AudioRecordPipeline(
                 if (now - lastRmsTime >= RMS_DISPATCH_INTERVAL_MS) {
                     lastRmsTime = now
                     val rms = sqrt(sumSquares / read).toFloat()
-                    val normalizedRms = (rms / 32767f * 3f).coerceIn(0f, 1f)
+                    val normalizedRms = (rms / 32767f * 4.5f).coerceIn(0f, 1f)
                     listener.onRmsChanged(normalizedRms)
                 }
 

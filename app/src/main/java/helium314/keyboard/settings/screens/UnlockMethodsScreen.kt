@@ -73,7 +73,7 @@ fun UnlockMethodsScreen(
     var showSecurityTimeoutDialog by remember { mutableStateOf(false) }
     var showPrivacyTimeoutDialog by remember { mutableStateOf(false) }
     var isStealthGatekeeper by remember {
-        mutableStateOf(context.prefs().getBoolean("pref_vault_stealth_gatekeeper", false))
+        mutableStateOf(context.prefs().getBoolean("pref_vault_stealth_gatekeeper", true))
     }
 
     SearchSettingsScreen(
