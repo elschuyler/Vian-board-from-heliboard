@@ -125,4 +125,46 @@ This file is part of the permanent audit trail for the project, tracking code mo
 - **How it was verified**: Verified via `compile_applet`.
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: Ready for on-device manual QA testing with imported 40MB (`voice-input-english-39.bin`) or 77MB (`voice-input-english-74.bin`) models.
+---
+
+### Receipt Entry: Phase 66 App Launcher Icon Capital 'D' Monogram & Subtle Purple-Grey 'sl' Spacebar Branding
+- **Timestamp**: 2026-10-19 02:52:00 UTC-7
+- **Summary of request**: In launcher icon replace the last 'b' with 'd' (capital 'D'); in the icon's spacebar add a subtle purple-grey 'sl'; discuss first, plan, then implement.
+- **Exact files touched**:
+  - `app/src/main/res/drawable/ic_launcher_foreground.xml`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_005.md`
+- **What was actually done**:
+  1. In `app/src/main/res/drawable/ic_launcher_foreground.xml`: replaced the bottom-right 'B' glyph path with a mathematically symmetric capital **'D'** vector path. Preserved bounding box coordinates ($X: 2718 \dots 3033$, $Y: 2186 \dots 2559$), stroke weight (`302.362`), and vertical stem width (`105` units), creating a clean, balanced **'V D'** diagonal monogram with the top-left 'V'.
+  2. In `app/src/main/res/drawable/ic_launcher_foreground.xml`: added a centered vector mark **"sl"** inside the launcher icon's white spacebar pill ($X: 1560 \dots 2760, Y: 2752.7 \dots 2952.7$) styled in M3 dusty purple-grey (`#857A94`) with smooth geometric curves for 's' and a vertical ascender for 'l', providing an understated 3.8:1 contrast watermark directly inside the icon.
+  3. Enforced Mandates 2 & 3: conducted post-build silent security scan (clean, zero exposed credentials).
+- **How it was verified**: Verified via `compile_applet`.
+- **Deviation from requested**: None. Followed exact agreed specifications.
+- **Known issue or follow-up needed**: Ready for on-device home screen verification.
+---
+
+### Receipt Entry: Phase 67 Prompt List Item Custom Title Support & Independent Modal Isolation (Option 1)
+- **Timestamp**: 2026-10-19 04:24:00 UTC-7
+- **Summary of request**: Can prompt list items have title like in edit can set; if no title then like now; should not affect clipboard modal; no other change; discuss first (Option 1 chosen), then implement.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/latin/database/PromptDao.kt`
+  - `app/src/main/java/helium314/keyboard/keyboard/clipboard/ClipboardAdapter.kt`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_005.md`
+- **What was actually done**:
+  1. In `app/src/main/java/helium314/keyboard/latin/database/PromptDao.kt`:
+     - Updated `addPrompt(text, title, pinned)` to preserve explicit user titles without auto-overwriting them with `safeText.take(30)`.
+     - Updated `updatePrompt(id, newTitle, newText)` to accept and store both user title and text.
+     - Added `MAX_TITLE_LENGTH = 100` ceiling to guard against memory thrashing.
+  2. In `app/src/main/java/helium314/keyboard/keyboard/clipboard/ClipboardAdapter.kt`:
+     - In `PromptItemViewHolder.showEditDialog`: added single-line `"Title (optional)"` input field above the multiline body text, pre-filled with existing custom title.
+     - In `PromptAddViewHolder.showAddDialog`: added single-line `"Title (optional)"` input field above the multiline body text to allow titling new prompts immediately.
+     - In `PromptItemViewHolder.bind(entry)`: implemented Option 1 rendering logic — if the entry has an explicit custom title, it displays the title; if no title was set, it displays the 2-line truncated text preview (`DISPLAY_TRUNCATION_LIMIT = 250`), preserving exact existing behavior.
+     - Enforced strict modal isolation: left `ClipboardViewHolder` and `clipboard_entry_key.xml` completely untouched.
+  3. Updated `BLUEPRINT.md` running ledger with Phase 67 details.
+  4. Enforced Mandates 2 & 3: conducted post-build silent security scan (clean, zero exposed credentials).
+- **How it was verified**: Verified via `compile_applet`.
+- **Deviation from requested**: None. Followed exact agreed specifications.
+- **Known issue or follow-up needed**: Ready for on-device manual QA testing.
+
 

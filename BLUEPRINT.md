@@ -773,3 +773,29 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
     - All audio capture, RMS volume, and JNI Whisper logs now flow natively into the main `LogCatcher` ring buffer, visible in **Settings > Log Keeper**.
     - Maintained `.github/workflows/build-apk.yml` and `app/src/main/jni/whisper/` native NDK compilation parity.
 
+- **2026-10-19**: Completed Phase 66 (App Launcher Icon Capital 'D' Monogram & Subtle Purple-Grey 'sl' Spacebar Branding):
+  - **Component 1: Capital 'D' Geometric Vector Replacement (`ic_launcher_foreground.xml`)**:
+    - Replaced the legacy double-loop 'B' glyph in the bottom-right key slot with a bold, pristine capital **'D'** vector path.
+    - Preserved exact bounding box coordinates ($X: 2718 \dots 3033$, $Y: 2186 \dots 2559$), stroke weight (`302.362`), and vertical stem width (`105` units), establishing a balanced, symmetrical diagonal **'V D'** monogram alongside the top-left 'V'.
+  - **Component 2: Subtle Purple-Grey 'sl' Spacebar Branding (`ic_launcher_foreground.xml`)**:
+    - Added a centered vector mark **"sl"** inside the launcher icon's white spacebar pill ($X: 1560 \dots 2760, Y: 2752.7 \dots 2952.7$).
+    - Styled in refined M3 dusty purple-grey (`#857A94`) with smooth geometric curves for 's' and a vertical ascender for 'l', delivering an understated, sophisticated 3.8:1 contrast watermark directly inside the icon.
+  - **Component 3: Build & Security Verification**:
+    - Verified clean vector syntax and successful applet compilation. Conducted silent security scan per Mandates 2 & 3.
+
+- **2026-10-19**: Completed Phase 67 (Prompt List Item Custom Title Support & Independent Modal Isolation - Option 1):
+  - **Component 1: DAO Custom Title Support & Legacy Continuity (`PromptDao.kt`)**:
+    - In `PromptDao.kt`: enhanced `addPrompt` and `updatePrompt` to store explicit user titles without auto-overwriting them with the first 30 characters of body text.
+    - Added `MAX_TITLE_LENGTH = 100` ceiling to guard against memory thrashing.
+    - Implemented legacy continuity detection: entries without an explicit custom title fall back seamlessly to rendering their full 2-line text snippet.
+  - **Component 2: Edit & Add Dialog Title Fields (`ClipboardAdapter.kt`)**:
+    - In `PromptItemViewHolder.showEditDialog`: added a clean, single-line `"Title (optional)"` input field above the body text editor, pre-populated with any existing custom title.
+    - In `PromptAddViewHolder.showAddDialog`: added an identical optional title input field, allowing new prompts to be given titles immediately upon creation.
+    - Passing both `newTitle` and `newText` upon saving.
+  - **Component 3: Card Rendering & Zero-Regression Modal Isolation (`ClipboardAdapter.kt`)**:
+    - In `PromptItemViewHolder.bind`: displays the custom title on the card if set; falls back to the truncated text preview (`DISPLAY_TRUNCATION_LIMIT = 250`) if no title was set, matching existing behavior.
+    - Maintained 100% isolation from the Clipboard Modal: `ClipboardViewHolder` and `clipboard_entry_key.xml` remain completely untouched.
+  - **Component 4: Build & Security Verification**:
+    - Verified clean compilation via `compile_applet`. Conducted silent security scan per Mandates 2 & 3.
+
+

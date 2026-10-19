@@ -320,6 +320,24 @@ class ClipboardAdapter(
             }
             layout.addView(titleText)
 
+            val titleEditText = EditText(context).apply {
+                hint = "Title (optional)"
+                isSingleLine = true
+                maxLines = 1
+                val bgPad = (10 * context.resources.displayMetrics.density).toInt()
+                setPadding(bgPad, bgPad, bgPad, bgPad)
+                setBackgroundResource(android.R.drawable.editbox_background_normal)
+            }
+            layout.addView(titleEditText)
+
+            val spacer = View(context).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    (8 * context.resources.displayMetrics.density).toInt()
+                )
+            }
+            layout.addView(spacer)
+
             val editText = EditText(context).apply {
                 hint = "Type your prompt or note here…"
                 minLines = 5
@@ -346,8 +364,9 @@ class ClipboardAdapter(
                 text = "Save"
                 setOnClickListener {
                     val newText = editText.text.toString().trim()
+                    val newTitle = titleEditText.text.toString().trim()
                     if (newText.isNotEmpty()) {
-                        promptDao?.addPrompt(newText)
+                        promptDao?.addPrompt(newText, newTitle)
                     }
                     dialog.dismiss()
                 }
@@ -407,10 +426,16 @@ class ClipboardAdapter(
 
         fun bind(entry: PromptEntry) {
             itemView.tag = entry.id
-            titleView.text = if (entry.text.length > DISPLAY_TRUNCATION_LIMIT) {
-                entry.text.take(DISPLAY_TRUNCATION_LIMIT)
+            val hasCustomTitle = entry.title.isNotBlank() &&
+                    entry.title != entry.text.take(30).replace("\n", " ").trim()
+            titleView.text = if (hasCustomTitle) {
+                entry.title
             } else {
-                entry.text
+                if (entry.text.length > DISPLAY_TRUNCATION_LIMIT) {
+                    entry.text.take(DISPLAY_TRUNCATION_LIMIT)
+                } else {
+                    entry.text
+                }
             }
             pinnedIcon.visibility = if (entry.isPinned) View.VISIBLE else View.GONE
             clipboardLayoutParams.setItemProperties(itemView)
@@ -532,6 +557,31 @@ class ClipboardAdapter(
             }
             layout.addView(titleText)
 
+            val titleEditText = EditText(context).apply {
+                hint = "Title (optional)"
+                isSingleLine = true
+                maxLines = 1
+                val existingTitle = if (entry.title.isNotBlank() && entry.title != entry.text.take(30).replace("\n", " ").trim()) {
+                    entry.title
+                } else {
+                    ""
+                }
+                setText(existingTitle)
+                setSelection(text.length)
+                val bgPad = (10 * context.resources.displayMetrics.density).toInt()
+                setPadding(bgPad, bgPad, bgPad, bgPad)
+                setBackgroundResource(android.R.drawable.editbox_background_normal)
+            }
+            layout.addView(titleEditText)
+
+            val spacer = View(context).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    (8 * context.resources.displayMetrics.density).toInt()
+                )
+            }
+            layout.addView(spacer)
+
             val editText = EditText(context).apply {
                 setText(entry.text)
                 setSelection(text.length)
@@ -559,8 +609,9 @@ class ClipboardAdapter(
                 text = "Save"
                 setOnClickListener {
                     val newText = editText.text.toString().trim()
+                    val newTitle = titleEditText.text.toString().trim()
                     if (newText.isNotEmpty()) {
-                        promptDao?.updatePrompt(entry.id, newText)
+                        promptDao?.updatePrompt(entry.id, newTitle, newText)
                         notifyDataSetChanged()
                     }
                     dialog.dismiss()
