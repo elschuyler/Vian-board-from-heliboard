@@ -933,7 +933,6 @@ public final class InputLogic {
             case KeyCode.PROMPT_LIST, KeyCode.DESKTOP_SHORTCUTS, KeyCode.INCOGNITO_TEMP_2MIN,
                  KeyCode.DPAD, KeyCode.NUMPAD, KeyCode.SYMBOL, KeyCode.ALPHA, KeyCode.SYMBOL_ALPHA,
                  KeyCode.EMOJI, KeyCode.TOGGLE_ONE_HANDED_MODE, KeyCode.SWITCH_ONE_HANDED_MODE, KeyCode.TOGGLE_FLOATING_WINDOW,
-                 KeyCode.HANDWRITING,
                  KeyCode.KEY_REPEAT: // can be configured on main layout using !code/-11000, and we shouldn't crash on this in debug mode
                 break;
             default:
@@ -1513,11 +1512,11 @@ public final class InputLogic {
                     unlearnWordBeingDeleted(
                             inputTransaction.getSettingsValues(), currentKeyboardScript);
                 }
-                if (mConnection.hasSlowInputConnection()) {
-                    mSuggestionStripViewAccessor.setNeutralSuggestionStrip();
-                } else if (inputTransaction.getSettingsValues().needsToLookupSuggestions()
+                if (inputTransaction.getSettingsValues().needsToLookupSuggestions()
                         && inputTransaction.getSettingsValues().mSpacingAndPunctuations.mCurrentLanguageHasSpaces) {
                     restartSuggestionsOnWordTouchedByCursor(inputTransaction.getSettingsValues(), currentKeyboardScript);
+                } else {
+                    mSuggestionStripViewAccessor.setNeutralSuggestionStrip();
                 }
             }
         } finally {

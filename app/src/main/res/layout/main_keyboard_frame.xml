@@ -38,21 +38,30 @@
         <include
             android:id="@+id/desktop_shortcuts_view"
             layout="@layout/desktop_shortcuts_view" />
-        <include
-            android:id="@+id/pattern_unlock_view"
-            layout="@layout/pattern_unlock_view" />
-        <include
-            android:id="@+id/security_vault_explorer_view"
-            layout="@layout/security_vault_explorer_view" />
-        <include
-            android:id="@+id/chosen_entry_view"
-            layout="@layout/chosen_entry_view" />
-        <include
-            android:id="@+id/voice_input_view"
-            layout="@layout/voice_input_view" />
-        <include
-            android:id="@+id/handwriting_pad_view"
-            layout="@layout/handwriting_pad_view" />
+        <ViewStub
+            android:id="@+id/pattern_unlock_view_stub"
+            android:inflatedId="@+id/pattern_unlock_view"
+            android:layout="@layout/pattern_unlock_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+        <ViewStub
+            android:id="@+id/security_vault_explorer_view_stub"
+            android:inflatedId="@+id/security_vault_explorer_view"
+            android:layout="@layout/security_vault_explorer_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+        <ViewStub
+            android:id="@+id/chosen_entry_view_stub"
+            android:inflatedId="@+id/chosen_entry_view"
+            android:layout="@layout/chosen_entry_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+        <ViewStub
+            android:id="@+id/voice_input_view_stub"
+            android:inflatedId="@+id/voice_input_view"
+            android:layout="@layout/voice_input_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
 
         <ImageButton
             android:id="@+id/btn_stop_one_handed_mode"

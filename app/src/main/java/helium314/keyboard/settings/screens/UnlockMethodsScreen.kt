@@ -75,6 +75,12 @@ fun UnlockMethodsScreen(
     var isStealthGatekeeper by remember {
         mutableStateOf(context.prefs().getBoolean("pref_vault_stealth_gatekeeper", true))
     }
+    var isPrivacyGatekeeper by remember {
+        mutableStateOf(VaultSessionManager.isPrivacyVaultGatekeeperEnabled(context))
+    }
+    var isSecurityVaultGatekeeper by remember {
+        mutableStateOf(VaultSessionManager.isSecurityVaultGatekeeperEnabled(context))
+    }
 
     SearchSettingsScreen(
         onClickBack = onClickBack,
@@ -118,6 +124,52 @@ fun UnlockMethodsScreen(
                             }
                         },
                         enabled = isPatternConfigured
+                    )
+                }
+
+                Preference(
+                    name = "Privacy Vault Gatekeeper",
+                    description = if (isPrivacyGatekeeper) {
+                        "Challenge required before opening Privacy Vault"
+                    } else {
+                        "Direct access to Privacy Vault without challenge"
+                    },
+                    onClick = {
+                        val next = !isPrivacyGatekeeper
+                        VaultSessionManager.setPrivacyVaultGatekeeperEnabled(context, next)
+                        isPrivacyGatekeeper = next
+                    },
+                    icon = R.drawable.ic_dictionary
+                ) {
+                    Switch(
+                        checked = isPrivacyGatekeeper,
+                        onCheckedChange = { checked ->
+                            VaultSessionManager.setPrivacyVaultGatekeeperEnabled(context, checked)
+                            isPrivacyGatekeeper = checked
+                        }
+                    )
+                }
+
+                Preference(
+                    name = "Security Vault Gatekeeper",
+                    description = if (isSecurityVaultGatekeeper) {
+                        "Challenge required before opening Security Vault settings & entries"
+                    } else {
+                        "Direct access to Security Vault without challenge"
+                    },
+                    onClick = {
+                        val next = !isSecurityVaultGatekeeper
+                        VaultSessionManager.setSecurityVaultGatekeeperEnabled(context, next)
+                        isSecurityVaultGatekeeper = next
+                    },
+                    icon = R.drawable.ic_vpn_key
+                ) {
+                    Switch(
+                        checked = isSecurityVaultGatekeeper,
+                        onCheckedChange = { checked ->
+                            VaultSessionManager.setSecurityVaultGatekeeperEnabled(context, checked)
+                            isSecurityVaultGatekeeper = checked
+                        }
                     )
                 }
 

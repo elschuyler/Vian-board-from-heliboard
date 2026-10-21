@@ -92,7 +92,6 @@ public final class KeyboardCodesSet {
         KeyCode.LOG_KEEPER,
         KeyCode.DESKTOP_SHORTCUTS,
         KeyCode.PRIVACY_VAULT,
-        KeyCode.HANDWRITING,
     };
 
     static {

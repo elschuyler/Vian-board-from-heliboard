@@ -53,6 +53,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -78,8 +79,9 @@ fun PrivacyVaultScreen(
     val context = LocalContext.current
     val vaultDao = remember { VaultDao.getInstance(context) }
     val isPatternSet = remember { VaultSessionManager.isPatternSet(context) }
+    val isGatekeeperEnabled = remember { VaultSessionManager.isPrivacyVaultGatekeeperEnabled(context) }
     var isUnlocked by remember {
-        mutableStateOf(!isPatternSet || VaultSessionManager.isPrivacySessionValid())
+        mutableStateOf(!isPatternSet || !isGatekeeperEnabled || VaultSessionManager.isPrivacySessionValid())
     }
 
     // Zero-Trust Lock: Leaving the Privacy Vault screen immediately locks the session
@@ -508,6 +510,9 @@ private fun EditVaultEntryDialog(
                     singleLine = false,
                     modifier = Modifier.fillMaxWidth(),
                     visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = if (isPasswordVisible) KeyboardType.Text else KeyboardType.Password
+                    ),
                     trailingIcon = {
                         TextButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
                             Text(if (isPasswordVisible) "Hide" else "Show")

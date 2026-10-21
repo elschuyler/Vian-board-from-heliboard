@@ -804,9 +804,6 @@ public class LatinIME extends InputMethodService implements
         if (!mKeyboardSwitcher.isPendingVoiceLaunch() && mKeyboardSwitcher.isShowingVoiceInput()) {
             mKeyboardSwitcher.setAlphabetKeyboard(ShiftMode.UNSHIFT);
         }
-        if (mKeyboardSwitcher.isShowingHandwritingPad()) {
-            mKeyboardSwitcher.setAlphabetKeyboard(ShiftMode.UNSHIFT);
-        }
         if (mKeyboardSwitcher.isShowingSecurityVaultExplorer()) {
             mKeyboardSwitcher.closeSecurityVaultExplorer(false);
         }
@@ -823,9 +820,6 @@ public class LatinIME extends InputMethodService implements
     @Override
     public void onFinishInput() {
         if (!mKeyboardSwitcher.isPendingVoiceLaunch() && mKeyboardSwitcher.isShowingVoiceInput()) {
-            mKeyboardSwitcher.setAlphabetKeyboard(ShiftMode.UNSHIFT);
-        }
-        if (mKeyboardSwitcher.isShowingHandwritingPad()) {
             mKeyboardSwitcher.setAlphabetKeyboard(ShiftMode.UNSHIFT);
         }
         if (mKeyboardSwitcher.isShowingSecurityVaultExplorer()) {
@@ -1065,11 +1059,8 @@ public class LatinIME extends InputMethodService implements
         super.onWindowHidden();
         Log.i(TAG, "onWindowHidden");
         TempIncognitoManager.onKeyboardClosed();
-        VaultSessionManager.INSTANCE.lockAll();
+        VaultSessionManager.INSTANCE.lockVaults();
         if (!mKeyboardSwitcher.isPendingVoiceLaunch() && mKeyboardSwitcher.isShowingVoiceInput()) {
-            mKeyboardSwitcher.closeSecondaryKeyboard();
-        }
-        if (mKeyboardSwitcher.isShowingHandwritingPad()) {
             mKeyboardSwitcher.closeSecondaryKeyboard();
         }
         if (mKeyboardSwitcher.isShowingPatternUnlock()) {
@@ -1109,7 +1100,7 @@ public class LatinIME extends InputMethodService implements
         // Should do the following in onFinishInputInternal but until JB MR2 it's not called :(
         mInputLogic.finishInput();
         mKeyboardActionListener.resetMetaState();
-        VaultSessionManager.INSTANCE.lockAll();
+        VaultSessionManager.INSTANCE.lockVaults();
         if (mSettings.getCurrent().mLiteMode) {
             mKeyboardSwitcher.trimMemory();
         }
@@ -1197,7 +1188,7 @@ public class LatinIME extends InputMethodService implements
             mOptionsDialog.dismiss();
             mOptionsDialog = null;
         }
-        VaultSessionManager.INSTANCE.lockAll();
+        VaultSessionManager.INSTANCE.lockVaults();
         if (mSettings.getCurrent().mLiteMode) {
             mKeyboardSwitcher.trimMemory();
         }
@@ -1488,10 +1479,7 @@ public class LatinIME extends InputMethodService implements
             onVoiceInputTriggered();
             return;
         }
-        if (KeyCode.HANDWRITING == event.getKeyCode()) {
-            onHandwritingTriggered();
-            return;
-        }
+
         final InputTransaction completeInputTransaction =
                 mInputLogic.onCodeInput(mSettings.getCurrent(), event,
                         mKeyboardSwitcher.getKeyboardCapsMode(),
@@ -1500,14 +1488,7 @@ public class LatinIME extends InputMethodService implements
         mKeyboardSwitcher.onEvent(event, getCurrentAutoCapsState(), getCurrentRecapitalizeState());
     }
 
-    public void onHandwritingTriggered() {
-        LogCatcher.INSTANCE.i("LatinIME", "Handwriting triggered (showingHandwriting=" + mKeyboardSwitcher.isShowingHandwritingPad() + ")");
-        if (mKeyboardSwitcher.isShowingHandwritingPad()) {
-            mKeyboardSwitcher.setAlphabetKeyboard(ShiftMode.UNSHIFT);
-            return;
-        }
-        mKeyboardSwitcher.setHandwritingPadKeyboard();
-    }
+
 
     public void onVoiceInputTriggered() {
         LogCatcher.INSTANCE.i("LatinIME", "Voice input triggered (showingVoiceInput=" + mKeyboardSwitcher.isShowingVoiceInput() + ")");
@@ -1840,11 +1821,6 @@ public class LatinIME extends InputMethodService implements
                 mKeyboardSwitcher.setAlphabetKeyboard(ShiftMode.UNSHIFT);
                 return true;
             }
-            if (mKeyboardSwitcher.isShowingHandwritingPad()) {
-                LogCatcher.INSTANCE.i("LatinIME", "Handwriting modal dismissed via Back key");
-                mKeyboardSwitcher.setAlphabetKeyboard(ShiftMode.UNSHIFT);
-                return true;
-            }
             if (mKeyboardSwitcher.isShowingSecurityVaultExplorer()) {
                 LogCatcher.INSTANCE.i("LatinIME", "Security Vault Explorer dismissed via Back key");
                 mKeyboardSwitcher.closeSecurityVaultExplorer(false);
@@ -1870,9 +1846,6 @@ public class LatinIME extends InputMethodService implements
     public boolean onKeyUp(final int keyCode, final KeyEvent keyEvent) {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
             if (mKeyboardSwitcher.isShowingVoiceInput()) {
-                return true;
-            }
-            if (mKeyboardSwitcher.isShowingHandwritingPad()) {
                 return true;
             }
             if (mKeyboardSwitcher.isShowingSecurityVaultExplorer()) {

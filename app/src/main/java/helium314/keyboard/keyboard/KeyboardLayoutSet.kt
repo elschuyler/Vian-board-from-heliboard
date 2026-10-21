@@ -86,16 +86,19 @@ class KeyboardLayoutSet internal constructor(private val mContext: Context, priv
         }
         val keyboard = builder.build()
         keyboardCache[id] = SoftReference<Keyboard>(keyboard)
-        if (!mParams.isSpellChecker
-            && (id.element == KeyboardElement.ALPHABET || id.element == KeyboardElement.ALPHABET_AUTOMATIC_SHIFTED)
-        ) {
-            // We only forcibly cache the primary, "ALPHABET", layouts.
+        val isCoreLayout = id.element.isAlphabet ||
+                id.element == KeyboardElement.SYMBOLS ||
+                id.element == KeyboardElement.SYMBOLS_SHIFTED ||
+                id.element == KeyboardElement.NUMPAD ||
+                id.element == KeyboardElement.NUMBER
+        if (!mParams.isSpellChecker && isCoreLayout) {
+            // Forcibly cache core layouts to prevent GC eviction under memory pressure
             for (i in forcibleKeyboardCache.size - 1 downTo 1) {
                 forcibleKeyboardCache[i] = forcibleKeyboardCache[i - 1]
             }
             forcibleKeyboardCache[0] = keyboard
             if (DEBUG_CACHE) {
-                Log.d(TAG, "forcing caching of keyboard with id=$id")
+                Log.d(TAG, "forcing caching of core keyboard with id=$id")
             }
         }
         if (DEBUG_CACHE) {
@@ -252,14 +255,11 @@ class KeyboardLayoutSet internal constructor(private val mContext: Context, priv
 
         class KeyboardLayoutSetException(cause: Throwable, val keyboardId: KeyboardId) : RuntimeException(cause)
 
-        // How many layouts we forcibly keep in cache. This only includes ALPHABET (default) and
-        // ALPHABET_AUTOMATIC_SHIFTED layouts - other layouts may stay in memory in the map of
-        // soft-references, but we forcibly cache this many alphabetic/auto-shifted layouts.
-        private const val FORCIBLE_CACHE_SIZE = 4
+        // How many layouts we forcibly keep in cache. Includes all primary ALPHABET shift states,
+        // SYMBOLS, SYMBOLS_SHIFTED, NUMPAD, and NUMBER so heavy apps like Chrome never evict core layouts.
+        private const val FORCIBLE_CACHE_SIZE = 12
 
-        // By construction of soft references, anything that is also referenced somewhere else
-        // will stay in the cache. So we forcibly keep some references in an array to prevent
-        // them from disappearing from sKeyboardCache.
+        // Strong references array prevents the garbage collector from reclaiming core layouts.
         private val forcibleKeyboardCache = arrayOfNulls<Keyboard>(FORCIBLE_CACHE_SIZE)
         private val keyboardCache = HashMap<KeyboardId, SoftReference<Keyboard>>()
         private val uniqueKeysCache = UniqueKeysCache.newInstance()

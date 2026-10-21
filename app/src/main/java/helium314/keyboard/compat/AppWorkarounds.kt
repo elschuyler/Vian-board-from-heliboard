@@ -7,6 +7,9 @@ import helium314.keyboard.latin.utils.InputTypeUtils
 
 object AppWorkarounds {
     fun adjustInputType(inputType: Int, packageName: String?): Int {
+        if (isChromiumOrWebView(packageName) && inputType == InputType.TYPE_NULL) {
+            return InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
+        }
         return if (isFirefoxOrFork(packageName)) {
             // Firefox and forks (assuming all of them) don't set these flags, so we want to force them for most text fields on websites
             // missing TYPE_TEXT_VARIATION_WEB_EDIT_TEXT is strange, considering all text fields on web pages should set it
@@ -41,6 +44,13 @@ object AppWorkarounds {
         "org.mozilla.klar", "org.mozilla.firefox", "org.ironfoxoss.ironfox", "org.ironfoxoss.ironfox.nightly",
         "org.torproject.torbrowser", "org.torproject.torbrowser_alpha", "net.waterfox.android.release",
         "io.github.forkmaintainers.iceraven", "com.zen.web.tools.browser" -> true
+        else -> false
+    }
+
+    private fun isChromiumOrWebView(packageName: String?) = when (packageName) {
+        "com.android.chrome", "com.chrome.beta", "com.chrome.canary", "com.chrome.dev",
+        "org.chromium.chrome", "com.brave.browser", "com.microsoft.emmx", "com.opera.browser",
+        "com.opera.mini.native", "com.duckduckgo.mobile.android" -> true
         else -> false
     }
 }

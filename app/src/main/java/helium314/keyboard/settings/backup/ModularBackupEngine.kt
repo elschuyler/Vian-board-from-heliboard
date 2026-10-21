@@ -20,6 +20,7 @@ import helium314.keyboard.latin.common.FileUtils
 import helium314.keyboard.latin.database.ClipboardDao
 import helium314.keyboard.latin.database.Database
 import helium314.keyboard.latin.database.PromptDao
+import helium314.keyboard.latin.database.VaultDao
 import helium314.keyboard.latin.database.VoiceReplacementDao
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.transferOldPinnedClips
@@ -315,6 +316,34 @@ object ModularBackupEngine {
                         }
                     }
 
+                    // 5b. Privacy Vault (Private phrases and notes from VaultDao)
+                    if (BackupModule.PRIVACY_VAULT in selectedModules) {
+                        val db = Database.getInstance(context)
+                        val vaultList = mutableListOf<PrivacyVaultBackupEntry>()
+                        try {
+                            VaultDao.ensureTableExists(db.readableDatabase)
+                            db.readableDatabase.rawQuery("SELECT SHORTCUT, PHRASE, NOTES, TIMESTAMP FROM ${VaultDao.TABLE}", null).use { c ->
+                                while (c.moveToNext()) {
+                                    vaultList.add(
+                                        PrivacyVaultBackupEntry(
+                                            shortcut = c.getString(0) ?: "",
+                                            phrase = c.getString(1) ?: "",
+                                            notes = c.getStringOrNull(2) ?: "",
+                                            timestamp = c.getLong(3)
+                                        )
+                                    )
+                                }
+                            }
+                        } catch (t: Throwable) {
+                            LogCatcher.w(TAG, "Reading vault table error: ${t.message}")
+                        }
+                        val vaultJsonBytes = json.encodeToString(vaultList).toByteArray(Charsets.UTF_8)
+                        zip.putNextEntry(ZipEntry("database/privacy_vault.json"))
+                        zip.write(vaultJsonBytes)
+                        zip.closeEntry()
+                        stats["privacy_vault_count"] = vaultList.size
+                    }
+
                     // 6. Manifest File (Always created)
                     val manifest = BackupManifest(
                         schemaVersion = BackupManifest.CURRENT_SCHEMA_VERSION,
@@ -330,7 +359,7 @@ object ModularBackupEngine {
                     zip.closeEntry()
 
                     // Also generate a legacy heliboard.db for full backward compatibility if database modules selected
-                    if (BackupModule.CLIPBOARD_PROMPTS in selectedModules || BackupModule.WORD_IMPROVEMENT in selectedModules) {
+                    if (BackupModule.CLIPBOARD_PROMPTS in selectedModules || BackupModule.WORD_IMPROVEMENT in selectedModules || BackupModule.PRIVACY_VAULT in selectedModules) {
                         val dbFile = context.getDatabasePath(Database.NAME)
                         if (dbFile.exists()) {
                             zip.putNextEntry(ZipEntry(Database.NAME))
@@ -382,12 +411,15 @@ object ModularBackupEngine {
                             detectedModules.add(BackupModule.CLIPBOARD_PROMPTS)
                         } else if (name.contains("voice_replacements")) {
                             detectedModules.add(BackupModule.WORD_IMPROVEMENT)
+                        } else if (name.contains("privacy_vault")) {
+                            detectedModules.add(BackupModule.PRIVACY_VAULT)
                         } else if (name.contains("vault.json")) {
                             detectedModules.add(BackupModule.SECURITY_VAULT)
                         } else if (name == Database.NAME) {
                             hasLegacyDb = true
                             detectedModules.add(BackupModule.CLIPBOARD_PROMPTS)
                             detectedModules.add(BackupModule.WORD_IMPROVEMENT)
+                            detectedModules.add(BackupModule.PRIVACY_VAULT)
                         }
                         zip.closeEntry()
                         entry = zip.nextEntry
@@ -424,6 +456,7 @@ object ModularBackupEngine {
             if (hasLegacyDb) {
                 detectedModules.add(BackupModule.CLIPBOARD_PROMPTS)
                 detectedModules.add(BackupModule.WORD_IMPROVEMENT)
+                detectedModules.add(BackupModule.PRIVACY_VAULT)
             }
 
             LogCatcher.i(TAG, "Legacy archive detected: modules=${detectedModules.map { it.key }}")
@@ -473,6 +506,7 @@ object ModularBackupEngine {
             var clipboardJson: String? = null
             var promptsJson: String? = null
             var voiceReplJson: String? = null
+            var privacyVaultJson: String? = null
             val restoredDbFile = context.getDatabasePath(Database.NAME + "_modular_restored")
 
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
@@ -517,9 +551,14 @@ object ModularBackupEngine {
                                     voiceReplJson = String(zip.readBytes(), Charsets.UTF_8)
                                 }
                             }
+                            name == "database/privacy_vault.json" -> {
+                                if (BackupModule.PRIVACY_VAULT in selectedModules) {
+                                    privacyVaultJson = String(zip.readBytes(), Charsets.UTF_8)
+                                }
+                            }
                             name == Database.NAME -> {
                                 // Save for fallback if JSONs are missing
-                                if (BackupModule.CLIPBOARD_PROMPTS in selectedModules || BackupModule.WORD_IMPROVEMENT in selectedModules) {
+                                if (BackupModule.CLIPBOARD_PROMPTS in selectedModules || BackupModule.WORD_IMPROVEMENT in selectedModules || BackupModule.PRIVACY_VAULT in selectedModules) {
                                     FileUtils.copyStreamToNewFile(zip, restoredDbFile)
                                 }
                             }
@@ -752,16 +791,67 @@ object ModularBackupEngine {
                 }
             }
 
+            // 5. Restore Privacy Vault
+            if (BackupModule.PRIVACY_VAULT in selectedModules) {
+                val db = Database.getInstance(context)
+                val vaultDao = VaultDao.getInstance(context)
+                if (privacyVaultJson != null) {
+                    val entries = json.decodeFromString<List<PrivacyVaultBackupEntry>>(privacyVaultJson!!)
+                    VaultDao.ensureTableExists(db.writableDatabase)
+                    vaultDao.clear()
+                    entries.forEach { e ->
+                        vaultDao.addOrUpdate(
+                            shortcut = e.shortcut,
+                            phrase = e.phrase,
+                            notes = e.notes
+                        )
+                    }
+                    vaultDao.reload()
+                    restoredStats["privacy_vault_count"] = entries.size
+                    LogCatcher.i(TAG, "Restored ${entries.size} privacy vault entries from json")
+                } else if (restoredDbFile.exists()) {
+                    val otherDb = Database(context, restoredDbFile.name)
+                    try {
+                        val hasVault = otherDb.readableDatabase.rawQuery(
+                            "SELECT name FROM sqlite_master WHERE type='table' AND name='${VaultDao.TABLE}'", null
+                        ).use { it.moveToFirst() }
+                        if (hasVault) {
+                            VaultDao.ensureTableExists(db.writableDatabase)
+                            vaultDao.clear()
+                            var count = 0
+                            otherDb.readableDatabase.rawQuery(
+                                "SELECT SHORTCUT, PHRASE, NOTES, TIMESTAMP FROM ${VaultDao.TABLE}", null
+                            ).use { c ->
+                                while (c.moveToNext()) {
+                                    vaultDao.addOrUpdate(
+                                        shortcut = c.getString(0) ?: "",
+                                        phrase = c.getString(1) ?: "",
+                                        notes = c.getStringOrNull(2) ?: ""
+                                    )
+                                    count++
+                                }
+                            }
+                            vaultDao.reload()
+                            restoredStats["privacy_vault_count"] = count
+                            LogCatcher.i(TAG, "Restored $count privacy vault entries from legacy db")
+                        }
+                    } finally {
+                        otherDb.close()
+                    }
+                }
+            }
+
             // Clean up temporary database file
             if (restoredDbFile.exists()) {
                 restoredDbFile.delete()
             }
 
-            // 5. System Upgrades & Cache Invalidation
+            // 6. System Upgrades & Cache Invalidation
             checkVersionUpgrade(context)
             transferOldPinnedClips(context)
             PromptDao.getInstance(context).reload()
             VoiceReplacementDao.getInstance(context).reload()
+            VaultDao.getInstance(context).reload()
             Settings.getInstance().startListener()
             SubtypeSettings.reloadEnabledSubtypes(context)
 

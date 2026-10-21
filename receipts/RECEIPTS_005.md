@@ -166,5 +166,34 @@ This file is part of the permanent audit trail for the project, tracking code mo
 - **How it was verified**: Verified via `compile_applet`.
 - **Deviation from requested**: None. Followed exact agreed specifications.
 - **Known issue or follow-up needed**: Ready for on-device manual QA testing.
+---
+
+### Receipt Entry: Phase 68 Settings Gatekeeper Navigation Stability, Password Incognito Activation & Modular Backup Privacy Vault Integration
+- **Timestamp**: 2026-10-20 00:48:00 UTC-7
+- **Summary of request**: In security Settings don't want to unlock every time I go back from security vault or privacy vault or similar; setup individual unlock if needed; kbdx password typing no incognito mode on by default; check if backup and restore is connected to all (voice input settings not slm, prompt list, privacy vault, desktop shortcuts layout, lite mode, unlock gatekeeper); implement all.
+- **Exact files touched**:
+  - `app/src/main/res/values/strings.xml`
+  - `app/src/main/java/helium314/keyboard/settings/backup/BackupManifest.kt`
+  - `app/src/main/java/helium314/keyboard/settings/backup/BackupModule.kt`
+  - `app/src/main/java/helium314/keyboard/settings/backup/ModularBackupEngine.kt`
+  - `app/src/main/java/helium314/keyboard/security/VaultSessionManager.kt`
+  - `app/src/main/java/helium314/keyboard/latin/LatinIME.java`
+  - `app/src/main/java/helium314/keyboard/settings/screens/UnlockMethodsScreen.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/PrivacyVaultScreen.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/SecurityVaultScreen.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/KdbxEntryEditorScreen.kt`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_005.md`
+- **What was actually done**:
+  1. In `LatinIME.java`: switched keyboard hide/finish calls from `VaultSessionManager.INSTANCE.lockAll()` to `VaultSessionManager.INSTANCE.lockVaults()`. Sensitive vault credentials (`lockPrivacy()`, `lockSecurity()`) remain strictly protected, while the Settings UI session (`settingsSessionExpiryMs`) is preserved during active in-settings navigation. Resolves the loop where opening the keyboard inside Privacy/Security Vault immediately killed the settings session and forced re-authentication upon pressing Back.
+  2. In `VaultSessionManager.kt` & `UnlockMethodsScreen.kt`: added granular gatekeeper toggles (`PREF_GATEKEEPER_PRIVACY_VAULT`, `PREF_GATEKEEPER_SECURITY_VAULT`) allowing users to independently enable or disable challenges for Privacy Vault and Security Vault.
+  3. In `PrivacyVaultScreen.kt`: updated gatekeeper check to honor `isPrivacyVaultGatekeeperEnabled`.
+  4. In `SecurityVaultScreen.kt`, `PrivacyVaultScreen.kt`, and `KdbxEntryEditorScreen.kt`: added `keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, ...)` to all master password and sensitive secret input fields. Sets Android input type to `InputType.TYPE_TEXT_VARIATION_PASSWORD`, which instructs `LatinIME` to automatically engage Incognito Mode.
+  5. In `ModularBackupEngine.kt`, `BackupModule.kt`, `BackupManifest.kt`, and `strings.xml`: connected Privacy Vault (`VaultDao`) to modular backup and restore. Backs up private phrases, shortcuts, and notes to `database/privacy_vault.json`, detects it on inspection, and restores records into `VaultDao` on restore with automatic fallback to legacy `Database.NAME` `VAULT` table.
+  6. Updated `BLUEPRINT.md` running ledger with Phase 68 documentation.
+  7. Enforced Mandates 2 & 3: conducted silent security scan (clean, zero exposed credentials).
+- **How it was verified**: Verified via `compile_applet`.
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device manual QA testing.
 
 

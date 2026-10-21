@@ -259,6 +259,8 @@
     <string name="backup_module_word_improvement_desc">Phonetic voice replacements and speech corrections</string>
     <string name="backup_module_security_vault">Security Vault</string>
     <string name="backup_module_security_vault_desc">Master pattern lock hash and secured configurations</string>
+    <string name="backup_module_privacy_vault">Privacy Vault</string>
+    <string name="backup_module_privacy_vault_desc">Private phrases, shortcuts, and sensitive clipboard text</string>
     <string name="backup_vault_warning">Security Vault includes your master pattern hash. Only export/restore on trusted personal devices.</string>
     <string name="backup_models_excluded_note">Voice AI models (.bin) are excluded from backups to keep file sizes small.</string>
     <string name="button_export_selected">Export Selected</string>

@@ -460,22 +460,28 @@ class VoiceInputView @JvmOverloads constructor(
         pulseView.setRms(rms)
     }
 
+    fun isVoiceActive(): Boolean = isVoiceActive
+
     fun stopVoiceInput() {
-        LogCatcher.i(TAG, "Voice input modal dismissed")
-        LogCatcher.markComponentActive("VoiceInputModal", "UI", "Dismissed")
+        if (!isVoiceActive && visibility == GONE && voiceConnection == null) return
+        val wasActive = isVoiceActive || visibility != GONE || voiceConnection != null
+        isVoiceActive = false
+        isVoicePaused = false
         commitHandler.removeCallbacks(commitRunnable)
         pendingCommitText = null
         updatePreviewStripText("")
         previewStrip = null
         previewText = null
         previewClear = null
-        isVoiceActive = false
-        isVoicePaused = false
         voiceConnection?.stopAndDisconnect()
         voiceConnection = null
         pulseView.release()
         keyboardActionListener = null
         visibility = GONE
+        if (wasActive) {
+            LogCatcher.i(TAG, "Voice input modal dismissed")
+            LogCatcher.markComponentActive("VoiceInputModal", "UI", "Dismissed")
+        }
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {

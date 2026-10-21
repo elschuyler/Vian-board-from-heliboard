@@ -51,6 +51,14 @@ data class VoiceReplacementBackupEntry(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+@Serializable
+data class PrivacyVaultBackupEntry(
+    val shortcut: String,
+    val phrase: String,
+    val notes: String = "",
+    val timestamp: Long = System.currentTimeMillis()
+)
+
 data class BackupArchiveInfo(
     val schemaVersion: Int,
     val appVersion: String,

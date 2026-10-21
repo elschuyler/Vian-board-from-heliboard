@@ -38,6 +38,12 @@ enum class BackupModule(
         titleRes = R.string.backup_module_security_vault,
         descriptionRes = R.string.backup_module_security_vault_desc,
         isSensitive = true
+    ),
+    PRIVACY_VAULT(
+        key = "privacy_vault",
+        titleRes = R.string.backup_module_privacy_vault,
+        descriptionRes = R.string.backup_module_privacy_vault_desc,
+        isSensitive = true
     );
 
     companion object {

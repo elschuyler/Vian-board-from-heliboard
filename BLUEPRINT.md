@@ -798,4 +798,37 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
   - **Component 4: Build & Security Verification**:
     - Verified clean compilation via `compile_applet`. Conducted silent security scan per Mandates 2 & 3.
 
+- **2026-10-20**: Completed Phase 68 (Settings Gatekeeper Navigation Stability, Password Incognito Activation & Modular Backup Privacy Vault Integration):
+  - **Component 1: Settings Gatekeeper Session Persistence (`LatinIME.java`, `VaultSessionManager.kt`)**:
+    - Introduced `VaultSessionManager.lockVaults()` to isolate sensitive vault credentials (`lockPrivacy()`, `lockSecurity()`) from settings navigation lifecycle (`settingsSessionExpiryMs`).
+    - In `LatinIME.java`: switched `onWindowHidden()`, `finishInput()`, and `hideWindow()` from `lockAll()` to `lockVaults()`. Prevents keyboard focus events from prematurely evicting the active 3-minute settings session, completely resolving the re-lock prompt loop when pressing Back from Privacy Vault or Security Vault.
+    - Added granular gatekeeper preference switches (`PREF_GATEKEEPER_PRIVACY_VAULT`, `PREF_GATEKEEPER_SECURITY_VAULT`) to `VaultSessionManager.kt` and `UnlockMethodsScreen.kt`.
+    - In `PrivacyVaultScreen.kt`: now respects `isPrivacyVaultGatekeeperEnabled` to allow direct access if configured.
+  - **Component 2: KDBX Master Password & Secret Input Incognito Enforcement (`SecurityVaultScreen.kt`, `PrivacyVaultScreen.kt`, `KdbxEntryEditorScreen.kt`)**:
+    - Added `KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done)` to all master password and sensitive secret input fields.
+    - Sets Android OS input type to `InputType.TYPE_TEXT_VARIATION_PASSWORD`, ensuring `LatinIME` automatically engages Incognito Mode (disabling dictionary learning and displaying incognito mask indicator).
+  - **Component 3: Privacy Vault Integration in Modular Backup Engine (`ModularBackupEngine.kt`, `BackupModule.kt`, `BackupManifest.kt`, `strings.xml`)**:
+    - Added `BackupModule.PRIVACY_VAULT` with dedicated string resources and `isSensitive = true`.
+    - Added `PrivacyVaultBackupEntry` serialization schema in `BackupManifest.kt`.
+    - In `ModularBackupEngine.kt`: exports `database/privacy_vault.json` containing all `VaultDao` phrases, shortcuts, and notes.
+    - During restore: reads `database/privacy_vault.json` (with automatic fallback to legacy `Database.NAME` `VAULT` table), restores records into `VaultDao`, and calls `VaultDao.getInstance(context).reload()`.
+  - **Component 4: Build & Security Verification**:
+    - Verified successful compilation via `compile_applet`. Conducted silent security scan per Mandates 2 & 3.
+
+- **2026-10-21**: Completed Phase 69 (Resource Consumption Mitigation, On-Demand ViewStub Laziness & Chromium/AI Studio Suggestion Restoration):
+  - **Component 1: Elimination of Continuous Lifecycle/Teardown Thrashing (`KeyboardSwitcher.java`, `VaultSessionManager.kt`, `VoiceInputView.kt`)**:
+    - Replaced unconditional modal dismissals in `setMainKeyboardFrame()` and `enforceLiteModeSingleModal()` with strict active/visibility checks (`getVisibility() == View.VISIBLE || isVoiceActive()`). Normal typing and shift/layout toggling no longer trigger repetitive cleanup or logging.
+    - Converted `pattern_unlock_view`, `security_vault_explorer_view`, `chosen_entry_view`, and `voice_input_view` to strict on-demand `ViewStub` lazy inflation in `KeyboardSwitcher.java`. Stubs are left completely uninflated at keyboard startup (`onCreateInputView()`), drastically reducing initial RAM usage and view hierarchy overhead.
+    - Guarded `VaultSessionManager.lockSecurity()`, `lockPrivacy()`, and `lockSettings()` to instantly return when sessions are already locked (`expiry == 0L`), eliminating thousands of redundant log and allocation cycles during normal typing.
+    - In `VoiceInputView.kt`: guarded `stopVoiceInput()` to log dismissal only once when transitioning from active or visible states.
+    - Completely excised orphaned `HandwritingPadView` references across `KeyboardSwitcher.java` and `InputLogic.java`.
+  - **Component 2: WebView / Chromium Slow Connection & Suggestion Lockout Remediation (`RichInputConnection.java`, `InputLogic.java`, `AppWorkarounds.kt`, `InputAttributes.java`)**:
+    - In `RichInputConnection.java`: corrected `SLOW_INPUTCONNECTION_PERSIST_MS` from an excessive 10 minutes (`TimeUnit.MINUTES.toMillis(10)`) down to 2 seconds (`TimeUnit.SECONDS.toMillis(2)`), and adjusted partial reload timeout threshold from 200 ms to 500 ms to account for heavy DOM/JavaScript execution in web apps like Google AI Studio. Fast subsequent IPCs instantly clear the laggy state.
+    - In `InputLogic.java`: prevented backspace and cursor touches on laggy connections from permanently dropping suggestions (`restartSuggestionsOnWordTouchedByCursor` is preserved rather than wiping the suggestion strip with `setNeutralSuggestionStrip()`).
+    - In `AppWorkarounds.kt`: added Chromium/WebView detection to convert ambiguous `TYPE_NULL` input fields into standard multiline text, ensuring Google AI Studio prompt fields receive full suggestion engine support.
+    - In `InputAttributes.java`: allowed `mMayOverrideShowingSuggestions = !mIsPasswordField` for non-standard input classes when not a password field.
+  - **Component 3: Build & Security Verification**:
+    - Verified successful compilation via `compile_applet`. Conducted silent security scan per Mandates 2 & 3 (workspace clean, zero exposed credentials).
+
+
 

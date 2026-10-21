@@ -55,7 +55,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -345,6 +347,9 @@ fun KdbxEntryEditorScreen(
                             label = { Text("Password") },
                             singleLine = true,
                             visualTransformation = if (isPassVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = if (isPassVisible) KeyboardType.Text else KeyboardType.Password
+                            ),
                             trailingIcon = {
                                 Row {
                                     IconButton(onClick = { isPassVisible = !isPassVisible }) {

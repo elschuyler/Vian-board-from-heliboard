@@ -189,7 +189,6 @@ object KeyCode {
     const val INCOGNITO_TEMP_2MIN =       -10057
     const val DESKTOP_SHORTCUTS =         -10058
     const val PRIVACY_VAULT =             -10059
-    const val HANDWRITING =               -10060
 
     // Valid in popups and for toolbar key long press only
     const val KEY_REPEAT =                -11000
@@ -218,7 +217,7 @@ object KeyCode {
         TIMESTAMP, CTRL_LEFT, CTRL_RIGHT, ALT_LEFT, ALT_RIGHT, META_LEFT, META_RIGHT, SEND_INTENT_ONE, SEND_INTENT_TWO,
         SEND_INTENT_THREE, EMOJI_SEARCH, INLINE_EMOJI_SEARCH_DONE, META_LOCK,
         BACKGROUND_GATHERING, BACKGROUND_GATHERING_TEMP_OFF, DPAD,
-        INCOGNITO_TEMP_2MIN, PROMPT_LIST, LOG_KEEPER, DESKTOP_SHORTCUTS, PRIVACY_VAULT, HANDWRITING,
+        INCOGNITO_TEMP_2MIN, PROMPT_LIST, LOG_KEEPER, DESKTOP_SHORTCUTS, PRIVACY_VAULT,
         -> this
 
         KEY_REPEAT if (longPress) -> this

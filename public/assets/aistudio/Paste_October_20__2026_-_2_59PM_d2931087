@@ -1,0 +1,1031 @@
+=== ERROR & WARNING LOGS (6) [Filter: 1h] ===
+2026-10-20 01:52:32.904 [W] InputAttributes: No editor info for this field. Bug?
+2026-10-20 01:52:33.647 [W] RichInputConnection: Slow InputConnection: GET_TEXT_BEFORE_CURSOR took 380 ms.
+2026-10-20 01:52:39.332 [W] InputLogic: Skipping unlearning due to slow InputConnection.
+2026-10-20 01:52:39.547 [W] InputLogic: Skipping unlearning due to slow InputConnection.
+2026-10-20 01:52:39.747 [W] InputLogic: Skipping unlearning due to slow InputConnection.
+2026-10-20 01:52:39.931 [W] InputLogic: Skipping unlearning due to slow InputConnection.
+
+
+Stopped giving suggestions completely. Heliboard giving in same situations. Was using google ai studio in chrome browser so heavy usage. But this is wrong. 
+
+=== VIANBOARD ALL SYSTEM LOGS (1000) [Filter: All] ===
+--- ACTIVE SUBSYSTEMS ---
+[Data] BackupRestoreEngine: Restore Complete
+[Input Service] LatinIME: Active
+[Diagnostic] LogCatcher: Active
+[Core] System: Initialized
+[Crypto] VaultCryptoManager: Ready
+[Database] VaultDao: Ready (0 entries)
+[Security] VaultSessionManager: Active
+[UI] VoiceInputModal: Dismissed
+[Storage] VoiceModelManager: Model: voice-input-english-39.bin (41.5 MB)
+[Database] VoiceReplacementDao: Ready (0 rules)
+
+2026-10-20 01:47:33.599 [D] KeyboardParser: adding key action, 0
+2026-10-20 01:47:33.599 [D] Keyboard.Builder: setting size and position for ABC, -201: x 0, w 108
+2026-10-20 01:47:33.599 [D] Keyboard.Builder: setting size and position for space_key, 32: x 108, w 395
+2026-10-20 01:47:33.599 [D] Keyboard.Builder: setting size and position for delete_key, -7: x 503, w 108
+2026-10-20 01:47:33.599 [D] Keyboard.Builder: setting size and position for enter_key, 10: x 612, w 108
+2026-10-20 01:47:33.605 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:47:33.605 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:47:33.605 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:47:33.605 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:47:33.605 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:47:57.094 [D] KeyboardState: toggleLayout(layout=CLIPBOARD, autoCapsFlags=none, recapitalizeMode=null)
+2026-10-20 01:47:57.094 [D] KeyboardState: loadLayout(Alphabet{shiftMode=UNSHIFT, autoCapsFlags=none, recapitalizeMode=null})
+2026-10-20 01:47:57.097 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:47:57.097 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:47:57.097 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:47:57.097 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:47:57.097 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:47:57.097 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:48:49.326 [I] VaultSessionManager: lockPrivacy: Privacy vault session locked
+2026-10-20 01:48:49.327 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:48:49.327 [I] VaultSessionManager: lockSettings: Security settings session locked
+2026-10-20 01:48:49.327 [I] VaultSessionManager: lockAll: All vault and settings sessions locked
+2026-10-20 01:48:49.328 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:48:49.329 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:48:49.337 [I] VaultSessionManager: lockPrivacy: Privacy vault session locked
+2026-10-20 01:48:49.337 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:48:49.337 [I] VaultSessionManager: lockSettings: Security settings session locked
+2026-10-20 01:48:49.337 [I] VaultSessionManager: lockAll: All vault and settings sessions locked
+2026-10-20 01:48:49.337 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:48:49.337 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:48:49.346 [I] VaultSessionManager: lockPrivacy: Privacy vault session locked
+2026-10-20 01:48:49.346 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:48:49.346 [I] VaultSessionManager: lockSettings: Security settings session locked
+2026-10-20 01:48:49.346 [I] VaultSessionManager: lockAll: All vault and settings sessions locked
+2026-10-20 01:48:49.350 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:48:49.350 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:48:49.367 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:48:49.367 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:48:49.367 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:48:49.367 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:48:59.349 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:48:59.349 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:49:36.408 [I] Settings: loadSettings
+2026-10-20 01:49:36.460 [D] KeyboardState: loadLayout(Alphabet{shiftMode=UNSHIFT, autoCapsFlags=sentences, recapitalizeMode=null})
+2026-10-20 01:49:36.463 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:49:36.463 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:49:36.464 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:49:36.464 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:49:36.464 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:49:36.464 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:49:36.472 [D] KeyboardState: setShifted: shiftMode=AUTOMATIC [keyboard=UNSHIFT shift=RELEASED symbol=RELEASED]
+2026-10-20 01:49:36.473 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:49:36.473 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:49:36.473 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:49:36.473 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:49:36.473 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:49:36.473 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:49:40.211 [I] VaultSessionManager: lockPrivacy: Privacy vault session locked
+2026-10-20 01:49:40.212 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:49:40.212 [I] VaultSessionManager: lockSettings: Security settings session locked
+2026-10-20 01:49:40.212 [I] VaultSessionManager: lockAll: All vault and settings sessions locked
+2026-10-20 01:49:40.212 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:49:40.212 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:49:40.213 [I] VaultSessionManager: lockPrivacy: Privacy vault session locked
+2026-10-20 01:49:40.213 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:49:40.213 [I] VaultSessionManager: lockSettings: Security settings session locked
+2026-10-20 01:49:40.213 [I] VaultSessionManager: lockAll: All vault and settings sessions locked
+2026-10-20 01:49:40.214 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:49:40.214 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:49:40.215 [I] VaultSessionManager: lockPrivacy: Privacy vault session locked
+2026-10-20 01:49:40.216 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:49:40.216 [I] VaultSessionManager: lockSettings: Security settings session locked
+2026-10-20 01:49:40.216 [I] VaultSessionManager: lockAll: All vault and settings sessions locked
+2026-10-20 01:49:40.216 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:49:40.216 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:49:40.227 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:49:40.227 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:49:40.227 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:49:40.227 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:49:50.220 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:49:50.220 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:50:51.856 [I] Settings: loadSettings
+2026-10-20 01:50:51.878 [D] KeyboardState: loadLayout(Alphabet{shiftMode=UNSHIFT, autoCapsFlags=sentences, recapitalizeMode=null})
+2026-10-20 01:50:51.878 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:50:51.878 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:50:51.878 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:50:51.878 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:50:51.879 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:50:51.879 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:50:51.882 [D] KeyboardState: setShifted: shiftMode=AUTOMATIC [keyboard=UNSHIFT shift=RELEASED symbol=RELEASED]
+2026-10-20 01:50:51.882 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:50:51.882 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:50:51.882 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:50:51.883 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:50:51.883 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:50:51.883 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:50:58.748 [D] KeyboardState: setShifted: shiftMode=UNSHIFT [keyboard=AUTOMATIC shift=RELEASED symbol=RELEASED]
+2026-10-20 01:50:58.749 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:50:58.749 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:50:58.749 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:50:58.749 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:50:58.749 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:50:58.749 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:51:26.237 [D] KeyboardState: setShifted: shiftMode=AUTOMATIC [keyboard=UNSHIFT shift=RELEASED symbol=RELEASED]
+2026-10-20 01:51:26.237 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:51:26.237 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:51:26.237 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:51:26.238 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:51:26.238 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:51:26.238 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:51:29.578 [I] VaultSessionManager: lockPrivacy: Privacy vault session locked
+2026-10-20 01:51:29.578 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:51:29.578 [I] VaultSessionManager: lockSettings: Security settings session locked
+2026-10-20 01:51:29.578 [I] VaultSessionManager: lockAll: All vault and settings sessions locked
+2026-10-20 01:51:29.578 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:51:29.580 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:51:29.582 [I] VaultSessionManager: lockPrivacy: Privacy vault session locked
+2026-10-20 01:51:29.582 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:51:29.582 [I] VaultSessionManager: lockSettings: Security settings session locked
+2026-10-20 01:51:29.582 [I] VaultSessionManager: lockAll: All vault and settings sessions locked
+2026-10-20 01:51:29.587 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:51:29.587 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:51:29.588 [I] VaultSessionManager: lockPrivacy: Privacy vault session locked
+2026-10-20 01:51:29.588 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:51:29.588 [I] VaultSessionManager: lockSettings: Security settings session locked
+2026-10-20 01:51:29.588 [I] VaultSessionManager: lockAll: All vault and settings sessions locked
+2026-10-20 01:51:29.588 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:51:29.588 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:51:29.593 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:51:29.593 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:51:29.593 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:51:29.593 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:51:39.595 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:51:39.595 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:52:03.536 [I] Settings: loadSettings
+2026-10-20 01:52:03.560 [D] KeyboardState: loadLayout(Alphabet{shiftMode=UNSHIFT, autoCapsFlags=sentences, recapitalizeMode=null})
+2026-10-20 01:52:03.560 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:52:03.560 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:52:03.560 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:52:03.561 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:52:03.561 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:52:03.561 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:52:03.565 [D] KeyboardState: setShifted: shiftMode=AUTOMATIC [keyboard=UNSHIFT shift=RELEASED symbol=RELEASED]
+2026-10-20 01:52:03.566 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:52:03.566 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:52:03.566 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:52:03.566 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:52:03.566 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:52:03.566 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:52:04.543 [D] KeyboardState: setShifted: shiftMode=UNSHIFT [keyboard=AUTOMATIC shift=RELEASED symbol=RELEASED]
+2026-10-20 01:52:04.543 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:52:04.543 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:52:04.543 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:52:04.544 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:52:04.544 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:52:04.544 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:52:12.303 [I] VaultSessionManager: lockPrivacy: Privacy vault session locked
+2026-10-20 01:52:12.303 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:52:12.304 [I] VaultSessionManager: lockSettings: Security settings session locked
+2026-10-20 01:52:12.304 [I] VaultSessionManager: lockAll: All vault and settings sessions locked
+2026-10-20 01:52:12.304 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:52:12.304 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:52:12.305 [I] VaultSessionManager: lockPrivacy: Privacy vault session locked
+2026-10-20 01:52:12.305 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:52:12.305 [I] VaultSessionManager: lockSettings: Security settings session locked
+2026-10-20 01:52:12.305 [I] VaultSessionManager: lockAll: All vault and settings sessions locked
+2026-10-20 01:52:12.305 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:52:12.306 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:52:12.307 [I] VaultSessionManager: lockPrivacy: Privacy vault session locked
+2026-10-20 01:52:12.307 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:52:12.307 [I] VaultSessionManager: lockSettings: Security settings session locked
+2026-10-20 01:52:12.307 [I] VaultSessionManager: lockAll: All vault and settings sessions locked
+2026-10-20 01:52:12.307 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:52:12.308 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:52:12.317 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:52:12.317 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:52:12.318 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:52:12.318 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:52:17.377 [I] Settings: loadSettings
+2026-10-20 01:52:17.427 [D] KeyboardState: loadLayout(Alphabet{shiftMode=UNSHIFT, autoCapsFlags=sentences, recapitalizeMode=null})
+2026-10-20 01:52:17.428 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:52:17.428 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:52:17.428 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:52:17.428 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:52:17.428 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:52:17.428 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:52:17.434 [D] KeyboardState: setShifted: shiftMode=AUTOMATIC [keyboard=UNSHIFT shift=RELEASED symbol=RELEASED]
+2026-10-20 01:52:17.434 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:52:17.434 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:52:17.434 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:52:17.435 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:52:17.435 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:52:17.435 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:52:19.862 [I] VaultSessionManager: lockPrivacy: Privacy vault session locked
+2026-10-20 01:52:19.862 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:52:19.862 [I] VaultSessionManager: lockSettings: Security settings session locked
+2026-10-20 01:52:19.862 [I] VaultSessionManager: lockAll: All vault and settings sessions locked
+2026-10-20 01:52:19.862 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:52:19.862 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:52:19.913 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:52:19.913 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:52:32.904 [W] InputAttributes: No editor info for this field. Bug?
+2026-10-20 01:52:32.905 [I] Settings: loadSettings
+2026-10-20 01:52:32.997 [I] Settings: loadSettings
+2026-10-20 01:52:33.003 [D] KeyboardSwitcher: create new input view
+2026-10-20 01:52:33.098 [D] BogusMoveEventDetector: needsProximateBogusDownMoveUpEventHack=false smallestScreenWidthDp=360 densityDpi=320 screenMetrics=0
+2026-10-20 01:52:33.129 [D] BogusMoveEventDetector: needsProximateBogusDownMoveUpEventHack=false smallestScreenWidthDp=360 densityDpi=320 screenMetrics=0
+2026-10-20 01:52:33.152 [D] BogusMoveEventDetector: needsProximateBogusDownMoveUpEventHack=false smallestScreenWidthDp=360 densityDpi=320 screenMetrics=0
+2026-10-20 01:52:33.180 [D] BogusMoveEventDetector: needsProximateBogusDownMoveUpEventHack=false smallestScreenWidthDp=360 densityDpi=320 screenMetrics=0
+2026-10-20 01:52:33.213 [D] BogusMoveEventDetector: needsProximateBogusDownMoveUpEventHack=false smallestScreenWidthDp=360 densityDpi=320 screenMetrics=0
+2026-10-20 01:52:33.228 [D] BogusMoveEventDetector: needsProximateBogusDownMoveUpEventHack=false smallestScreenWidthDp=360 densityDpi=320 screenMetrics=0
+2026-10-20 01:52:33.239 [D] BogusMoveEventDetector: needsProximateBogusDownMoveUpEventHack=false smallestScreenWidthDp=360 densityDpi=320 screenMetrics=0
+2026-10-20 01:52:33.261 [I] Settings: loadSettings
+2026-10-20 01:52:33.647 [W] RichInputConnection: Slow InputConnection: GET_TEXT_BEFORE_CURSOR took 380 ms.
+2026-10-20 01:52:34.342 [D] KeyboardState: loadLayout(Alphabet{shiftMode=UNSHIFT, autoCapsFlags=none, recapitalizeMode=null})
+2026-10-20 01:52:34.343 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:52:34.343 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:52:34.343 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:52:34.343 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:52:34.343 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:52:34.343 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:52:34.411 [D] KeyboardParser: adding key 1, 0
+2026-10-20 01:52:34.411 [D] KeyboardParser: adding key 2, 0
+2026-10-20 01:52:34.412 [D] KeyboardParser: adding key 3, 0
+2026-10-20 01:52:34.412 [D] KeyboardParser: adding key 4, 0
+2026-10-20 01:52:34.412 [D] KeyboardParser: adding key 5, 0
+2026-10-20 01:52:34.412 [D] KeyboardParser: adding key 6, 0
+2026-10-20 01:52:34.412 [D] KeyboardParser: adding key 7, 0
+2026-10-20 01:52:34.412 [D] KeyboardParser: adding key 8, 0
+2026-10-20 01:52:34.413 [D] KeyboardParser: adding key 9, 0
+2026-10-20 01:52:34.413 [D] KeyboardParser: adding key 0, 0
+2026-10-20 01:52:34.413 [D] KeyboardParser: adding key q, 0
+2026-10-20 01:52:34.413 [D] KeyboardParser: adding key w, 0
+2026-10-20 01:52:34.413 [D] KeyboardParser: adding key e, 0
+2026-10-20 01:52:34.414 [D] KeyboardParser: adding key r, 0
+2026-10-20 01:52:34.414 [D] KeyboardParser: adding key t, 0
+2026-10-20 01:52:34.414 [D] KeyboardParser: adding key y, 0
+2026-10-20 01:52:34.414 [D] KeyboardParser: adding key u, 0
+2026-10-20 01:52:34.414 [D] KeyboardParser: adding key i, 0
+2026-10-20 01:52:34.414 [D] KeyboardParser: adding key o, 0
+2026-10-20 01:52:34.414 [D] KeyboardParser: adding key p, 0
+2026-10-20 01:52:34.415 [D] KeyboardParser: adding key a, 0
+2026-10-20 01:52:34.415 [D] KeyboardParser: adding key s, 0
+2026-10-20 01:52:34.415 [D] KeyboardParser: adding key d, 0
+2026-10-20 01:52:34.415 [D] KeyboardParser: adding key f, 0
+2026-10-20 01:52:34.415 [D] KeyboardParser: adding key g, 0
+2026-10-20 01:52:34.415 [D] KeyboardParser: adding key h, 0
+2026-10-20 01:52:34.415 [D] KeyboardParser: adding key j, 0
+2026-10-20 01:52:34.415 [D] KeyboardParser: adding key k, 0
+2026-10-20 01:52:34.416 [D] KeyboardParser: adding key l, 0
+2026-10-20 01:52:34.416 [D] KeyboardParser: adding key z, 0
+2026-10-20 01:52:34.416 [D] KeyboardParser: adding key x, 0
+2026-10-20 01:52:34.416 [D] KeyboardParser: adding key c, 0
+2026-10-20 01:52:34.416 [D] KeyboardParser: adding key v, 0
+2026-10-20 01:52:34.417 [D] KeyboardParser: adding key b, 0
+2026-10-20 01:52:34.417 [D] KeyboardParser: adding key n, 0
+2026-10-20 01:52:34.417 [D] KeyboardParser: adding key m, 0
+2026-10-20 01:52:34.419 [D] Keyboard.Builder: setting size and position for 1, 49: x 0, w 72
+2026-10-20 01:52:34.419 [D] Keyboard.Builder: setting size and position for 2, 50: x 72, w 72
+2026-10-20 01:52:34.419 [D] Keyboard.Builder: setting size and position for 3, 51: x 144, w 72
+2026-10-20 01:52:34.419 [D] Keyboard.Builder: setting size and position for 4, 52: x 216, w 72
+2026-10-20 01:52:34.419 [D] Keyboard.Builder: setting size and position for 5, 53: x 288, w 72
+2026-10-20 01:52:34.419 [D] Keyboard.Builder: setting size and position for 6, 54: x 360, w 72
+2026-10-20 01:52:34.419 [D] Keyboard.Builder: setting size and position for 7, 55: x 432, w 72
+2026-10-20 01:52:34.419 [D] Keyboard.Builder: setting size and position for 8, 56: x 504, w 72
+2026-10-20 01:52:34.419 [D] Keyboard.Builder: setting size and position for 9, 57: x 576, w 72
+2026-10-20 01:52:34.419 [D] Keyboard.Builder: setting size and position for 0, 48: x 648, w 72
+2026-10-20 01:52:34.419 [D] Keyboard.Builder: setting size and position for q, 113: x 0, w 72
+2026-10-20 01:52:34.419 [D] Keyboard.Builder: setting size and position for w, 119: x 72, w 72
+2026-10-20 01:52:34.419 [D] Keyboard.Builder: setting size and position for e, 101: x 144, w 72
+2026-10-20 01:52:34.419 [D] Keyboard.Builder: setting size and position for r, 114: x 216, w 72
+2026-10-20 01:52:34.419 [D] Keyboard.Builder: setting size and position for t, 116: x 288, w 72
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for y, 121: x 360, w 72
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for u, 117: x 432, w 72
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for i, 105: x 504, w 72
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for o, 111: x 576, w 72
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for p, 112: x 648, w 72
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for null, -10008: x 0, w 35
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for a, 97: x 35, w 72
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for s, 115: x 107, w 72
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for d, 100: x 179, w 72
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for f, 102: x 251, w 72
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for g, 103: x 323, w 72
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for h, 104: x 395, w 72
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for j, 106: x 467, w 72
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for k, 107: x 540, w 72
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for l, 108: x 612, w 72
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for null, -10008: x 684, w 35
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for shift_key, -11: x 0, w 108
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for z, 122: x 108, w 72
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for x, 120: x 180, w 72
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for c, 99: x 252, w 72
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for v, 118: x 324, w 72
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for b, 98: x 396, w 72
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for n, 110: x 468, w 72
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for m, 109: x 540, w 72
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for delete_key, -7: x 612, w 108
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for ?123, -10001: x 0, w 108
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for ,, 44: x 108, w 72
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for space_key, 32: x 180, w 360
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for ., 46: x 540, w 72
+2026-10-20 01:52:34.420 [D] Keyboard.Builder: setting size and position for enter_key, 10: x 612, w 108
+2026-10-20 01:52:39.332 [W] InputLogic: Skipping unlearning due to slow InputConnection.
+2026-10-20 01:52:39.547 [W] InputLogic: Skipping unlearning due to slow InputConnection.
+2026-10-20 01:52:39.747 [W] InputLogic: Skipping unlearning due to slow InputConnection.
+2026-10-20 01:52:39.931 [W] InputLogic: Skipping unlearning due to slow InputConnection.
+2026-10-20 01:52:39.935 [D] KeyboardState: setShifted: shiftMode=AUTOMATIC [keyboard=UNSHIFT shift=RELEASED symbol=RELEASED]
+2026-10-20 01:52:39.935 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:52:39.935 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:52:39.935 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:52:39.935 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:52:39.935 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:52:39.935 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:52:39.943 [D] KeyboardParser: adding key 1, 0
+2026-10-20 01:52:39.944 [D] KeyboardParser: adding key 2, 0
+2026-10-20 01:52:39.944 [D] KeyboardParser: adding key 3, 0
+2026-10-20 01:52:39.945 [D] KeyboardParser: adding key 4, 0
+2026-10-20 01:52:39.945 [D] KeyboardParser: adding key 5, 0
+2026-10-20 01:52:39.945 [D] KeyboardParser: adding key 6, 0
+2026-10-20 01:52:39.945 [D] KeyboardParser: adding key 7, 0
+2026-10-20 01:52:39.946 [D] KeyboardParser: adding key 8, 0
+2026-10-20 01:52:39.946 [D] KeyboardParser: adding key 9, 0
+2026-10-20 01:52:39.946 [D] KeyboardParser: adding key 0, 0
+2026-10-20 01:52:39.946 [D] KeyboardParser: adding key q, 0
+2026-10-20 01:52:39.947 [D] KeyboardParser: adding key w, 0
+2026-10-20 01:52:39.947 [D] KeyboardParser: adding key e, 0
+2026-10-20 01:52:39.947 [D] KeyboardParser: adding key r, 0
+2026-10-20 01:52:39.947 [D] KeyboardParser: adding key t, 0
+2026-10-20 01:52:39.947 [D] KeyboardParser: adding key y, 0
+2026-10-20 01:52:39.948 [D] KeyboardParser: adding key u, 0
+2026-10-20 01:52:39.948 [D] KeyboardParser: adding key i, 0
+2026-10-20 01:52:39.948 [D] KeyboardParser: adding key o, 0
+2026-10-20 01:52:39.949 [D] KeyboardParser: adding key p, 0
+2026-10-20 01:52:39.949 [D] KeyboardParser: adding key a, 0
+2026-10-20 01:52:39.949 [D] KeyboardParser: adding key s, 0
+2026-10-20 01:52:39.949 [D] KeyboardParser: adding key d, 0
+2026-10-20 01:52:39.950 [D] KeyboardParser: adding key f, 0
+2026-10-20 01:52:39.950 [D] KeyboardParser: adding key g, 0
+2026-10-20 01:52:39.950 [D] KeyboardParser: adding key h, 0
+2026-10-20 01:52:39.950 [D] KeyboardParser: adding key j, 0
+2026-10-20 01:52:39.950 [D] KeyboardParser: adding key k, 0
+2026-10-20 01:52:39.950 [D] KeyboardParser: adding key l, 0
+2026-10-20 01:52:39.951 [D] KeyboardParser: adding key z, 0
+2026-10-20 01:52:39.951 [D] KeyboardParser: adding key x, 0
+2026-10-20 01:52:39.951 [D] KeyboardParser: adding key c, 0
+2026-10-20 01:52:39.952 [D] KeyboardParser: adding key v, 0
+2026-10-20 01:52:39.952 [D] KeyboardParser: adding key b, 0
+2026-10-20 01:52:39.952 [D] KeyboardParser: adding key n, 0
+2026-10-20 01:52:39.952 [D] KeyboardParser: adding key m, 0
+2026-10-20 01:52:39.954 [D] Keyboard.Builder: setting size and position for 1, 49: x 0, w 72
+2026-10-20 01:52:39.954 [D] Keyboard.Builder: setting size and position for 2, 50: x 72, w 72
+2026-10-20 01:52:39.954 [D] Keyboard.Builder: setting size and position for 3, 51: x 144, w 72
+2026-10-20 01:52:39.954 [D] Keyboard.Builder: setting size and position for 4, 52: x 216, w 72
+2026-10-20 01:52:39.954 [D] Keyboard.Builder: setting size and position for 5, 53: x 288, w 72
+2026-10-20 01:52:39.954 [D] Keyboard.Builder: setting size and position for 6, 54: x 360, w 72
+2026-10-20 01:52:39.954 [D] Keyboard.Builder: setting size and position for 7, 55: x 432, w 72
+2026-10-20 01:52:39.954 [D] Keyboard.Builder: setting size and position for 8, 56: x 504, w 72
+2026-10-20 01:52:39.954 [D] Keyboard.Builder: setting size and position for 9, 57: x 576, w 72
+2026-10-20 01:52:39.954 [D] Keyboard.Builder: setting size and position for 0, 48: x 648, w 72
+2026-10-20 01:52:39.954 [D] Keyboard.Builder: setting size and position for Q, 81: x 0, w 72
+2026-10-20 01:52:39.954 [D] Keyboard.Builder: setting size and position for W, 87: x 72, w 72
+2026-10-20 01:52:39.954 [D] Keyboard.Builder: setting size and position for E, 69: x 144, w 72
+2026-10-20 01:52:39.954 [D] Keyboard.Builder: setting size and position for R, 82: x 216, w 72
+2026-10-20 01:52:39.954 [D] Keyboard.Builder: setting size and position for T, 84: x 288, w 72
+2026-10-20 01:52:39.954 [D] Keyboard.Builder: setting size and position for Y, 89: x 360, w 72
+2026-10-20 01:52:39.954 [D] Keyboard.Builder: setting size and position for U, 85: x 432, w 72
+2026-10-20 01:52:39.954 [D] Keyboard.Builder: setting size and position for I, 73: x 504, w 72
+2026-10-20 01:52:39.955 [D] Keyboard.Builder: setting size and position for O, 79: x 576, w 72
+2026-10-20 01:52:39.955 [D] Keyboard.Builder: setting size and position for P, 80: x 648, w 72
+2026-10-20 01:52:39.955 [D] Keyboard.Builder: setting size and position for null, -10008: x 0, w 35
+2026-10-20 01:52:39.955 [D] Keyboard.Builder: setting size and position for A, 65: x 35, w 72
+2026-10-20 01:52:39.955 [D] Keyboard.Builder: setting size and position for S, 83: x 107, w 72
+2026-10-20 01:52:39.955 [D] Keyboard.Builder: setting size and position for D, 68: x 179, w 72
+2026-10-20 01:52:39.955 [D] Keyboard.Builder: setting size and position for F, 70: x 251, w 72
+2026-10-20 01:52:39.955 [D] Keyboard.Builder: setting size and position for G, 71: x 323, w 72
+2026-10-20 01:52:39.955 [D] Keyboard.Builder: setting size and position for H, 72: x 395, w 72
+2026-10-20 01:52:39.955 [D] Keyboard.Builder: setting size and position for J, 74: x 467, w 72
+2026-10-20 01:52:39.955 [D] Keyboard.Builder: setting size and position for K, 75: x 540, w 72
+2026-10-20 01:52:39.955 [D] Keyboard.Builder: setting size and position for L, 76: x 612, w 72
+2026-10-20 01:52:39.955 [D] Keyboard.Builder: setting size and position for null, -10008: x 684, w 35
+2026-10-20 01:52:39.955 [D] Keyboard.Builder: setting size and position for shift_key_shifted, -11: x 0, w 108
+2026-10-20 01:52:39.955 [D] Keyboard.Builder: setting size and position for Z, 90: x 108, w 72
+2026-10-20 01:52:39.955 [D] Keyboard.Builder: setting size and position for X, 88: x 180, w 72
+2026-10-20 01:52:39.955 [D] Keyboard.Builder: setting size and position for C, 67: x 252, w 72
+2026-10-20 01:52:39.955 [D] Keyboard.Builder: setting size and position for V, 86: x 324, w 72
+2026-10-20 01:52:39.955 [D] Keyboard.Builder: setting size and position for B, 66: x 396, w 72
+2026-10-20 01:52:39.955 [D] Keyboard.Builder: setting size and position for N, 78: x 468, w 72
+2026-10-20 01:52:39.955 [D] Keyboard.Builder: setting size and position for M, 77: x 540, w 72
+2026-10-20 01:52:39.955 [D] Keyboard.Builder: setting size and position for delete_key, -7: x 612, w 108
+2026-10-20 01:52:39.955 [D] Keyboard.Builder: setting size and position for ?123, -10001: x 0, w 108
+2026-10-20 01:52:39.955 [D] Keyboard.Builder: setting size and position for ,, 44: x 108, w 72
+2026-10-20 01:52:39.955 [D] Keyboard.Builder: setting size and position for space_key, 32: x 180, w 360
+2026-10-20 01:52:39.955 [D] Keyboard.Builder: setting size and position for ., 46: x 540, w 72
+2026-10-20 01:52:39.955 [D] Keyboard.Builder: setting size and position for enter_key, 10: x 612, w 108
+2026-10-20 01:52:43.371 [I] VaultSessionManager: lockPrivacy: Privacy vault session locked
+2026-10-20 01:52:43.371 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:52:43.371 [I] VaultSessionManager: lockSettings: Security settings session locked
+2026-10-20 01:52:43.371 [I] VaultSessionManager: lockAll: All vault and settings sessions locked
+2026-10-20 01:52:43.372 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:52:43.372 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:52:43.373 [I] VaultSessionManager: lockPrivacy: Privacy vault session locked
+2026-10-20 01:52:43.373 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:52:43.373 [I] VaultSessionManager: lockSettings: Security settings session locked
+2026-10-20 01:52:43.373 [I] VaultSessionManager: lockAll: All vault and settings sessions locked
+2026-10-20 01:52:43.373 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:52:43.373 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:52:43.375 [I] VaultSessionManager: lockPrivacy: Privacy vault session locked
+2026-10-20 01:52:43.375 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:52:43.375 [I] VaultSessionManager: lockSettings: Security settings session locked
+2026-10-20 01:52:43.375 [I] VaultSessionManager: lockAll: All vault and settings sessions locked
+2026-10-20 01:52:43.375 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:52:43.376 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:52:43.388 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:52:43.388 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:52:43.388 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:52:43.388 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:52:53.380 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:52:53.380 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:04.464 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:04.464 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:04.464 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:04.464 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:04.514 [I] Settings: loadSettings
+2026-10-20 01:54:04.538 [D] KeyboardState: loadLayout(Alphabet{shiftMode=UNSHIFT, autoCapsFlags=sentences, recapitalizeMode=null})
+2026-10-20 01:54:04.539 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:04.539 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:04.539 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:04.539 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:04.539 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:04.539 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:04.544 [D] KeyboardParser: adding key 1, 0
+2026-10-20 01:54:04.545 [D] KeyboardParser: adding key 2, 0
+2026-10-20 01:54:04.545 [D] KeyboardParser: adding key 3, 0
+2026-10-20 01:54:04.545 [D] KeyboardParser: adding key 4, 0
+2026-10-20 01:54:04.545 [D] KeyboardParser: adding key 5, 0
+2026-10-20 01:54:04.546 [D] KeyboardParser: adding key 6, 0
+2026-10-20 01:54:04.546 [D] KeyboardParser: adding key 7, 0
+2026-10-20 01:54:04.546 [D] KeyboardParser: adding key 8, 0
+2026-10-20 01:54:04.546 [D] KeyboardParser: adding key 9, 0
+2026-10-20 01:54:04.546 [D] KeyboardParser: adding key 0, 0
+2026-10-20 01:54:04.547 [D] KeyboardParser: adding key q, 0
+2026-10-20 01:54:04.547 [D] KeyboardParser: adding key w, 0
+2026-10-20 01:54:04.547 [D] KeyboardParser: adding key e, 0
+2026-10-20 01:54:04.548 [D] KeyboardParser: adding key r, 0
+2026-10-20 01:54:04.548 [D] KeyboardParser: adding key t, 0
+2026-10-20 01:54:04.548 [D] KeyboardParser: adding key y, 0
+2026-10-20 01:54:04.548 [D] KeyboardParser: adding key u, 0
+2026-10-20 01:54:04.549 [D] KeyboardParser: adding key i, 0
+2026-10-20 01:54:04.549 [D] KeyboardParser: adding key o, 0
+2026-10-20 01:54:04.549 [D] KeyboardParser: adding key p, 0
+2026-10-20 01:54:04.549 [D] KeyboardParser: adding key a, 0
+2026-10-20 01:54:04.549 [D] KeyboardParser: adding key s, 0
+2026-10-20 01:54:04.549 [D] KeyboardParser: adding key d, 0
+2026-10-20 01:54:04.549 [D] KeyboardParser: adding key f, 0
+2026-10-20 01:54:04.550 [D] KeyboardParser: adding key g, 0
+2026-10-20 01:54:04.550 [D] KeyboardParser: adding key h, 0
+2026-10-20 01:54:04.550 [D] KeyboardParser: adding key j, 0
+2026-10-20 01:54:04.550 [D] KeyboardParser: adding key k, 0
+2026-10-20 01:54:04.550 [D] KeyboardParser: adding key l, 0
+2026-10-20 01:54:04.550 [D] KeyboardParser: adding key z, 0
+2026-10-20 01:54:04.551 [D] KeyboardParser: adding key x, 0
+2026-10-20 01:54:04.551 [D] KeyboardParser: adding key c, 0
+2026-10-20 01:54:04.551 [D] KeyboardParser: adding key v, 0
+2026-10-20 01:54:04.551 [D] KeyboardParser: adding key b, 0
+2026-10-20 01:54:04.551 [D] KeyboardParser: adding key n, 0
+2026-10-20 01:54:04.551 [D] KeyboardParser: adding key m, 0
+2026-10-20 01:54:04.553 [D] Keyboard.Builder: setting size and position for 1, 49: x 0, w 72
+2026-10-20 01:54:04.553 [D] Keyboard.Builder: setting size and position for 2, 50: x 72, w 72
+2026-10-20 01:54:04.553 [D] Keyboard.Builder: setting size and position for 3, 51: x 144, w 72
+2026-10-20 01:54:04.553 [D] Keyboard.Builder: setting size and position for 4, 52: x 216, w 72
+2026-10-20 01:54:04.553 [D] Keyboard.Builder: setting size and position for 5, 53: x 288, w 72
+2026-10-20 01:54:04.553 [D] Keyboard.Builder: setting size and position for 6, 54: x 360, w 72
+2026-10-20 01:54:04.553 [D] Keyboard.Builder: setting size and position for 7, 55: x 432, w 72
+2026-10-20 01:54:04.553 [D] Keyboard.Builder: setting size and position for 8, 56: x 504, w 72
+2026-10-20 01:54:04.553 [D] Keyboard.Builder: setting size and position for 9, 57: x 576, w 72
+2026-10-20 01:54:04.553 [D] Keyboard.Builder: setting size and position for 0, 48: x 648, w 72
+2026-10-20 01:54:04.553 [D] Keyboard.Builder: setting size and position for q, 113: x 0, w 72
+2026-10-20 01:54:04.553 [D] Keyboard.Builder: setting size and position for w, 119: x 72, w 72
+2026-10-20 01:54:04.553 [D] Keyboard.Builder: setting size and position for e, 101: x 144, w 72
+2026-10-20 01:54:04.553 [D] Keyboard.Builder: setting size and position for r, 114: x 216, w 72
+2026-10-20 01:54:04.553 [D] Keyboard.Builder: setting size and position for t, 116: x 288, w 72
+2026-10-20 01:54:04.553 [D] Keyboard.Builder: setting size and position for y, 121: x 360, w 72
+2026-10-20 01:54:04.553 [D] Keyboard.Builder: setting size and position for u, 117: x 432, w 72
+2026-10-20 01:54:04.553 [D] Keyboard.Builder: setting size and position for i, 105: x 504, w 72
+2026-10-20 01:54:04.553 [D] Keyboard.Builder: setting size and position for o, 111: x 576, w 72
+2026-10-20 01:54:04.553 [D] Keyboard.Builder: setting size and position for p, 112: x 648, w 72
+2026-10-20 01:54:04.554 [D] Keyboard.Builder: setting size and position for null, -10008: x 0, w 35
+2026-10-20 01:54:04.554 [D] Keyboard.Builder: setting size and position for a, 97: x 35, w 72
+2026-10-20 01:54:04.554 [D] Keyboard.Builder: setting size and position for s, 115: x 107, w 72
+2026-10-20 01:54:04.554 [D] Keyboard.Builder: setting size and position for d, 100: x 179, w 72
+2026-10-20 01:54:04.554 [D] Keyboard.Builder: setting size and position for f, 102: x 251, w 72
+2026-10-20 01:54:04.554 [D] Keyboard.Builder: setting size and position for g, 103: x 323, w 72
+2026-10-20 01:54:04.554 [D] Keyboard.Builder: setting size and position for h, 104: x 395, w 72
+2026-10-20 01:54:04.554 [D] Keyboard.Builder: setting size and position for j, 106: x 467, w 72
+2026-10-20 01:54:04.554 [D] Keyboard.Builder: setting size and position for k, 107: x 540, w 72
+2026-10-20 01:54:04.554 [D] Keyboard.Builder: setting size and position for l, 108: x 612, w 72
+2026-10-20 01:54:04.554 [D] Keyboard.Builder: setting size and position for null, -10008: x 684, w 35
+2026-10-20 01:54:04.554 [D] Keyboard.Builder: setting size and position for shift_key, -11: x 0, w 108
+2026-10-20 01:54:04.554 [D] Keyboard.Builder: setting size and position for z, 122: x 108, w 72
+2026-10-20 01:54:04.554 [D] Keyboard.Builder: setting size and position for x, 120: x 180, w 72
+2026-10-20 01:54:04.554 [D] Keyboard.Builder: setting size and position for c, 99: x 252, w 72
+2026-10-20 01:54:04.554 [D] Keyboard.Builder: setting size and position for v, 118: x 324, w 72
+2026-10-20 01:54:04.554 [D] Keyboard.Builder: setting size and position for b, 98: x 396, w 72
+2026-10-20 01:54:04.554 [D] Keyboard.Builder: setting size and position for n, 110: x 468, w 72
+2026-10-20 01:54:04.554 [D] Keyboard.Builder: setting size and position for m, 109: x 540, w 72
+2026-10-20 01:54:04.554 [D] Keyboard.Builder: setting size and position for delete_key, -7: x 612, w 108
+2026-10-20 01:54:04.554 [D] Keyboard.Builder: setting size and position for ?123, -10001: x 0, w 108
+2026-10-20 01:54:04.554 [D] Keyboard.Builder: setting size and position for ,, 44: x 108, w 72
+2026-10-20 01:54:04.554 [D] Keyboard.Builder: setting size and position for space_key, 32: x 180, w 360
+2026-10-20 01:54:04.554 [D] Keyboard.Builder: setting size and position for ., 46: x 540, w 72
+2026-10-20 01:54:04.554 [D] Keyboard.Builder: setting size and position for enter_key, 10: x 612, w 108
+2026-10-20 01:54:04.561 [D] KeyboardState: setShifted: shiftMode=AUTOMATIC [keyboard=UNSHIFT shift=RELEASED symbol=RELEASED]
+2026-10-20 01:54:04.562 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:04.562 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:04.562 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:04.562 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:04.562 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:04.562 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:04.568 [D] KeyboardParser: adding key 1, 0
+2026-10-20 01:54:04.569 [D] KeyboardParser: adding key 2, 0
+2026-10-20 01:54:04.569 [D] KeyboardParser: adding key 3, 0
+2026-10-20 01:54:04.569 [D] KeyboardParser: adding key 4, 0
+2026-10-20 01:54:04.570 [D] KeyboardParser: adding key 5, 0
+2026-10-20 01:54:04.570 [D] KeyboardParser: adding key 6, 0
+2026-10-20 01:54:04.570 [D] KeyboardParser: adding key 7, 0
+2026-10-20 01:54:04.570 [D] KeyboardParser: adding key 8, 0
+2026-10-20 01:54:04.570 [D] KeyboardParser: adding key 9, 0
+2026-10-20 01:54:04.571 [D] KeyboardParser: adding key 0, 0
+2026-10-20 01:54:04.571 [D] KeyboardParser: adding key q, 0
+2026-10-20 01:54:04.571 [D] KeyboardParser: adding key w, 0
+2026-10-20 01:54:04.571 [D] KeyboardParser: adding key e, 0
+2026-10-20 01:54:04.571 [D] KeyboardParser: adding key r, 0
+2026-10-20 01:54:04.572 [D] KeyboardParser: adding key t, 0
+2026-10-20 01:54:04.572 [D] KeyboardParser: adding key y, 0
+2026-10-20 01:54:04.572 [D] KeyboardParser: adding key u, 0
+2026-10-20 01:54:04.572 [D] KeyboardParser: adding key i, 0
+2026-10-20 01:54:04.572 [D] KeyboardParser: adding key o, 0
+2026-10-20 01:54:04.573 [D] KeyboardParser: adding key p, 0
+2026-10-20 01:54:04.573 [D] KeyboardParser: adding key a, 0
+2026-10-20 01:54:04.573 [D] KeyboardParser: adding key s, 0
+2026-10-20 01:54:04.574 [D] KeyboardParser: adding key d, 0
+2026-10-20 01:54:04.574 [D] KeyboardParser: adding key f, 0
+2026-10-20 01:54:04.574 [D] KeyboardParser: adding key g, 0
+2026-10-20 01:54:04.574 [D] KeyboardParser: adding key h, 0
+2026-10-20 01:54:04.574 [D] KeyboardParser: adding key j, 0
+2026-10-20 01:54:04.574 [D] KeyboardParser: adding key k, 0
+2026-10-20 01:54:04.574 [D] KeyboardParser: adding key l, 0
+2026-10-20 01:54:04.575 [D] KeyboardParser: adding key z, 0
+2026-10-20 01:54:04.575 [D] KeyboardParser: adding key x, 0
+2026-10-20 01:54:04.575 [D] KeyboardParser: adding key c, 0
+2026-10-20 01:54:04.575 [D] KeyboardParser: adding key v, 0
+2026-10-20 01:54:04.576 [D] KeyboardParser: adding key b, 0
+2026-10-20 01:54:04.576 [D] KeyboardParser: adding key n, 0
+2026-10-20 01:54:04.576 [D] KeyboardParser: adding key m, 0
+2026-10-20 01:54:04.578 [D] Keyboard.Builder: setting size and position for 1, 49: x 0, w 72
+2026-10-20 01:54:04.578 [D] Keyboard.Builder: setting size and position for 2, 50: x 72, w 72
+2026-10-20 01:54:04.578 [D] Keyboard.Builder: setting size and position for 3, 51: x 144, w 72
+2026-10-20 01:54:04.578 [D] Keyboard.Builder: setting size and position for 4, 52: x 216, w 72
+2026-10-20 01:54:04.578 [D] Keyboard.Builder: setting size and position for 5, 53: x 288, w 72
+2026-10-20 01:54:04.578 [D] Keyboard.Builder: setting size and position for 6, 54: x 360, w 72
+2026-10-20 01:54:04.578 [D] Keyboard.Builder: setting size and position for 7, 55: x 432, w 72
+2026-10-20 01:54:04.578 [D] Keyboard.Builder: setting size and position for 8, 56: x 504, w 72
+2026-10-20 01:54:04.578 [D] Keyboard.Builder: setting size and position for 9, 57: x 576, w 72
+2026-10-20 01:54:04.578 [D] Keyboard.Builder: setting size and position for 0, 48: x 648, w 72
+2026-10-20 01:54:04.578 [D] Keyboard.Builder: setting size and position for Q, 81: x 0, w 72
+2026-10-20 01:54:04.578 [D] Keyboard.Builder: setting size and position for W, 87: x 72, w 72
+2026-10-20 01:54:04.578 [D] Keyboard.Builder: setting size and position for E, 69: x 144, w 72
+2026-10-20 01:54:04.578 [D] Keyboard.Builder: setting size and position for R, 82: x 216, w 72
+2026-10-20 01:54:04.578 [D] Keyboard.Builder: setting size and position for T, 84: x 288, w 72
+2026-10-20 01:54:04.578 [D] Keyboard.Builder: setting size and position for Y, 89: x 360, w 72
+2026-10-20 01:54:04.578 [D] Keyboard.Builder: setting size and position for U, 85: x 432, w 72
+2026-10-20 01:54:04.578 [D] Keyboard.Builder: setting size and position for I, 73: x 504, w 72
+2026-10-20 01:54:04.578 [D] Keyboard.Builder: setting size and position for O, 79: x 576, w 72
+2026-10-20 01:54:04.578 [D] Keyboard.Builder: setting size and position for P, 80: x 648, w 72
+2026-10-20 01:54:04.578 [D] Keyboard.Builder: setting size and position for null, -10008: x 0, w 35
+2026-10-20 01:54:04.578 [D] Keyboard.Builder: setting size and position for A, 65: x 35, w 72
+2026-10-20 01:54:04.578 [D] Keyboard.Builder: setting size and position for S, 83: x 107, w 72
+2026-10-20 01:54:04.578 [D] Keyboard.Builder: setting size and position for D, 68: x 179, w 72
+2026-10-20 01:54:04.579 [D] Keyboard.Builder: setting size and position for F, 70: x 251, w 72
+2026-10-20 01:54:04.579 [D] Keyboard.Builder: setting size and position for G, 71: x 323, w 72
+2026-10-20 01:54:04.579 [D] Keyboard.Builder: setting size and position for H, 72: x 395, w 72
+2026-10-20 01:54:04.579 [D] Keyboard.Builder: setting size and position for J, 74: x 467, w 72
+2026-10-20 01:54:04.579 [D] Keyboard.Builder: setting size and position for K, 75: x 540, w 72
+2026-10-20 01:54:04.579 [D] Keyboard.Builder: setting size and position for L, 76: x 612, w 72
+2026-10-20 01:54:04.579 [D] Keyboard.Builder: setting size and position for null, -10008: x 684, w 35
+2026-10-20 01:54:04.579 [D] Keyboard.Builder: setting size and position for shift_key_shifted, -11: x 0, w 108
+2026-10-20 01:54:04.579 [D] Keyboard.Builder: setting size and position for Z, 90: x 108, w 72
+2026-10-20 01:54:04.579 [D] Keyboard.Builder: setting size and position for X, 88: x 180, w 72
+2026-10-20 01:54:04.579 [D] Keyboard.Builder: setting size and position for C, 67: x 252, w 72
+2026-10-20 01:54:04.579 [D] Keyboard.Builder: setting size and position for V, 86: x 324, w 72
+2026-10-20 01:54:04.579 [D] Keyboard.Builder: setting size and position for B, 66: x 396, w 72
+2026-10-20 01:54:04.579 [D] Keyboard.Builder: setting size and position for N, 78: x 468, w 72
+2026-10-20 01:54:04.579 [D] Keyboard.Builder: setting size and position for M, 77: x 540, w 72
+2026-10-20 01:54:04.579 [D] Keyboard.Builder: setting size and position for delete_key, -7: x 612, w 108
+2026-10-20 01:54:04.579 [D] Keyboard.Builder: setting size and position for ?123, -10001: x 0, w 108
+2026-10-20 01:54:04.579 [D] Keyboard.Builder: setting size and position for ,, 44: x 108, w 72
+2026-10-20 01:54:04.579 [D] Keyboard.Builder: setting size and position for space_key, 32: x 180, w 360
+2026-10-20 01:54:04.579 [D] Keyboard.Builder: setting size and position for ., 46: x 540, w 72
+2026-10-20 01:54:04.579 [D] Keyboard.Builder: setting size and position for enter_key, 10: x 612, w 108
+2026-10-20 01:54:06.037 [I] VaultSessionManager: lockPrivacy: Privacy vault session locked
+2026-10-20 01:54:06.037 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:06.037 [I] VaultSessionManager: lockSettings: Security settings session locked
+2026-10-20 01:54:06.037 [I] VaultSessionManager: lockAll: All vault and settings sessions locked
+2026-10-20 01:54:06.037 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:06.037 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:06.038 [I] VaultSessionManager: lockPrivacy: Privacy vault session locked
+2026-10-20 01:54:06.038 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:06.038 [I] VaultSessionManager: lockSettings: Security settings session locked
+2026-10-20 01:54:06.038 [I] VaultSessionManager: lockAll: All vault and settings sessions locked
+2026-10-20 01:54:06.039 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:06.039 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:06.039 [I] VaultSessionManager: lockPrivacy: Privacy vault session locked
+2026-10-20 01:54:06.039 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:06.039 [I] VaultSessionManager: lockSettings: Security settings session locked
+2026-10-20 01:54:06.039 [I] VaultSessionManager: lockAll: All vault and settings sessions locked
+2026-10-20 01:54:06.039 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:06.039 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:06.051 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:06.051 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:06.051 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:06.051 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:06.330 [I] Settings: loadSettings
+2026-10-20 01:54:06.368 [E] RichInputConnection: Unable to connect to the editor to retrieve text.
+2026-10-20 01:54:06.370 [E] RichInputConnection: Unable to connect to the editor to retrieve text.
+2026-10-20 01:54:06.370 [W] RichInputConnection: Unable to connect to the editor. Setting caps mode without knowing text.
+2026-10-20 01:54:06.371 [D] KeyboardState: loadLayout(Alphabet{shiftMode=UNSHIFT, autoCapsFlags=sentences, recapitalizeMode=null})
+2026-10-20 01:54:06.371 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:06.371 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:06.371 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:06.371 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:06.371 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:06.371 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:06.376 [D] KeyboardState: setShifted: shiftMode=AUTOMATIC [keyboard=UNSHIFT shift=RELEASED symbol=RELEASED]
+2026-10-20 01:54:06.377 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:06.377 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:06.377 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:06.377 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:06.377 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:06.377 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:06.403 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:06.403 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:06.403 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:06.403 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:06.404 [I] VaultSessionManager: lockPrivacy: Privacy vault session locked
+2026-10-20 01:54:06.405 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:06.405 [I] VaultSessionManager: lockSettings: Security settings session locked
+2026-10-20 01:54:06.405 [I] VaultSessionManager: lockAll: All vault and settings sessions locked
+2026-10-20 01:54:06.405 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:06.405 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:06.405 [I] VaultSessionManager: lockPrivacy: Privacy vault session locked
+2026-10-20 01:54:06.405 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:06.405 [I] VaultSessionManager: lockSettings: Security settings session locked
+2026-10-20 01:54:06.405 [I] VaultSessionManager: lockAll: All vault and settings sessions locked
+2026-10-20 01:54:06.405 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:06.405 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:06.406 [I] VaultSessionManager: lockPrivacy: Privacy vault session locked
+2026-10-20 01:54:06.406 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:06.406 [I] VaultSessionManager: lockSettings: Security settings session locked
+2026-10-20 01:54:06.406 [I] VaultSessionManager: lockAll: All vault and settings sessions locked
+2026-10-20 01:54:06.406 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:06.406 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:06.417 [E] RichInputConnection: Unable to connect to the editor to retrieve text.
+2026-10-20 01:54:06.455 [D] KeyboardState: loadLayout(Alphabet{shiftMode=AUTOMATIC, autoCapsFlags=sentences, recapitalizeMode=null})
+2026-10-20 01:54:06.455 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:06.455 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:06.455 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:06.455 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:06.455 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:06.455 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:06.462 [D] KeyboardParser: adding key 1, 0
+2026-10-20 01:54:06.463 [D] KeyboardParser: adding key 2, 0
+2026-10-20 01:54:06.463 [D] KeyboardParser: adding key 3, 0
+2026-10-20 01:54:06.463 [D] KeyboardParser: adding key 4, 0
+2026-10-20 01:54:06.463 [D] KeyboardParser: adding key 5, 0
+2026-10-20 01:54:06.464 [D] KeyboardParser: adding key 6, 0
+2026-10-20 01:54:06.464 [D] KeyboardParser: adding key 7, 0
+2026-10-20 01:54:06.464 [D] KeyboardParser: adding key 8, 0
+2026-10-20 01:54:06.464 [D] KeyboardParser: adding key 9, 0
+2026-10-20 01:54:06.464 [D] KeyboardParser: adding key 0, 0
+2026-10-20 01:54:06.465 [D] KeyboardParser: adding key q, 0
+2026-10-20 01:54:06.465 [D] KeyboardParser: adding key w, 0
+2026-10-20 01:54:06.465 [D] KeyboardParser: adding key e, 0
+2026-10-20 01:54:06.465 [D] KeyboardParser: adding key r, 0
+2026-10-20 01:54:06.465 [D] KeyboardParser: adding key t, 0
+2026-10-20 01:54:06.466 [D] KeyboardParser: adding key y, 0
+2026-10-20 01:54:06.466 [D] KeyboardParser: adding key u, 0
+2026-10-20 01:54:06.466 [D] KeyboardParser: adding key i, 0
+2026-10-20 01:54:06.466 [D] KeyboardParser: adding key o, 0
+2026-10-20 01:54:06.467 [D] KeyboardParser: adding key p, 0
+2026-10-20 01:54:06.467 [D] KeyboardParser: adding key a, 0
+2026-10-20 01:54:06.467 [D] KeyboardParser: adding key s, 0
+2026-10-20 01:54:06.467 [D] KeyboardParser: adding key d, 0
+2026-10-20 01:54:06.468 [D] KeyboardParser: adding key f, 0
+2026-10-20 01:54:06.468 [D] KeyboardParser: adding key g, 0
+2026-10-20 01:54:06.468 [D] KeyboardParser: adding key h, 0
+2026-10-20 01:54:06.468 [D] KeyboardParser: adding key j, 0
+2026-10-20 01:54:06.468 [D] KeyboardParser: adding key k, 0
+2026-10-20 01:54:06.468 [D] KeyboardParser: adding key l, 0
+2026-10-20 01:54:06.469 [D] KeyboardParser: adding key z, 0
+2026-10-20 01:54:06.469 [D] KeyboardParser: adding key x, 0
+2026-10-20 01:54:06.469 [D] KeyboardParser: adding key c, 0
+2026-10-20 01:54:06.470 [D] KeyboardParser: adding key v, 0
+2026-10-20 01:54:06.470 [D] KeyboardParser: adding key b, 0
+2026-10-20 01:54:06.470 [D] KeyboardParser: adding key n, 0
+2026-10-20 01:54:06.470 [D] KeyboardParser: adding key m, 0
+2026-10-20 01:54:06.472 [D] Keyboard.Builder: setting size and position for 1, 49: x 0, w 72
+2026-10-20 01:54:06.472 [D] Keyboard.Builder: setting size and position for 2, 50: x 72, w 72
+2026-10-20 01:54:06.472 [D] Keyboard.Builder: setting size and position for 3, 51: x 144, w 72
+2026-10-20 01:54:06.472 [D] Keyboard.Builder: setting size and position for 4, 52: x 216, w 72
+2026-10-20 01:54:06.472 [D] Keyboard.Builder: setting size and position for 5, 53: x 288, w 72
+2026-10-20 01:54:06.472 [D] Keyboard.Builder: setting size and position for 6, 54: x 360, w 72
+2026-10-20 01:54:06.472 [D] Keyboard.Builder: setting size and position for 7, 55: x 432, w 72
+2026-10-20 01:54:06.472 [D] Keyboard.Builder: setting size and position for 8, 56: x 504, w 72
+2026-10-20 01:54:06.472 [D] Keyboard.Builder: setting size and position for 9, 57: x 576, w 72
+2026-10-20 01:54:06.472 [D] Keyboard.Builder: setting size and position for 0, 48: x 648, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for Q, 81: x 0, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for W, 87: x 72, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for E, 69: x 144, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for R, 82: x 216, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for T, 84: x 288, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for Y, 89: x 360, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for U, 85: x 432, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for I, 73: x 504, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for O, 79: x 576, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for P, 80: x 648, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for null, -10008: x 0, w 35
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for A, 65: x 35, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for S, 83: x 107, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for D, 68: x 179, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for F, 70: x 251, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for G, 71: x 323, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for H, 72: x 395, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for J, 74: x 467, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for K, 75: x 540, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for L, 76: x 612, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for null, -10008: x 684, w 35
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for shift_key_shifted, -11: x 0, w 108
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for Z, 90: x 108, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for X, 88: x 180, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for C, 67: x 252, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for V, 86: x 324, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for B, 66: x 396, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for N, 78: x 468, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for M, 77: x 540, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for delete_key, -7: x 612, w 108
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for ?123, -10001: x 0, w 108
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for ,, 44: x 108, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for space_key, 32: x 180, w 360
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for ., 46: x 540, w 72
+2026-10-20 01:54:06.473 [D] Keyboard.Builder: setting size and position for enter_key, 10: x 612, w 108
+2026-10-20 01:54:06.480 [D] KeyboardState: setShifted: shiftMode=AUTOMATIC [keyboard=UNSHIFT shift=RELEASED symbol=RELEASED]
+2026-10-20 01:54:06.480 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:06.480 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:06.480 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:06.480 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:06.480 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:06.480 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:09.643 [I] Settings: loadSettings
+2026-10-20 01:54:09.672 [D] KeyboardState: loadLayout(Alphabet{shiftMode=UNSHIFT, autoCapsFlags=none, recapitalizeMode=null})
+2026-10-20 01:54:09.672 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:09.672 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:09.672 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:09.672 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:09.672 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:09.672 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:10.759 [D] KeyboardState: setShifted: shiftMode=AUTOMATIC [keyboard=UNSHIFT shift=RELEASED symbol=RELEASED]
+2026-10-20 01:54:10.760 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:10.760 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:10.760 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:10.760 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:10.760 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:10.760 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:15.099 [D] KeyboardState: setShifted: shiftMode=UNSHIFT [keyboard=AUTOMATIC shift=RELEASED symbol=RELEASED]
+2026-10-20 01:54:15.099 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:15.099 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:15.099 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:15.099 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:15.099 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:15.099 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:16.121 [D] KeyboardState: setShifted: shiftMode=AUTOMATIC [keyboard=UNSHIFT shift=RELEASED symbol=RELEASED]
+2026-10-20 01:54:16.121 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:16.122 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:16.122 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:16.122 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:16.122 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:16.122 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:16.568 [D] KeyboardState: setShifted: shiftMode=UNSHIFT [keyboard=AUTOMATIC shift=RELEASED symbol=RELEASED]
+2026-10-20 01:54:16.569 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:16.569 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:16.569 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:16.569 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:16.569 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:16.569 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:17.312 [D] AutoCorrectionUtils: Normalized Sto,Stop,331694, 0.2487705 (0.1877951)
+2026-10-20 01:54:17.312 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:17.712 [D] AutoCorrectionUtils: Normalized Stopp,Stop,342955, 0.25721624 (0.1877951)
+2026-10-20 01:54:17.712 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:19.209 [D] AutoCorrectionUtils: Normalized gi,GI,1515891, 1.515891 (0.1877951)
+2026-10-20 01:54:19.209 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:19.476 [D] AutoCorrectionUtils: Normalized giv,give,323973, 0.24297975 (0.1877951)
+2026-10-20 01:54:19.476 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:19.746 [D] AutoCorrectionUtils: Normalized givi,giving,363631, 0.24242066 (0.1877951)
+2026-10-20 01:54:19.746 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:21.627 [D] AutoCorrectionUtils: Normalized s,a,573085, 0.0 (0.1877951)
+2026-10-20 01:54:21.964 [D] AutoCorrectionUtils: Normalized su,au,438146, 0.219073 (0.1877951)
+2026-10-20 01:54:21.964 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:22.297 [D] AutoCorrectionUtils: Normalized sug,sub,349943, 0.23329532 (0.1877951)
+2026-10-20 01:54:22.297 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:22.461 [D] AutoCorrectionUtils: Normalized sugg,such,359614, 0.179807 (0.1877951)
+2026-10-20 01:54:22.725 [D] AutoCorrectionUtils: Normalized sugge,suggested,345572, 0.19198444 (0.1877951)
+2026-10-20 01:54:22.725 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:22.907 [D] AutoCorrectionUtils: Normalized sugges,suggested,386705, 0.25780332 (0.1877951)
+2026-10-20 01:54:22.907 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:24.177 [D] AutoCorrectionUtils: Normalized suggesti,suggesting,391336, 0.3130688 (0.1877951)
+2026-10-20 01:54:24.178 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:24.410 [D] AutoCorrectionUtils: Normalized suggestio,suggestion,413244, 0.3719196 (0.1877951)
+2026-10-20 01:54:24.411 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:26.910 [D] AutoCorrectionUtils: Normalized compl,completed,397513, 0.22084057 (0.1877951)
+2026-10-20 01:54:26.910 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:27.748 [D] AutoCorrectionUtils: Normalized comple,completed,413095, 0.27539665 (0.1877951)
+2026-10-20 01:54:27.748 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:27.982 [D] AutoCorrectionUtils: Normalized complet,completed,435333, 0.33859235 (0.1877951)
+2026-10-20 01:54:27.982 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:28.567 [D] AutoCorrectionUtils: Normalized completel,completely,441012, 0.3969108 (0.1877951)
+2026-10-20 01:54:28.567 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:31.773 [D] KeyboardState: setShifted: shiftMode=AUTOMATIC [keyboard=UNSHIFT shift=RELEASED symbol=RELEASED]
+2026-10-20 01:54:31.774 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:31.774 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:31.774 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:31.774 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:31.774 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:31.774 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:32.369 [D] KeyboardState: setShifted: shiftMode=UNSHIFT [keyboard=AUTOMATIC shift=RELEASED symbol=RELEASED]
+2026-10-20 01:54:32.369 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:32.370 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:32.370 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:32.370 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:32.370 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:32.370 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:33.010 [D] AutoCorrectionUtils: Normalized Hrl,NRL,227457, 0.15163799 (0.1877951)
+2026-10-20 01:54:33.208 [D] AutoCorrectionUtils: Normalized Hrli,Heli,146945, 0.11020875 (0.1877951)
+2026-10-20 01:54:35.281 [D] AutoCorrectionUtils: Normalized gi,GI,1508295, 1.508295 (0.1877951)
+2026-10-20 01:54:35.281 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:35.581 [D] AutoCorrectionUtils: Normalized giv,give,326207, 0.24465525 (0.1877951)
+2026-10-20 01:54:35.581 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:35.829 [D] AutoCorrectionUtils: Normalized givi,giving,354768, 0.23651199 (0.1877951)
+2026-10-20 01:54:35.830 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:36.046 [D] AutoCorrectionUtils: Normalized givin,giving,390785, 0.32565418 (0.1877951)
+2026-10-20 01:54:36.046 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:37.666 [D] AutoCorrectionUtils: Normalized s,a,534571, 0.0 (0.1877951)
+2026-10-20 01:54:38.148 [D] AutoCorrectionUtils: Normalized sam,Sam,1647581, 1.647581 (0.1877951)
+2026-10-20 01:54:38.148 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:38.916 [D] AutoCorrectionUtils: Normalized d,data,385656, 0.096414 (0.1877951)
+2026-10-20 01:54:39.160 [D] AutoCorrectionUtils: Normalized di,do,399297, 0.1996485 (0.1877951)
+2026-10-20 01:54:39.160 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:39.865 [D] AutoCorrectionUtils: Normalized ditu,situations,327831, 0.0983493 (0.1877951)
+2026-10-20 01:54:40.145 [D] AutoCorrectionUtils: Normalized ditua,situations,367766, 0.1471064 (0.1877951)
+2026-10-20 01:54:40.988 [D] KeyboardState: setShifted: shiftMode=AUTOMATIC [keyboard=UNSHIFT shift=RELEASED symbol=RELEASED]
+2026-10-20 01:54:40.988 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:40.988 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:40.988 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:40.988 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:40.988 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:40.988 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:41.519 [D] KeyboardState: setShifted: shiftMode=UNSHIFT [keyboard=AUTOMATIC shift=RELEASED symbol=RELEASED]
+2026-10-20 01:54:41.520 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:41.520 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:41.520 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:41.520 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:54:41.520 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:54:41.520 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:54:41.815 [D] AutoCorrectionUtils: Normalized Wa,Was,409857, 0.27323797 (0.1877951)
+2026-10-20 01:54:41.815 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:42.810 [D] AutoCorrectionUtils: Normalized ud,is,440523, 0.0 (0.1877951)
+2026-10-20 01:54:43.078 [D] AutoCorrectionUtils: Normalized udi,UDI,1517155, 1.517155 (0.1877951)
+2026-10-20 01:54:43.078 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:43.260 [D] AutoCorrectionUtils: Normalized udin,using,279808, 0.16788481 (0.1877951)
+2026-10-20 01:54:47.776 [D] AutoCorrectionUtils: Normalized g,github,420247, 0.07004117 (0.1877951)
+2026-10-20 01:54:48.067 [D] AutoCorrectionUtils: Normalized go,google,429500, 0.14316666 (0.1877951)
+2026-10-20 01:54:48.483 [D] AutoCorrectionUtils: Normalized goog,google,492968, 0.32864532 (0.1877951)
+2026-10-20 01:54:48.484 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:53.598 [D] AutoCorrectionUtils: Normalized chr,chrome,357556, 0.178778 (0.1877951)
+2026-10-20 01:54:53.933 [D] AutoCorrectionUtils: Normalized chro,chrome,384073, 0.25604865 (0.1877951)
+2026-10-20 01:54:53.933 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:54.215 [D] AutoCorrectionUtils: Normalized chrom,chrome,399711, 0.3330925 (0.1877951)
+2026-10-20 01:54:54.216 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:56.114 [D] AutoCorrectionUtils: Normalized br,be,530668, 0.265334 (0.1877951)
+2026-10-20 01:54:56.114 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:56.382 [D] AutoCorrectionUtils: Normalized bro,browser,513961, 0.220269 (0.1877951)
+2026-10-20 01:54:56.382 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:56.754 [D] AutoCorrectionUtils: Normalized bros,Bros,1623911, 1.623911 (0.1877951)
+2026-10-20 01:54:56.755 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:56.983 [D] AutoCorrectionUtils: Normalized brosw,gross,225119, 0.1350714 (0.1877951)
+2026-10-20 01:54:57.182 [D] AutoCorrectionUtils: Normalized broswe,browser,304696, 0.21764 (0.1877951)
+2026-10-20 01:54:57.182 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:57.367 [D] AutoCorrectionUtils: Normalized broswer,browser,541693, 0.46430826 (0.1877951)
+2026-10-20 01:54:57.367 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:54:59.601 [D] AutoCorrectionUtils: Normalized hea,head,302243, 0.22668225 (0.1877951)
+2026-10-20 01:54:59.601 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:55:00.120 [D] AutoCorrectionUtils: Normalized heav,heavy,318524, 0.2548192 (0.1877951)
+2026-10-20 01:55:00.120 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:55:01.417 [D] AutoCorrectionUtils: Normalized us,is,535369, 0.2676845 (0.1877951)
+2026-10-20 01:55:01.417 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:55:01.633 [D] AutoCorrectionUtils: Normalized usa,USA,1595045, 1.595045 (0.1877951)
+2026-10-20 01:55:01.633 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:55:01.919 [D] AutoCorrectionUtils: Normalized usag,USAF,369726, 0.27729452 (0.1877951)
+2026-10-20 01:55:01.919 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:55:06.506 [D] KeyboardState: setShifted: shiftMode=AUTOMATIC [keyboard=UNSHIFT shift=RELEASED symbol=RELEASED]
+2026-10-20 01:55:06.507 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:55:06.507 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:55:06.507 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:55:06.507 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:55:06.507 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:55:06.507 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:55:06.740 [D] KeyboardState: setShifted: shiftMode=UNSHIFT [keyboard=AUTOMATIC shift=RELEASED symbol=RELEASED]
+2026-10-20 01:55:06.740 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:55:06.741 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:55:06.741 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:55:06.741 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:55:06.741 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:55:06.741 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:55:08.283 [D] AutoCorrectionUtils: Normalized thi,this,412337, 0.30925274 (0.1877951)
+2026-10-20 01:55:08.283 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:55:10.171 [D] AutoCorrectionUtils: Normalized w,a,534571, 0.0 (0.1877951)
+2026-10-20 01:55:10.400 [D] AutoCorrectionUtils: Normalized wr,we,429046, 0.214523 (0.1877951)
+2026-10-20 01:55:10.400 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:55:10.700 [D] AutoCorrectionUtils: Normalized wro,wrong,404393, 0.2426358 (0.1877951)
+2026-10-20 01:55:10.700 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:55:10.915 [D] AutoCorrectionUtils: Normalized wron,wrong,420916, 0.3367328 (0.1877951)
+2026-10-20 01:55:10.915 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-10-20 01:55:11.539 [D] KeyboardState: setShifted: shiftMode=AUTOMATIC [keyboard=UNSHIFT shift=RELEASED symbol=RELEASED]
+2026-10-20 01:55:11.540 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:55:11.540 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:55:11.540 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:55:11.540 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:55:11.540 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:55:11.540 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:55:15.669 [I] VaultSessionManager: lockPrivacy: Privacy vault session locked
+2026-10-20 01:55:15.669 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:55:15.669 [I] VaultSessionManager: lockSettings: Security settings session locked
+2026-10-20 01:55:15.669 [I] VaultSessionManager: lockAll: All vault and settings sessions locked
+2026-10-20 01:55:15.669 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:55:15.669 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:55:15.670 [I] VaultSessionManager: lockPrivacy: Privacy vault session locked
+2026-10-20 01:55:15.670 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:55:15.670 [I] VaultSessionManager: lockSettings: Security settings session locked
+2026-10-20 01:55:15.670 [I] VaultSessionManager: lockAll: All vault and settings sessions locked
+2026-10-20 01:55:15.670 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:55:15.670 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:55:15.671 [I] VaultSessionManager: lockPrivacy: Privacy vault session locked
+2026-10-20 01:55:15.671 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:55:15.671 [I] VaultSessionManager: lockSettings: Security settings session locked
+2026-10-20 01:55:15.671 [I] VaultSessionManager: lockAll: All vault and settings sessions locked
+2026-10-20 01:55:15.672 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:55:15.672 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:55:15.682 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:55:15.682 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:55:15.682 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:55:15.682 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:55:17.456 [I] Settings: loadSettings
+2026-10-20 01:55:17.498 [D] KeyboardState: loadLayout(Alphabet{shiftMode=UNSHIFT, autoCapsFlags=sentences, recapitalizeMode=null})
+2026-10-20 01:55:17.499 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:55:17.499 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:55:17.499 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:55:17.499 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:55:17.499 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:55:17.499 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:55:17.502 [D] KeyboardState: setShifted: shiftMode=AUTOMATIC [keyboard=UNSHIFT shift=RELEASED symbol=RELEASED]
+2026-10-20 01:55:17.503 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:55:17.503 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:55:17.503 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:55:17.503 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:55:17.503 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:55:17.503 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:55:18.981 [I] VaultSessionManager: lockPrivacy: Privacy vault session locked
+2026-10-20 01:55:18.982 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:55:18.982 [I] VaultSessionManager: lockSettings: Security settings session locked
+2026-10-20 01:55:18.982 [I] VaultSessionManager: lockAll: All vault and settings sessions locked
+2026-10-20 01:55:18.982 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:55:18.982 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:55:18.984 [I] VaultSessionManager: lockPrivacy: Privacy vault session locked
+2026-10-20 01:55:18.984 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:55:18.984 [I] VaultSessionManager: lockSettings: Security settings session locked
+2026-10-20 01:55:18.984 [I] VaultSessionManager: lockAll: All vault and settings sessions locked
+2026-10-20 01:55:18.984 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:55:18.984 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:55:18.985 [I] VaultSessionManager: lockPrivacy: Privacy vault session locked
+2026-10-20 01:55:18.985 [I] VaultSessionManager: lockSecurity: Security vault session locked
+2026-10-20 01:55:18.985 [I] VaultSessionManager: lockSettings: Security settings session locked
+2026-10-20 01:55:18.985 [I] VaultSessionManager: lockAll: All vault and settings sessions locked
+2026-10-20 01:55:18.985 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:55:18.986 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:55:18.995 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:55:18.996 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:55:18.996 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:55:18.996 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:55:18.996 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:55:18.996 [I] HandwritingPadView: Stopping handwriting draw pad modal
+2026-10-20 01:55:18.997 [I] VoiceInputView: Voice input modal dismissed
+2026-10-20 01:55:18.997 [I] HandwritingPadView: Stopping handwriting draw pad modal
+
+Check logs
+Why is things continuously running or active or ready. Also why is things being closed. No first of all why are they running
+ Like VaultSessionManager, VoiceInputView, Keyboard.Builder and handwriting draw pad
+Remove handwriting draw pad.
+These are only supposed to open on demand not running all the time. Or starting when not asked. Also is keyboard being built again and again? If do then stick with one unless screen changes. Now most things rare running or active or ready. Wanted most things to be on demand only. Especially voice input and security vault things. Security vault pills should rely on input like keepass DX. Make separate thing for this if need be and only when notice password input then open. Voice input running too much. Instead of close when open on own dont allow at all.  It is eating my phone resources now. Even heliboard showing suggestions. So now app heavier then heliboard even on lite mode. Look most of time only main layout, numb pad, clipboard, Prompt list, toolbar and suggestion bar (dictionary and prediction engine) should run especially in lite mode. Rest are not used often. They should not open to be dismissed so many times. see logs. They are open regardless of whether I want or not. Taking all resources now.
+Check repo. just discuss no coding or building or updating blueprint. just discuss no coding or building or updating blueprint. just discuss no coding or building or updating blueprint. 

@@ -23,6 +23,8 @@ object VaultSessionManager {
 
     const val PREF_SEPARATE_PATTERNS = "pref_vault_separate_patterns"
     const val PREF_REQUIRE_GATEKEEPER = "pref_vault_require_gatekeeper"
+    const val PREF_GATEKEEPER_PRIVACY_VAULT = "pref_vault_gatekeeper_privacy_vault"
+    const val PREF_GATEKEEPER_SECURITY_VAULT = "pref_vault_gatekeeper_security_vault"
     const val PREF_BIOMETRIC_ENABLED = "pref_vault_biometric_enabled"
     const val PREF_PHONE_PIN_ENABLED = "pref_vault_phone_pin_enabled"
     const val PREF_PRIMARY_UNLOCK_METHOD = "pref_vault_primary_unlock_method"
@@ -96,6 +98,26 @@ object VaultSessionManager {
     fun setGatekeeperEnabled(context: Context, enabled: Boolean) {
         context.prefs().edit {
             putBoolean(PREF_REQUIRE_GATEKEEPER, enabled)
+        }
+    }
+
+    fun isPrivacyVaultGatekeeperEnabled(context: Context): Boolean {
+        return context.prefs().getBoolean(PREF_GATEKEEPER_PRIVACY_VAULT, true)
+    }
+
+    fun setPrivacyVaultGatekeeperEnabled(context: Context, enabled: Boolean) {
+        context.prefs().edit {
+            putBoolean(PREF_GATEKEEPER_PRIVACY_VAULT, enabled)
+        }
+    }
+
+    fun isSecurityVaultGatekeeperEnabled(context: Context): Boolean {
+        return context.prefs().getBoolean(PREF_GATEKEEPER_SECURITY_VAULT, true)
+    }
+
+    fun setSecurityVaultGatekeeperEnabled(context: Context, enabled: Boolean) {
+        context.prefs().edit {
+            putBoolean(PREF_GATEKEEPER_SECURITY_VAULT, enabled)
         }
     }
 
@@ -341,25 +363,40 @@ object VaultSessionManager {
     }
 
     fun lockPrivacy() {
+        if (privacySessionExpiryMs == 0L) return
         privacySessionExpiryMs = 0L
         LogCatcher.log('I', TAG, "lockPrivacy: Privacy vault session locked")
     }
 
     fun lockSecurity() {
+        if (securitySessionExpiryMs == 0L) return
         securitySessionExpiryMs = 0L
         LogCatcher.log('I', TAG, "lockSecurity: Security vault session locked")
     }
 
     fun lockSettings() {
+        if (settingsSessionExpiryMs == 0L) return
         settingsSessionExpiryMs = 0L
         LogCatcher.log('I', TAG, "lockSettings: Security settings session locked")
     }
 
+    fun lockVaults() {
+        val wasActive = privacySessionExpiryMs != 0L || securitySessionExpiryMs != 0L
+        lockPrivacy()
+        lockSecurity()
+        if (wasActive) {
+            LogCatcher.log('I', TAG, "lockVaults: Privacy and Security vault sessions locked")
+        }
+    }
+
     fun lockAll() {
+        val wasActive = privacySessionExpiryMs != 0L || securitySessionExpiryMs != 0L || settingsSessionExpiryMs != 0L
         lockPrivacy()
         lockSecurity()
         lockSettings()
-        LogCatcher.log('I', TAG, "lockAll: All vault and settings sessions locked")
+        if (wasActive) {
+            LogCatcher.log('I', TAG, "lockAll: All vault and settings sessions locked")
+        }
     }
 
     // --- Crypto Helpers ---

@@ -76,7 +76,7 @@ public final class RichInputConnection implements PrivateCommandPerformer {
      * The amount of time a {@link #getTextBeforeCursor} or {@link #getTextAfterCursor} call needs
      * to take for the keyboard to enter the {@link #hasSlowInputConnection} state.
      */
-    private static final long SLOW_INPUT_CONNECTION_ON_PARTIAL_RELOAD_MS = 200;
+    private static final long SLOW_INPUT_CONNECTION_ON_PARTIAL_RELOAD_MS = 500;
 
     private static final int OPERATION_GET_TEXT_BEFORE_CURSOR = 0;
     private static final int OPERATION_GET_TEXT_AFTER_CURSOR = 1;
@@ -92,7 +92,7 @@ public final class RichInputConnection implements PrivateCommandPerformer {
      * The amount of time the keyboard will persist in the {@link #hasSlowInputConnection} state
      * after observing a slow InputConnection event.
      */
-    private static final long SLOW_INPUTCONNECTION_PERSIST_MS = TimeUnit.MINUTES.toMillis(10);
+    private static final long SLOW_INPUTCONNECTION_PERSIST_MS = TimeUnit.SECONDS.toMillis(2);
 
     /**
      * This variable contains an expected value for the selection start position. This is where the
@@ -597,9 +597,9 @@ public final class RichInputConnection implements PrivateCommandPerformer {
             StatsUtils.onInputConnectionLaggy(operation, duration);
             mLastSlowInputConnectionTime = SystemClock.uptimeMillis();
         } else if (duration < timeout / 5 && hasSlowInputConnection()) {
-            // we have a fast connection now, maybe the slowness was just a hickup
-            mLastSlowInputConnectionTime -= SLOW_INPUTCONNECTION_PERSIST_MS / 2;
-            Log.d(TAG, "InputConnection: much faster now, reducing persist time");
+            // we have a fast connection now, clear the laggy state immediately
+            mLastSlowInputConnectionTime = -SLOW_INPUTCONNECTION_PERSIST_MS;
+            Log.d(TAG, "InputConnection: fast now, reset laggy state");
         }
     }
 

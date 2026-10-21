@@ -51,6 +51,13 @@ object SecurityVaultContextSniffer {
                 .getBoolean("pref_vault_context_suggestions", true)) {
             return emptyList()
         }
+        // KeePassDX alignment: only trigger auto-fill pills when input is an explicit password/secret field.
+        // Never hijack the suggestion strip during normal typing, search, or web editing.
+        val inputType = editorInfo.inputType
+        val isPasswordField = InputTypeUtils.isPasswordInputType(inputType) || InputTypeUtils.isVisiblePasswordInputType(inputType)
+        if (!isPasswordField) {
+            return emptyList()
+        }
 
         val results = mutableListOf<VaultEntryEntity>()
         val dao = SecurityVaultDao.getInstance(context)
