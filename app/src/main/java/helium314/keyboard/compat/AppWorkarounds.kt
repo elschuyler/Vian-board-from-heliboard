@@ -47,10 +47,16 @@ object AppWorkarounds {
         else -> false
     }
 
-    private fun isChromiumOrWebView(packageName: String?) = when (packageName) {
-        "com.android.chrome", "com.chrome.beta", "com.chrome.canary", "com.chrome.dev",
-        "org.chromium.chrome", "com.brave.browser", "com.microsoft.emmx", "com.opera.browser",
-        "com.opera.mini.native", "com.duckduckgo.mobile.android" -> true
-        else -> false
+    private fun isChromiumOrWebView(packageName: String?): Boolean {
+        if (packageName == null) return false
+        val lower = packageName.lowercase()
+        return when (lower) {
+            "com.android.chrome", "com.chrome.beta", "com.chrome.canary", "com.chrome.dev",
+            "org.chromium.chrome", "com.brave.browser", "com.microsoft.emmx", "com.opera.browser",
+            "com.opera.mini.native", "com.duckduckgo.mobile.android",
+            "com.sec.android.app.sbrowser", "com.sec.android.app.sbrowser.beta",
+            "com.vivaldi.browser", "com.vivaldi.browser.snapshot", "com.kiwibrowser.browser" -> true
+            else -> lower.contains("chrome") || lower.contains("browser") || lower.contains("webview")
+        }
     }
 }

@@ -197,3 +197,80 @@ This file is part of the permanent audit trail for the project, tracking code mo
 - **Known issue or follow-up needed**: Ready for on-device manual QA testing.
 
 
+
+### Receipt Entry: Phase 69 Browser Suggestions Restoration, InputConnection Latency Shield & Teardown Deduplication
+- **Timestamp**: 2026-10-22 10:38:00 UTC-7
+- **Summary of request**: Fix keyboard suggestions permanently dropping/disabling in web browsers (Chrome, Google AI Studio, WebViews) under heavy load and eliminate modal teardown log thrashing.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/latin/LatinIME.java`
+  - `app/src/main/java/helium314/keyboard/latin/InputAttributes.java`
+  - `app/src/main/java/helium314/keyboard/compat/AppWorkarounds.kt`
+  - `app/src/main/java/helium314/keyboard/latin/common/Constants.java`
+  - `app/src/main/java/helium314/keyboard/latin/RichInputConnection.java`
+  - `app/src/main/java/helium314/keyboard/keyboard/KeyboardSwitcher.java`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_005.md`
+- **What was actually done**:
+  1. In `LatinIME.java`: overloaded `loadSettings(@Nullable final EditorInfo editorInfo)`. When `onStartInputViewInternal` starts, passes the active `editorInfo` directly to `loadSettings(editorInfo)`. When current settings values were loaded with null or `TYPE_NULL` input attributes or disabled suggestions, forces a settings reload even if `restarting == true`.
+  2. In `InputAttributes.java`: when `editorInfo == null`, sets safe text fallback flags with `mShouldShowSuggestions = true`, `mMayOverrideShowingSuggestions = true`, and `mIsGeneralTextInput = true` instead of permanently zeroing suggestion flags. In `isSameInputType(editorInfo)`, added null-safe checks.
+  3. In `AppWorkarounds.kt`: broadened `isChromiumOrWebView` package check to cover all Chromium forks, Samsung Internet, Vivaldi, Kiwi, DuckDuckGo, and WebView wrappers running Google AI Studio, mapping `TYPE_NULL` to multiline editable text.
+  4. In `Constants.java`: set `GET_SUGGESTED_WORDS_TIMEOUT = 500` ms across both debug and release builds, preventing suggestion drops during browser IPC delays (>200 ms) in heavy web apps.
+  5. In `RichInputConnection.java`: updated `SLOW_INPUT_CONNECTION_ON_FULL_RELOAD_MS` to 1500 ms, `SLOW_INPUT_CONNECTION_ON_PARTIAL_RELOAD_MS` to 800 ms, and `SLOW_INPUTCONNECTION_PERSIST_MS` to 1000 ms to tolerate browser DOM execution without locking the keyboard into laggy mode.
+  6. In `KeyboardSwitcher.java`: removed redundant duplicate `enforceLiteModeSingleModal(null)` invocation in `setMainKeyboardFrame()`, eliminating repetitive modal dismissal log thrashing on every key press and shift state toggle.
+  7. Silent security scan completed: zero exposed credentials, no keys or tokens committed.
+- **How it was verified**: local build only (`compile_applet` passed successfully).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device verification in Chrome with Google AI Studio.
+ 
+ 
+ 
+### Receipt Entry: Phase 70 Prompt Dialog Software Keyboard Restoration, Incognito Recognition & Toolbar Sync, Password Visibility Incognito Lock
+- **Timestamp**: 2026-10-23 00:46:00 UTC-7
+- **Summary of request**: Fix Prompt Add/Edit Dialog failing to open software keyboard; fix Input recognize incognito mode indicator failing to sync on toolbar and dropping in password/incognito fields; fix KDBX/Security Vault and Privacy Vault password fields dropping incognito mode when toggling password show/hide.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/keyboard/clipboard/ClipboardAdapter.kt`
+  - `app/src/main/java/helium314/keyboard/keyboard/KeyboardSwitcher.java`
+  - `app/src/main/java/helium314/keyboard/latin/InputAttributes.java`
+  - `app/src/main/java/helium314/keyboard/latin/utils/ToolbarUtils.kt`
+  - `app/src/main/java/helium314/keyboard/latin/suggestions/SuggestionStripView.kt`
+  - `app/src/main/java/helium314/keyboard/latin/LatinIME.java`
+  - `app/src/main/java/helium314/keyboard/settings/screens/SecurityVaultScreen.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/PrivacyVaultScreen.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/KdbxEntryEditorScreen.kt`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_005.md`
+- **What was actually done**:
+  1. In `ClipboardAdapter.kt`: in `showAddDialog` and `showEditDialog`, configured `SOFT_INPUT_STATE_ALWAYS_VISIBLE`, switched to `setAlphabetKeyboard(ShiftMode.UNSHIFT)` so the software keyboard is immediately available for typing the prompt title and content, attached `dialog.setOnDismissListener { KeyboardSwitcher.getInstance()?.setPromptKeyboard() }` to restore prompt cards on dismiss/save/cancel, and posted immediate focus and soft-input requests to the target fields.
+  2. In `KeyboardSwitcher.java`: in `reloadMainKeyboard()`, added an `isOwnDialogInput` check to prevent re-entering `setPromptKeyboard()` when serving an internal IME prompt dialog, allowing `setAlphabetKeyboard` to remain active while editing prompts.
+  3. In `InputAttributes.java`: added `EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING` check to assign `mNoLearning` so fields requesting private/no-learning input are properly recognized.
+  4. In `ToolbarUtils.kt`: updated `setToolbarButtonActivatedState(button)` for `INCOGNITO` to check `Settings.getValues().mIncognitoModeEnabled || TempIncognitoManager.isActive || button.context.prefs().getBoolean(Settings.PREF_ALWAYS_INCOGNITO_MODE, Defaults.PREF_ALWAYS_INCOGNITO_MODE)`. Added `updateToolbarButtonsActivatedState(buttonsGroup: ViewGroup)`.
+  5. In `SuggestionStripView.kt`: exported `updateKeys()` as public, adding calls to `updateToolbarButtonsActivatedState` for both pinned keys and the expanded toolbar.
+  6. In `LatinIME.java`: called `mSuggestionStripView.updateKeys()` in `onStartInputViewInternal` whenever settings/input attributes are loaded to dynamically update the incognito icon on the toolbar.
+  7. In `SecurityVaultScreen.kt`, `PrivacyVaultScreen.kt`, and `KdbxEntryEditorScreen.kt`: locked `keyboardType = KeyboardType.Password` across master password and secret entry fields so toggling `isPasswordVisible` only changes Compose `VisualTransformation` (masking dots vs plain text) and never flips the underlying OS `InputType` to `Text`, preserving incognito mode when viewing passwords.
+  8. Silent security scan completed: zero exposed credentials, no keys or tokens committed.
+- **How it was verified**: local build only (`compile_applet` passed successfully).
+- **Deviation from requested**: None. Followed Option 1 agreed upon in discussion.
+- **Known issue or follow-up needed**: Ready for on-device manual QA testing.
+
+
+
+### Receipt Entry: Phase 71 Active App Context Recognition & 1-Tap Link Suggestion Chip for Vault Add/Edit Entries
+- **Timestamp**: 2026-10-23 05:05:00 UTC-7
+- **Summary of request**: Implement Approach 1: when opening security vault settings / adding a new entry, note the active app/site that was open and provide a 1-tap suggestion chip to link it.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/security/vault/context/SecurityVaultContextSniffer.kt`
+  - `app/src/main/java/helium314/keyboard/latin/LatinIME.java`
+  - `app/src/main/java/helium314/keyboard/settings/screens/KdbxEntryEditorScreen.kt`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_005.md`
+- **What was actually done**:
+  1. In `SecurityVaultContextSniffer.kt`: implemented external context capture via `recordExternalContext(editorInfo)` and query helper `getSuggestedLinks()`. Filters out `helium314.keyboard` and `com.android.systemui` so that navigating internal settings or typing in keyboard dialogs never overwrites the captured external app target. Stored context expires after 15 minutes to guarantee freshness. Made `extractKeywordFromPackage(pkg)` public.
+  2. In `LatinIME.java`: called `SecurityVaultContextSniffer.INSTANCE.recordExternalContext(editorInfo)` in `onStartInputViewInternal(editorInfo, restarting)` and in `launchSettings()` with `getCurrentInputEditorInfo()`.
+  3. In `KdbxEntryEditorScreen.kt`: queried `SecurityVaultContextSniffer.getSuggestedLinks()` on screen composition. Injected a horizontally scrollable Material 3 `SuggestionChip` row right beneath the `OutlinedTextField` for `urlOrPackage` whenever adding a new entry (or when the field is blank). Tapping `[ 🔗 Link to: com.example.app ]` instantly populates the `urlOrPackage` field and, if Title is blank, automatically derives and capitalizes the clean application keyword (e.g. `Spotify` from `com.spotify.music`).
+  4. Updated `BLUEPRINT.md` running ledger with Phase 71 documentation.
+  5. Silent security scan completed: zero exposed credentials, no keys or tokens committed.
+- **How it was verified**: local build only (`compile_applet` passed successfully).
+- **Deviation from requested**: None. Implemented Approach 1 precisely as agreed in discussion.
+- **Known issue or follow-up needed**: Ready for on-device manual QA testing.
+
+

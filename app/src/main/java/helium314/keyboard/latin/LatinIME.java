@@ -593,8 +593,11 @@ public class LatinIME extends InputMethodService implements
     }
 
     private void loadSettings() {
+        loadSettings(getCurrentInputEditorInfo());
+    }
+
+    private void loadSettings(@Nullable final EditorInfo editorInfo) {
         final Locale locale = mRichImm.getCurrentSubtypeLocale();
-        final EditorInfo editorInfo = getCurrentInputEditorInfo();
         final InputAttributes inputAttributes = new InputAttributes(
                 editorInfo, isFullscreenMode(), getPackageName());
         mSettings.loadSettings(this, locale, inputAttributes);
@@ -894,13 +897,16 @@ public class LatinIME extends InputMethodService implements
         // settings, so currentSettingsValues can't be final.
         SettingsValues currentSettingsValues = mSettings.getCurrent();
         boolean inputTypeChanged = !currentSettingsValues.isSameInputType(editorInfo);
-        boolean isDifferentTextField = !restarting || inputTypeChanged;
+        boolean isNullOrStaleState = currentSettingsValues.mInputAttributes == null
+                || currentSettingsValues.mInputAttributes.isTypeNull()
+                || !currentSettingsValues.mSuggestionsEnabled;
+        boolean isDifferentTextField = !restarting || inputTypeChanged || isNullOrStaleState;
 
         // we want to reload the settings before calling updateKeyboardTheme, because updateKeyboardTheme reads SettingsValues.mToolbarMode
         if (isDifferentTextField || !currentSettingsValues.hasSameOrientation(getResources().getConfiguration())) {
-            loadSettings();
+            loadSettings(editorInfo);
             if (hasSuggestionStripView())
-                mSuggestionStripView.updateVoiceKey();
+                mSuggestionStripView.updateKeys();
         }
 
         switcher.updateKeyboardTheme(mDisplayContext);
@@ -914,6 +920,7 @@ public class LatinIME extends InputMethodService implements
             }
             return;
         }
+        SecurityVaultContextSniffer.INSTANCE.recordExternalContext(editorInfo);
         Log.i(TAG, (restarting ? "Res" : "S") +"tarting input. Cursor position = " + editorInfo.initialSelStart + "," + editorInfo.initialSelEnd);
         if (DebugFlags.DEBUG_ENABLED) {
             EditorInfoCompatUtils.INSTANCE.debugLog(editorInfo, TAG);
@@ -1905,6 +1912,7 @@ public class LatinIME extends InputMethodService implements
     }
 
     void launchSettings() {
+        SecurityVaultContextSniffer.INSTANCE.recordExternalContext(getCurrentInputEditorInfo());
         mInputLogic.commitTyped(mSettings.getCurrent(), LastComposedWord.NOT_A_SEPARATOR);
         requestHideSelf(0);
         final MainKeyboardView mainKeyboardView = mKeyboardSwitcher.getMainKeyboardView();

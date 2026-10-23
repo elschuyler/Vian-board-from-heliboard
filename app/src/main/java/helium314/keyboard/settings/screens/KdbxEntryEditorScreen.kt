@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -30,6 +31,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -60,9 +62,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import helium314.keyboard.latin.R
+import helium314.keyboard.security.vault.context.SecurityVaultContextSniffer
 import helium314.keyboard.security.vault.crypto.VaultCryptoManager
 import helium314.keyboard.security.vault.data.SecurityVaultDao
 import helium314.keyboard.security.vault.data.VaultEntryEntity
@@ -94,6 +98,7 @@ fun KdbxEntryEditorScreen(
     val groups = remember { dao.getAllGroups() }
     val entry = remember { entryUuid?.let { dao.getEntry(it) } }
     val isEditing = entry != null
+    val suggestedLinks = remember { SecurityVaultContextSniffer.getSuggestedLinks() }
 
     var title by remember { mutableStateOf(entry?.title ?: "") }
     var username by remember { mutableStateOf(entry?.username ?: "") }
@@ -348,7 +353,7 @@ fun KdbxEntryEditorScreen(
                             singleLine = true,
                             visualTransformation = if (isPassVisible) VisualTransformation.None else PasswordVisualTransformation(),
                             keyboardOptions = KeyboardOptions(
-                                keyboardType = if (isPassVisible) KeyboardType.Text else KeyboardType.Password
+                                keyboardType = KeyboardType.Password
                             ),
                             trailingIcon = {
                                 Row {
@@ -477,6 +482,45 @@ fun KdbxEntryEditorScreen(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp)
                         )
+
+                        if (suggestedLinks.isNotEmpty() && (entry == null || urlOrPackage.isBlank())) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                suggestedLinks.forEach { link ->
+                                    if (urlOrPackage != link) {
+                                        SuggestionChip(
+                                            onClick = {
+                                                urlOrPackage = link
+                                                if (title.isBlank()) {
+                                                    val kw = SecurityVaultContextSniffer.extractKeywordFromPackage(link)
+                                                    if (kw.isNotBlank()) {
+                                                        title = kw.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+                                                    }
+                                                }
+                                            },
+                                            label = {
+                                                Text(
+                                                    text = "Link to: $link",
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            },
+                                            icon = {
+                                                Icon(
+                                                    painter = painterResource(R.drawable.ic_link),
+                                                    contentDescription = "Link to app or site",
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
 
                         OutlinedTextField(
                             value = totpSecret,

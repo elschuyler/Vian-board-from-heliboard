@@ -386,7 +386,6 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mChosenEntryView.stopChosenEntry();
             VaultSessionManager.INSTANCE.lockSecurity();
         }
-        enforceLiteModeSingleModal(null);
     }
 
     private void enforceLiteModeSingleModal(@Nullable final View activeModalView) {
@@ -1189,6 +1188,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
 
     public void reloadMainKeyboard() {
         // Reload the entire keyboard, and switch to the previous layout
+        final boolean isOwnDialogInput = mLatinIME != null
+                && mLatinIME.getCurrentInputEditorInfo() != null
+                && mLatinIME.getCurrentInputEditorInfo().packageName != null
+                && mLatinIME.getCurrentInputEditorInfo().packageName.equals(mLatinIME.getPackageName());
         final boolean wasEmoji = isShowingEmojiPalettes();
         final boolean wasClipboard = isShowingClipboardHistory();
         final boolean wasPrompt = isShowingPromptHistory();
@@ -1196,6 +1199,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         final boolean wasVoice = isShowingVoiceInput();
         loadKeyboard(mLatinIME.getCurrentInputEditorInfo(), Settings.getValues(),
                 mLatinIME.getCurrentAutoCapsState(), mLatinIME.getCurrentRecapitalizeState(), null);
+        if (isOwnDialogInput) {
+            setAlphabetKeyboard(ShiftMode.UNSHIFT);
+            return;
+        }
         if (wasEmoji) {
             setEmojiKeyboard();
         } else if (wasClipboard) {

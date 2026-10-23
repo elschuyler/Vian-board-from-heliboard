@@ -58,13 +58,27 @@ public final class InputAttributes {
         final int inputClass = mInputType & InputType.TYPE_MASK_CLASS;
         mIsPasswordField = InputTypeUtils.isPasswordInputType(mInputType)
                 || InputTypeUtils.isVisiblePasswordInputType(mInputType);
+        if (editorInfo != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            mNoLearning = (editorInfo.imeOptions & EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) != 0;
+        } else {
+            mNoLearning = false;
+        }
         if (inputClass != InputType.TYPE_CLASS_TEXT) {
             // If we are not looking at a TYPE_CLASS_TEXT field, the following strange
             // cases may arise, so we do a couple sanity checks for them. If it's a
             // TYPE_CLASS_TEXT field, these special cases cannot happen, by construction
             // of the flags.
             if (null == editorInfo) {
-                Log.w(TAG, "No editor info for this field. Bug?");
+                Log.w(TAG, "No editor info for this field. Fallback to general text suggestions enabled.");
+                mShouldShowSuggestions = true;
+                mMayOverrideShowingSuggestions = true;
+                mInputTypeShouldAutoCorrect = false;
+                mApplicationSpecifiedCompletionOn = false;
+                mShouldInsertSpacesAutomatically = false;
+                mShouldShowVoiceInputKey = false;
+                mDisableGestureFloatingPreviewText = false;
+                mIsGeneralTextInput = true;
+                return;
             } else if (InputType.TYPE_NULL == mInputType) {
                 // TODO: We should honor TYPE_NULL specification.
                 Log.i(TAG, "InputType.TYPE_NULL is specified");
@@ -81,7 +95,6 @@ public final class InputAttributes {
             mShouldShowVoiceInputKey = false;
             mDisableGestureFloatingPreviewText = false;
             mIsGeneralTextInput = false;
-            mNoLearning = false;
             return;
         }
 
@@ -129,12 +142,6 @@ public final class InputAttributes {
                 && InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD != variation
                 && InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS != variation
                 && InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD != variation;
-
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-            mNoLearning = (editorInfo.imeOptions & EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) != 0;
-        else
-            mNoLearning = false;
     }
 
     public boolean isTypeNull() {
@@ -142,7 +149,8 @@ public final class InputAttributes {
     }
 
     public boolean isSameInputType(final EditorInfo editorInfo) {
-        return editorInfo.inputType == mInputType && mEditorInfo != null
+        if (editorInfo == null || mEditorInfo == null) return false;
+        return editorInfo.inputType == mInputType
                 && (mEditorInfo.imeOptions & EditorInfo.IME_FLAG_FORCE_ASCII) == (editorInfo.imeOptions & EditorInfo.IME_FLAG_FORCE_ASCII);
     }
 

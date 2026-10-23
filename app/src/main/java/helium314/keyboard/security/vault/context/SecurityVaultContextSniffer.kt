@@ -40,6 +40,65 @@ import helium314.keyboard.security.vault.data.VaultEntryEntity
 object SecurityVaultContextSniffer {
     private const val TAG = "VaultContextSniffer"
 
+    // Track the last active external application context for entry creation
+    @Volatile
+    private var lastExternalPackage: String? = null
+
+    @Volatile
+    private var lastExternalHint: String? = null
+
+    @Volatile
+    private var lastCapturedTimeMs: Long = 0L
+
+    private const val CONTEXT_EXPIRY_MS = 15 * 60 * 1000L // 15 minutes
+
+    /**
+     * Records active package and hint text when the keyboard is displayed in an external app.
+     * Filters out the keyboard's own package and system UI.
+     */
+    fun recordExternalContext(editorInfo: EditorInfo?) {
+        if (editorInfo == null) return
+        val pkg = editorInfo.packageName ?: return
+        if (pkg.isBlank()) return
+
+        // Ignore keyboard itself and system UI
+        if (pkg.startsWith("helium314.keyboard") || pkg == "com.android.systemui") {
+            return
+        }
+
+        lastExternalPackage = pkg
+        lastCapturedTimeMs = System.currentTimeMillis()
+
+        // Check if hint contains a web link/domain
+        val hint = editorInfo.hintText?.toString()?.trim()
+        if (!hint.isNullOrBlank() && hint.length >= 4 && !hint.contains(" ") && (hint.contains(".") || hint.startsWith("http"))) {
+            lastExternalHint = hint
+        } else {
+            lastExternalHint = null
+        }
+    }
+
+    /**
+     * Retrieves the suggested app package or site link for new vault entries.
+     * Returns empty list if no external context has been captured recently.
+     */
+    fun getSuggestedLinks(): List<String> {
+        val now = System.currentTimeMillis()
+        if (now - lastCapturedTimeMs > CONTEXT_EXPIRY_MS) {
+            return emptyList()
+        }
+        val list = mutableListOf<String>()
+        val hint = lastExternalHint
+        if (!hint.isNullOrBlank()) {
+            list.add(hint)
+        }
+        val pkg = lastExternalPackage
+        if (!pkg.isNullOrBlank() && !list.contains(pkg)) {
+            list.add(pkg)
+        }
+        return list
+    }
+
     /**
      * Evaluates active EditorInfo package name and hints against the Security Vault database.
      */
@@ -94,7 +153,7 @@ object SecurityVaultContextSniffer {
         return results
     }
 
-    private fun extractKeywordFromPackage(pkg: String): String {
+    fun extractKeywordFromPackage(pkg: String): String {
         val parts = pkg.split('.').filter { part ->
             part.lowercase() !in setOf("com", "org", "net", "io", "app", "android", "mobile", "client", "release", "beta")
         }

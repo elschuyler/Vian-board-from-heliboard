@@ -638,7 +638,7 @@ fun SecurityVaultScreen(
                         singleLine = true,
                         visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(
-                            keyboardType = if (isPasswordVisible) KeyboardType.Text else KeyboardType.Password,
+                            keyboardType = KeyboardType.Password,
                             imeAction = ImeAction.Done
                         ),
                         trailingIcon = {

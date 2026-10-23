@@ -4,6 +4,7 @@ package helium314.keyboard.keyboard.clipboard
 
 import android.annotation.SuppressLint
 import android.app.Dialog
+import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
@@ -15,6 +16,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.Window
 import android.view.WindowManager
+import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
@@ -24,6 +26,8 @@ import android.widget.PopupWindow
 import android.widget.TextView
 import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
+import helium314.keyboard.keyboard.KeyboardSwitcher
+import helium314.keyboard.keyboard.internal.ShiftMode
 import helium314.keyboard.latin.ClipboardHistoryEntry
 import helium314.keyboard.latin.ClipboardHistoryManager
 import helium314.keyboard.latin.R
@@ -385,11 +389,21 @@ class ClipboardAdapter(
                 lp.type = WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG
                 window.attributes = lp
                 window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
-                window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE or WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+                window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE or WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+            }
+
+            dialog.setOnDismissListener {
+                KeyboardSwitcher.getInstance()?.setPromptKeyboard()
             }
 
             dialog.show()
-            editText.requestFocus()
+            KeyboardSwitcher.getInstance()?.setAlphabetKeyboard(ShiftMode.UNSHIFT)
+
+            titleEditText.post {
+                titleEditText.requestFocus()
+                val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                imm?.showSoftInput(titleEditText, InputMethodManager.SHOW_IMPLICIT)
+            }
         }
     }
 
@@ -631,11 +645,22 @@ class ClipboardAdapter(
                 lp.type = WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG
                 window.attributes = lp
                 window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
-                window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE or WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+                window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE or WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+            }
+
+            dialog.setOnDismissListener {
+                KeyboardSwitcher.getInstance()?.setPromptKeyboard()
             }
 
             dialog.show()
-            editText.requestFocus()
+            KeyboardSwitcher.getInstance()?.setAlphabetKeyboard(ShiftMode.UNSHIFT)
+
+            val targetField = if (titleEditText.text.isBlank()) titleEditText else editText
+            targetField.post {
+                targetField.requestFocus()
+                val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                imm?.showSoftInput(targetField, InputMethodManager.SHOW_IMPLICIT)
+            }
         }
     }
 }

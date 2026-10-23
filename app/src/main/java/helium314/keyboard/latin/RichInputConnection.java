@@ -71,12 +71,12 @@ public final class RichInputConnection implements PrivateCommandPerformer {
      * The amount of time a {@link #reloadTextCache} call needs to take for the keyboard to enter
      * the {@link #hasSlowInputConnection} state.
      */
-    private static final long SLOW_INPUT_CONNECTION_ON_FULL_RELOAD_MS = 1000;
+    private static final long SLOW_INPUT_CONNECTION_ON_FULL_RELOAD_MS = 1500;
     /**
      * The amount of time a {@link #getTextBeforeCursor} or {@link #getTextAfterCursor} call needs
      * to take for the keyboard to enter the {@link #hasSlowInputConnection} state.
      */
-    private static final long SLOW_INPUT_CONNECTION_ON_PARTIAL_RELOAD_MS = 500;
+    private static final long SLOW_INPUT_CONNECTION_ON_PARTIAL_RELOAD_MS = 800;
 
     private static final int OPERATION_GET_TEXT_BEFORE_CURSOR = 0;
     private static final int OPERATION_GET_TEXT_AFTER_CURSOR = 1;
@@ -92,7 +92,7 @@ public final class RichInputConnection implements PrivateCommandPerformer {
      * The amount of time the keyboard will persist in the {@link #hasSlowInputConnection} state
      * after observing a slow InputConnection event.
      */
-    private static final long SLOW_INPUTCONNECTION_PERSIST_MS = TimeUnit.SECONDS.toMillis(2);
+    private static final long SLOW_INPUTCONNECTION_PERSIST_MS = TimeUnit.SECONDS.toMillis(1);
 
     /**
      * This variable contains an expected value for the selection start position. This is where the

@@ -151,8 +151,7 @@ public final class Constants {
 
     // Key events coming any faster than this are long-presses.
     public static final int LONG_PRESS_MILLISECONDS = 200;
-    // TODO: Set this value appropriately.
-    public static final int GET_SUGGESTED_WORDS_TIMEOUT = BuildConfig.DEBUG ? 500 : 200; // debug build is slow, and timeout is annoying for testing
+    public static final int GET_SUGGESTED_WORDS_TIMEOUT = 500; // prevent suggestion loss under heavy web IPC latency (e.g. Chrome, WebViews)
     // How many continuous deletes at which to start deleting at a higher speed.
     public static final int DELETE_ACCELERATE_AT = 20;
 

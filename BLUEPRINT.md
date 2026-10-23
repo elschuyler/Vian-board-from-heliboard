@@ -830,5 +830,39 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
   - **Component 3: Build & Security Verification**:
     - Verified successful compilation via `compile_applet`. Conducted silent security scan per Mandates 2 & 3 (workspace clean, zero exposed credentials).
 
+- **2026-10-23**: Completed Phase 70 (Prompt Dialog Software Keyboard Restoration, Incognito Recognition & Toolbar Indicator Sync, and Password Visibility Incognito Lock):
+  - **Component 1: Prompt Add/Edit Dialog Keyboard Restoration (Option 1) (`ClipboardAdapter.kt`, `KeyboardSwitcher.java`)**:
+    - In `ClipboardAdapter.kt`: in `showAddDialog` and `showEditDialog`, applied `SOFT_INPUT_STATE_ALWAYS_VISIBLE` to dialog windows and posted focus and soft-input requests to input fields.
+    - Set `KeyboardSwitcher.getInstance()?.setAlphabetKeyboard(ShiftMode.UNSHIFT)` upon opening dialogs to provide full typing layout inside internal dialogs.
+    - Attached `dialog.setOnDismissListener { KeyboardSwitcher.getInstance()?.setPromptKeyboard() }` to automatically restore the prompt card view upon saving, discarding, or canceling.
+    - In `KeyboardSwitcher.java`: in `reloadMainKeyboard()`, added `isOwnDialogInput` (`packageName.equals(mLatinIME.getPackageName())`) check to prevent internal prompt dialogs from trapping the keyboard back into `setPromptKeyboard()`, allowing `setAlphabetKeyboard` to serve the dialog.
+  - **Component 2: Incognito Mode Detection & Toolbar Indicator Synchronization (`InputAttributes.java`, `ToolbarUtils.kt`, `SuggestionStripView.kt`, `LatinIME.java`)**:
+    - In `InputAttributes.java`: added explicit detection for `EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING` to populate `mNoLearning` alongside existing password/incognito attributes.
+    - In `ToolbarUtils.kt`: updated `setToolbarButtonActivatedState(button)` for `INCOGNITO` to check `Settings.getValues().mIncognitoModeEnabled || TempIncognitoManager.isActive || button.context.prefs().getBoolean(Settings.PREF_ALWAYS_INCOGNITO_MODE, Defaults.PREF_ALWAYS_INCOGNITO_MODE)`.
+    - Added `updateToolbarButtonsActivatedState(buttonsGroup)` in `ToolbarUtils.kt` and exported `SuggestionStripView.updateKeys()` to refresh toolbar and pinned key activation states on input start in `LatinIME.java`. The incognito toolbar icon now accurately lights up when incognito mode is active for any field.
+  - **Component 3: Password Visibility Toggle Incognito Preservation (`SecurityVaultScreen.kt`, `PrivacyVaultScreen.kt`, `KdbxEntryEditorScreen.kt`)**:
+    - In `SecurityVaultScreen.kt`, `PrivacyVaultScreen.kt`, and `KdbxEntryEditorScreen.kt`: locked `keyboardType = KeyboardType.Password` regardless of whether `isPasswordVisible` is true or false.
+    - Changing password visibility now only toggles Compose `VisualTransformation` (masking dots vs plain text) without altering the underlying OS `InputType`. The IME consistently receives `InputType.TYPE_TEXT_VARIATION_PASSWORD`, preventing incognito mode from dropping when users unmask passwords.
+  - **Component 4: Build & Security Verification**:
+    - Clean compilation confirmed via `compile_applet`. Conducted silent security scan per Mandates 2 & 3 (workspace clean, zero exposed credentials).
+
+- **2026-10-23**: Completed Phase 71 (Active App Context Recognition & 1-Tap Link Suggestion Chip for Vault Add/Edit Entries):
+  - **Component 1: External Application & Web Domain Context Sniffing (`SecurityVaultContextSniffer.kt`, `LatinIME.java`)**:
+    - In `SecurityVaultContextSniffer.kt`: implemented `recordExternalContext(editorInfo)` and `getSuggestedLinks(): List<String>`.
+    - Captures the active external `packageName` and web domain/hint from Android OS `EditorInfo` whenever the keyboard is invoked in an external application or when launching settings.
+    - Explicitly filters out `helium314.keyboard` and `com.android.systemui` to prevent internal keyboard settings navigation from overwriting external target metadata. Includes a 15-minute freshness expiry threshold (`CONTEXT_EXPIRY_MS = 15m`).
+    - Made `extractKeywordFromPackage(pkg)` public for modular reuse across entry screens.
+    - In `LatinIME.java`: wired `recordExternalContext(editorInfo)` into `onStartInputViewInternal` and `launchSettings()`.
+  - **Component 2: Vault Add/Edit Entry Suggestion Chip UI (Approach 1) (`KdbxEntryEditorScreen.kt`)**:
+    - In `KdbxEntryEditorScreen.kt`: integrated `SecurityVaultContextSniffer.getSuggestedLinks()` state.
+    - Added a horizontally scrollable Material 3 `SuggestionChip` row beneath the "URL / App Package" text field (`OutlinedTextField`).
+    - When adding a new entry (or when the URL field is blank), displays `[ 🔗 Link to: com.example.app ]`.
+    - Tapping the chip immediately fills `urlOrPackage` with the active app's package name (or site domain). If the Title field is empty, it automatically derives and capitalizes the clean application keyword (e.g. `Spotify` from `com.spotify.music`).
+    - The chip is completely non-intrusive: users can tap it for 1-touch linking or ignore/type freely.
+  - **Component 3: Build & Security Verification**:
+    - Clean compilation confirmed via `compile_applet`. Conducted silent security scan per Mandates 2 & 3 (workspace clean, zero exposed credentials).
+
+
+
 
 

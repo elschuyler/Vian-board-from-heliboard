@@ -511,7 +511,7 @@ private fun EditVaultEntryDialog(
                     modifier = Modifier.fillMaxWidth(),
                     visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = if (isPasswordVisible) KeyboardType.Text else KeyboardType.Password
+                        keyboardType = KeyboardType.Password
                     ),
                     trailingIcon = {
                         TextButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
