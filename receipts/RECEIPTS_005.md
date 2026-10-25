@@ -357,6 +357,33 @@ This file is part of the permanent audit trail for the project, tracking code mo
   6. In `LatinIME.java`: Protected `restarting` input transitions in `onStartInputViewInternal()` from resetting to alphabet when `isPendingVoiceLaunch()` or `isShowingVoiceInput()` is active, and immediately executes `setVoiceInputKeyboard()` at the end of input initialization.
   7. Purged generated `.apk` file (`.build-outputs/app-debug.apk`). Silent security scan completed: zero exposed credentials, no keys or tokens committed.
 - **How it was verified**: local build only (`compile_applet` passed successfully).
+### Receipt Entry: Phase 75 Unified Stability, Vault, Prompt Editor & On-Demand Lifecycle Suite
+- **Timestamp**: 2026-10-25 12:59:00 UTC-7
+- **Summary of request**: Fix pattern unlock view not opening (pills and long-press ?123), remove shortcut/trigger requirement for Privacy Vault entries (Approach 3 inline delivery), fix prompt list item/card edit dialog closing when tapping to type via dedicated PromptEditorActivity, and transition subsystem lifecycles from eager init to on-demand in Log Keeper.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/keyboard/KeyboardSwitcher.java`
+  - `app/src/main/java/helium314/keyboard/latin/database/VaultDao.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/PrivacyVaultScreen.kt`
+  - `app/src/main/java/helium314/keyboard/keyboard/clipboard/PromptEditorActivity.kt`
+  - `app/src/main/AndroidManifest.xml`
+  - `app/src/main/java/helium314/keyboard/latin/LatinIME.java`
+  - `app/src/main/java/helium314/keyboard/keyboard/clipboard/ClipboardAdapter.kt`
+  - `app/src/main/java/helium314/keyboard/latin/utils/LogCatcher.kt`
+  - `app/src/main/java/helium314/keyboard/security/vault/crypto/VaultCryptoManager.kt`
+  - `app/src/main/java/helium314/keyboard/security/VaultSessionManager.kt`
+  - `app/src/main/java/helium314/keyboard/security/vault/totp/TotpGenerator.kt`
+  - `app/src/main/java/helium314/keyboard/latin/database/VoiceReplacementDao.kt`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_005.md`
+- **What was actually done**:
+  1. In `KeyboardSwitcher.java`: Moved ViewStub inflation to the top of `showPatternUnlockView()` and eliminated the premature null guard (`if (mPatternUnlockView == null) return;`) at line 768 that was silently blocking all pattern unlock invocations from the autofill pills and long-press `?123`.
+  2. In `VaultDao.kt` and `PrivacyVaultScreen.kt`: Made `shortcut` optional across the data layer and UI. Updated `addOrUpdate()` to support updates by entry ID and allow blank shortcuts. Expanded `findSuggestions()` to match phrases and note keywords on queries $\ge 2$ characters, delivering pure inline suggestions directly on the suggestion strip without popups (Approach 3).
+  3. Created `PromptEditorActivity.kt` and registered it in `AndroidManifest.xml` with dialog theme. Replaced attached in-window dialogs in `ClipboardAdapter.kt` (`PromptAddViewHolder` and `PromptItemViewHolder`) with `PromptEditorActivity.start()`, giving full IME keyboard typing access without focus dismissal races.
+  4. In `KeyboardSwitcher.java` and `LatinIME.java`: Added `mPendingPromptLaunch` flag to seamlessly restore `setPromptKeyboard()` upon returning from `PromptEditorActivity` so the user sees the updated prompt list immediately.
+  5. In `LogCatcher.kt`, `VaultCryptoManager.kt`, `VaultSessionManager.kt`, `VaultDao.kt`, `TotpGenerator.kt`, and `VoiceReplacementDao.kt`: Removed eager `init {}` registrations. Converted `LogCatcher.markComponentInactive()` to remove evicted components and updated `getActiveComponents()` to filter out stopped/idle/locked states, ensuring only genuinely running subsystems appear under `--- ACTIVE SUBSYSTEMS ---`.
+  6. Verified compilation via `compile_applet`. Conducted silent security scan per Mandates 2 & 3.
+- **How it was verified**: local build only (`compile_applet` passed successfully).
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: Ready for on-device manual QA testing.
+
 

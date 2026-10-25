@@ -41,9 +41,6 @@ object TotpGenerator {
         val periodSeconds: Int
     )
 
-    init {
-        LogCatcher.markComponentActive("TotpGenerator", "TOTP", "Ready")
-    }
 
     /**
      * Parses a raw Base32 string or an otpauth://totp/... URI into a TotpConfig.

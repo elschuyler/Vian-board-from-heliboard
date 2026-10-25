@@ -915,8 +915,23 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
   - **Component 4: Reload Guard & Focus Transition Protection (`KeyboardSwitcher.java`, `LatinIME.java`)**:
     - In `KeyboardSwitcher.java`: updated `reloadMainKeyboard()` to include `mPendingVoiceLaunch` in `wasVoice` check (`isShowingVoiceInput() || mPendingVoiceLaunch`), preventing the alphabet keyboard from overwriting the voice modal during view reloads.
     - In `LatinIME.java`: protected `restarting` input transitions in `onStartInputViewInternal()` from resetting to alphabet when `isPendingVoiceLaunch()` or `isShowingVoiceInput()` is active, and immediately executes `setVoiceInputKeyboard()` at the end of input initialization.
+- **2026-10-25**: Completed Phase 75 (Unified Stability, Vault, Prompt Editor & On-Demand Lifecycle Suite):
+  - **Component 1: Pattern Unlock View Inflation & Trigger Fix (`KeyboardSwitcher.java`)**:
+    - Relocated ViewStub inflation (`pattern_unlock_view_stub`) to the top of `showPatternUnlockView()`.
+    - Removed premature null check (`if (mPatternUnlockView == null) return;`) at line 768 that was silently dropping all unlock invocations from the autofill pills and long-press `?123`.
+  - **Component 2: Privacy Vault No-Shortcut Architecture (Approach 3 Inline Delivery) (`VaultDao.kt`, `PrivacyVaultScreen.kt`)**:
+    - Made `shortcut` optional across `VaultDao.kt` and `PrivacyVaultScreen.kt`. Updated `addOrUpdate()` to key updates by entry ID instead of shortcut.
+    - Expanded `findSuggestions()` to match phrases and note keywords on queries $\ge 2$ characters, delivering pure inline suggestions directly on the suggestion strip without popups.
+  - **Component 3: Prompt Editor Activity Architecture (`PromptEditorActivity.kt`, `AndroidManifest.xml`, `ClipboardAdapter.kt`)**:
+    - Built and registered `PromptEditorActivity.kt` using a dialog theme, eliminating the focus-collapse bug of attached in-window dialogs.
+    - Replaced in-window dialogs in `PromptAddViewHolder` and `PromptItemViewHolder` with `PromptEditorActivity.start()`, giving full soft-keyboard IME typing access.
+    - Added `mPendingPromptLaunch` in `KeyboardSwitcher.java` and `LatinIME.java` to automatically return the user to `setPromptKeyboard()` upon saving or dismissing the editor.
+  - **Component 4: On-Demand Subsystem Lifecycle & Telemetry Clean-up (`LogCatcher.kt`, `VaultCryptoManager.kt`, `VaultSessionManager.kt`, `VaultDao.kt`, `TotpGenerator.kt`, `VoiceReplacementDao.kt`)**:
+    - Removed eager `markComponentActive()` registrations from static `init {}` blocks across crypto, session, database, and TOTP singletons.
+    - Updated `LogCatcher.markComponentInactive()` to remove evicted components and filtered out idle/locked/stopped components in `getActiveComponents()`, keeping `--- ACTIVE SUBSYSTEMS ---` strictly limited to truly running services.
   - **Component 5: Build & Security Verification**:
     - Verified clean build via `compile_applet`. Conducted silent security scan per Mandates 2 & 3.
+
 
 
 

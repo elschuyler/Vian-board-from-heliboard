@@ -69,9 +69,6 @@ object VaultSessionManager {
     @Volatile
     private var settingsSessionExpiryMs: Long = 0L
 
-    init {
-        LogCatcher.markComponentActive("VaultSessionManager", "Security", "Active")
-    }
 
     /** Checks if a master pattern is currently configured */
     fun isPatternSet(context: Context): Boolean {
@@ -375,6 +372,7 @@ object VaultSessionManager {
     fun startPrivacySession(context: Context? = null) {
         val duration = getPrivacyTimeoutMs(context)
         privacySessionExpiryMs = System.currentTimeMillis() + duration
+        LogCatcher.markComponentActive("VaultSessionManager", "Security", "Privacy Active")
         LogCatcher.log('I', TAG, "startPrivacySession: ${duration / 60000}m session started (expires at $privacySessionExpiryMs)")
     }
 
@@ -382,29 +380,34 @@ object VaultSessionManager {
     fun startSecuritySession(context: Context? = null) {
         val duration = getSecurityTimeoutMs(context)
         securitySessionExpiryMs = System.currentTimeMillis() + duration
+        LogCatcher.markComponentActive("VaultSessionManager", "Security", "Security Active")
         LogCatcher.log('I', TAG, "startSecuritySession: ${duration / 60000}m session started (expires at $securitySessionExpiryMs)")
     }
 
     fun startSettingsSession() {
         settingsSessionExpiryMs = System.currentTimeMillis() + SETTINGS_SESSION_DURATION_MS
+        LogCatcher.markComponentActive("VaultSessionManager", "Security", "Settings Active")
         LogCatcher.log('I', TAG, "startSettingsSession: 3-minute settings session started")
     }
 
     fun lockPrivacy() {
         if (privacySessionExpiryMs == 0L) return
         privacySessionExpiryMs = 0L
+        checkAndMarkInactive()
         LogCatcher.log('I', TAG, "lockPrivacy: Privacy vault session locked")
     }
 
     fun lockSecurity() {
         if (securitySessionExpiryMs == 0L) return
         securitySessionExpiryMs = 0L
+        checkAndMarkInactive()
         LogCatcher.log('I', TAG, "lockSecurity: Security vault session locked")
     }
 
     fun lockSettings() {
         if (settingsSessionExpiryMs == 0L) return
         settingsSessionExpiryMs = 0L
+        checkAndMarkInactive()
         LogCatcher.log('I', TAG, "lockSettings: Security settings session locked")
     }
 
@@ -412,6 +415,7 @@ object VaultSessionManager {
         val wasActive = privacySessionExpiryMs != 0L || securitySessionExpiryMs != 0L
         lockPrivacy()
         lockSecurity()
+        checkAndMarkInactive()
         if (wasActive) {
             LogCatcher.log('I', TAG, "lockVaults: Privacy and Security vault sessions locked")
         }
@@ -422,8 +426,15 @@ object VaultSessionManager {
         lockPrivacy()
         lockSecurity()
         lockSettings()
+        checkAndMarkInactive()
         if (wasActive) {
             LogCatcher.log('I', TAG, "lockAll: All vault and settings sessions locked")
+        }
+    }
+
+    private fun checkAndMarkInactive() {
+        if (!isPrivacySessionValid() && !isSecuritySessionValid() && !isSettingsSessionValid()) {
+            LogCatcher.markComponentInactive("VaultSessionManager", "Locked")
         }
     }
 

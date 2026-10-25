@@ -365,19 +365,34 @@ private fun VaultListScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
-                    // Shortcut pill badge
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.padding(end = 12.dp)
-                    ) {
-                        Text(
-                            text = entry.shortcut,
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
+                    // Shortcut pill badge or Lock badge
+                    if (entry.shortcut.isNotBlank()) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.padding(end = 12.dp)
+                        ) {
+                            Text(
+                                text = entry.shortcut,
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    } else {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.padding(end = 12.dp)
+                        ) {
+                            Text(
+                                text = "🔒",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
                     }
 
                     // Masked or Revealed Phrase & Notes
@@ -461,11 +476,11 @@ private fun EditVaultEntryDialog(
     var isPasswordVisible by remember { mutableStateOf(false) }
 
     val isNew = entry.id == 0L
-    val isValid = shortcut.isNotBlank() && phrase.isNotBlank()
+    val isValid = phrase.isNotBlank()
 
     fun save() {
         if (isValid) {
-            vaultDao.addOrUpdate(shortcut, phrase, notes)
+            vaultDao.addOrUpdate(id = if (isNew) null else entry.id, shortcut = shortcut, phrase = phrase, notes = notes)
             Toast.makeText(context, if (isNew) "Phrase added" else "Phrase updated", Toast.LENGTH_SHORT).show()
             onDismiss()
         }
@@ -497,7 +512,7 @@ private fun EditVaultEntryDialog(
                 OutlinedTextField(
                     value = shortcut,
                     onValueChange = { shortcut = it },
-                    label = { Text("Shortcut / Trigger (e.g. eml, pin)") },
+                    label = { Text("Shortcut / Trigger (optional)") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None)

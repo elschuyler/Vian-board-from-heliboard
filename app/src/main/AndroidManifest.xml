@@ -143,6 +143,15 @@ GPL-3.0-only
             android:autoRemoveFromRecents="true" />
 
         <activity
+            android:name="helium314.keyboard.keyboard.clipboard.PromptEditorActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.DeviceDefault.Dialog.NoActionBar"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:windowSoftInputMode="adjustResize|stateVisible"
+            android:configChanges="orientation|screenSize" />
+
+        <activity
             android:name="helium314.keyboard.security.BiometricAuthTrampolineActivity"
             android:exported="false"
             android:theme="@android:style/Theme.Translucent.NoTitleBar"

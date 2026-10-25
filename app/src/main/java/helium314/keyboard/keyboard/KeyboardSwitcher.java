@@ -112,6 +112,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     private int mCurrentDpi;
     private boolean mThemeNeedsReload;
     private boolean mPendingVoiceLaunch = false;
+    private boolean mPendingPromptLaunch = false;
 
     public void setPendingVoiceLaunch(boolean pending) {
         mPendingVoiceLaunch = pending;
@@ -119,6 +120,14 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
 
     public boolean isPendingVoiceLaunch() {
         return mPendingVoiceLaunch;
+    }
+
+    public void setPendingPromptLaunch(boolean pending) {
+        mPendingPromptLaunch = pending;
+    }
+
+    public boolean isPendingPromptLaunch() {
+        return mPendingPromptLaunch;
     }
 
     @SuppressLint("StaticFieldLeak") // this is a keyboard, we want to keep it alive in background
@@ -766,6 +775,14 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     }
 
     public void showPatternUnlockView(Runnable onUnlockSuccess, boolean isStealth, boolean isSecurityVault) {
+        if (mPatternUnlockView == null && mCurrentInputView != null) {
+            final ViewStub stub = mCurrentInputView.findViewById(R.id.pattern_unlock_view_stub);
+            if (stub != null) {
+                mPatternUnlockView = (PatternUnlockView) stub.inflate();
+            } else {
+                mPatternUnlockView = mCurrentInputView.findViewById(R.id.pattern_unlock_view);
+            }
+        }
         if (mPatternUnlockView == null) return;
         mMainKeyboardFrame.setVisibility(View.VISIBLE);
         if (isStealth) {
@@ -804,14 +821,6 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         if (mVoiceInputView != null && (mVoiceInputView.getVisibility() == View.VISIBLE || mVoiceInputView.isVoiceActive())) {
             mVoiceInputView.setVisibility(View.GONE);
             mVoiceInputView.stopVoiceInput();
-        }
-        if (mPatternUnlockView == null && mCurrentInputView != null) {
-            final ViewStub stub = mCurrentInputView.findViewById(R.id.pattern_unlock_view_stub);
-            if (stub != null) {
-                mPatternUnlockView = (PatternUnlockView) stub.inflate();
-            } else {
-                mPatternUnlockView = mCurrentInputView.findViewById(R.id.pattern_unlock_view);
-            }
         }
         if (mPatternUnlockView == null) return;
         mPatternUnlockView.startPatternUnlock(
@@ -1201,7 +1210,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                 && mLatinIME.getCurrentInputEditorInfo().packageName.equals(mLatinIME.getPackageName());
         final boolean wasEmoji = isShowingEmojiPalettes();
         final boolean wasClipboard = isShowingClipboardHistory();
-        final boolean wasPrompt = isShowingPromptHistory();
+        final boolean wasPrompt = isShowingPromptHistory() || mPendingPromptLaunch;
         final boolean wasDesktopShortcuts = isShowingDesktopShortcuts();
         final boolean wasVoice = isShowingVoiceInput() || mPendingVoiceLaunch;
         loadKeyboard(mLatinIME.getCurrentInputEditorInfo(), Settings.getValues(),

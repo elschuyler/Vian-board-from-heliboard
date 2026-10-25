@@ -302,108 +302,7 @@ class ClipboardAdapter(
         }
 
         override fun onClick(v: View) {
-            showAddDialog(v)
-        }
-
-        private fun showAddDialog(anchorView: View) {
-            val context = anchorView.context
-            val dialog = Dialog(context, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-            dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
-
-            val layout = LinearLayout(context).apply {
-                orientation = LinearLayout.VERTICAL
-                val pad = (16 * context.resources.displayMetrics.density).toInt()
-                setPadding(pad, pad, pad, pad)
-            }
-
-            val titleText = TextView(context).apply {
-                text = "Add Prompt / Note"
-                textSize = 18f
-                setTypeface(null, Typeface.BOLD)
-                setPadding(0, 0, 0, (12 * context.resources.displayMetrics.density).toInt())
-            }
-            layout.addView(titleText)
-
-            val titleEditText = EditText(context).apply {
-                hint = "Title (optional)"
-                isSingleLine = true
-                maxLines = 1
-                val bgPad = (10 * context.resources.displayMetrics.density).toInt()
-                setPadding(bgPad, bgPad, bgPad, bgPad)
-                setBackgroundResource(android.R.drawable.editbox_background_normal)
-            }
-            layout.addView(titleEditText)
-
-            val spacer = View(context).apply {
-                layoutParams = LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    (8 * context.resources.displayMetrics.density).toInt()
-                )
-            }
-            layout.addView(spacer)
-
-            val editText = EditText(context).apply {
-                hint = "Type your prompt or note here…"
-                minLines = 5
-                maxLines = 15
-                gravity = Gravity.TOP or Gravity.START
-                val bgPad = (10 * context.resources.displayMetrics.density).toInt()
-                setPadding(bgPad, bgPad, bgPad, bgPad)
-                setBackgroundResource(android.R.drawable.editbox_background_normal)
-            }
-            layout.addView(editText)
-
-            val buttonRow = LinearLayout(context).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.END
-                setPadding(0, (16 * context.resources.displayMetrics.density).toInt(), 0, 0)
-            }
-
-            val cancelButton = Button(context, null, android.R.attr.borderlessButtonStyle).apply {
-                text = "Cancel"
-                setOnClickListener { dialog.dismiss() }
-            }
-
-            val saveButton = Button(context, null, android.R.attr.borderlessButtonStyle).apply {
-                text = "Save"
-                setOnClickListener {
-                    val newText = editText.text.toString().trim()
-                    val newTitle = titleEditText.text.toString().trim()
-                    if (newText.isNotEmpty()) {
-                        promptDao?.addPrompt(newText, newTitle)
-                    }
-                    dialog.dismiss()
-                }
-            }
-
-            buttonRow.addView(cancelButton)
-            buttonRow.addView(saveButton)
-            layout.addView(buttonRow)
-
-            dialog.setContentView(layout)
-
-            val window = dialog.window
-            if (window != null) {
-                val lp = window.attributes
-                lp.token = anchorView.rootView.windowToken ?: anchorView.windowToken
-                lp.type = WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG
-                window.attributes = lp
-                window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
-                window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE or WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
-            }
-
-            dialog.setOnDismissListener {
-                KeyboardSwitcher.getInstance()?.setPromptKeyboard()
-            }
-
-            dialog.show()
-            KeyboardSwitcher.getInstance()?.setAlphabetKeyboard(ShiftMode.UNSHIFT)
-
-            titleEditText.post {
-                titleEditText.requestFocus()
-                val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
-                imm?.showSoftInput(titleEditText, InputMethodManager.SHOW_IMPLICIT)
-            }
+            PromptEditorActivity.start(v.context, -1L, "", "")
         }
     }
 
@@ -519,7 +418,12 @@ class ClipboardAdapter(
                 Settings.getValues().mColors.setColor(this, ColorType.TOOL_BAR_KEY)
                 setOnClickListener {
                     popupWindow.dismiss()
-                    showEditDialog(anchorView, entry)
+                    val existingTitle = if (entry.title.isNotBlank() && entry.title != entry.text.take(30).replace("\n", " ").trim()) {
+                        entry.title
+                    } else {
+                        ""
+                    }
+                    PromptEditorActivity.start(anchorView.context, entry.id, existingTitle, entry.text)
                 }
             }
             popupView.addView(editButton)
@@ -550,117 +454,6 @@ class ClipboardAdapter(
             val xOff = (anchorView.width - popupWidth) / 2
             val yOff = -(anchorView.height + popupHeight + (4 * context.resources.displayMetrics.density).toInt())
             popupWindow.showAsDropDown(anchorView, xOff, yOff)
-        }
-
-        private fun showEditDialog(anchorView: View, entry: PromptEntry) {
-            val context = anchorView.context
-            val dialog = Dialog(context, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-            dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
-
-            val layout = LinearLayout(context).apply {
-                orientation = LinearLayout.VERTICAL
-                val pad = (16 * context.resources.displayMetrics.density).toInt()
-                setPadding(pad, pad, pad, pad)
-            }
-
-            val titleText = TextView(context).apply {
-                text = "Edit Prompt / Note"
-                textSize = 18f
-                setTypeface(null, Typeface.BOLD)
-                setPadding(0, 0, 0, (12 * context.resources.displayMetrics.density).toInt())
-            }
-            layout.addView(titleText)
-
-            val titleEditText = EditText(context).apply {
-                hint = "Title (optional)"
-                isSingleLine = true
-                maxLines = 1
-                val existingTitle = if (entry.title.isNotBlank() && entry.title != entry.text.take(30).replace("\n", " ").trim()) {
-                    entry.title
-                } else {
-                    ""
-                }
-                setText(existingTitle)
-                setSelection(text.length)
-                val bgPad = (10 * context.resources.displayMetrics.density).toInt()
-                setPadding(bgPad, bgPad, bgPad, bgPad)
-                setBackgroundResource(android.R.drawable.editbox_background_normal)
-            }
-            layout.addView(titleEditText)
-
-            val spacer = View(context).apply {
-                layoutParams = LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    (8 * context.resources.displayMetrics.density).toInt()
-                )
-            }
-            layout.addView(spacer)
-
-            val editText = EditText(context).apply {
-                setText(entry.text)
-                setSelection(text.length)
-                minLines = 5
-                maxLines = 15
-                gravity = Gravity.TOP or Gravity.START
-                val bgPad = (10 * context.resources.displayMetrics.density).toInt()
-                setPadding(bgPad, bgPad, bgPad, bgPad)
-                setBackgroundResource(android.R.drawable.editbox_background_normal)
-            }
-            layout.addView(editText)
-
-            val buttonRow = LinearLayout(context).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.END
-                setPadding(0, (16 * context.resources.displayMetrics.density).toInt(), 0, 0)
-            }
-
-            val cancelButton = Button(context, null, android.R.attr.borderlessButtonStyle).apply {
-                text = "Cancel"
-                setOnClickListener { dialog.dismiss() }
-            }
-
-            val saveButton = Button(context, null, android.R.attr.borderlessButtonStyle).apply {
-                text = "Save"
-                setOnClickListener {
-                    val newText = editText.text.toString().trim()
-                    val newTitle = titleEditText.text.toString().trim()
-                    if (newText.isNotEmpty()) {
-                        promptDao?.updatePrompt(entry.id, newTitle, newText)
-                        notifyDataSetChanged()
-                    }
-                    dialog.dismiss()
-                }
-            }
-
-            buttonRow.addView(cancelButton)
-            buttonRow.addView(saveButton)
-            layout.addView(buttonRow)
-
-            dialog.setContentView(layout)
-
-            val window = dialog.window
-            if (window != null) {
-                val lp = window.attributes
-                lp.token = anchorView.rootView.windowToken ?: anchorView.windowToken
-                lp.type = WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG
-                window.attributes = lp
-                window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
-                window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE or WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
-            }
-
-            dialog.setOnDismissListener {
-                KeyboardSwitcher.getInstance()?.setPromptKeyboard()
-            }
-
-            dialog.show()
-            KeyboardSwitcher.getInstance()?.setAlphabetKeyboard(ShiftMode.UNSHIFT)
-
-            val targetField = if (titleEditText.text.isBlank()) titleEditText else editText
-            targetField.post {
-                targetField.requestFocus()
-                val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
-                imm?.showSoftInput(targetField, InputMethodManager.SHOW_IMPLICIT)
-            }
         }
     }
 }

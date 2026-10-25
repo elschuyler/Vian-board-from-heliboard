@@ -1048,6 +1048,10 @@ public class LatinIME extends InputMethodService implements
                 mKeyboardSwitcher.setAlphabetKeyboard(ShiftMode.UNSHIFT);
             }
         }
+        if (mKeyboardSwitcher.isPendingPromptLaunch()) {
+            mKeyboardSwitcher.setPendingPromptLaunch(false);
+            mKeyboardSwitcher.setPromptKeyboard();
+        }
     }
 
     @Override

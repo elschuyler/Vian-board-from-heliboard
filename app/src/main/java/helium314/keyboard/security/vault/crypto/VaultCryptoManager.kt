@@ -30,9 +30,6 @@ object VaultCryptoManager {
     private const val GCM_IV_LENGTH_BYTES = 12
     private const val GCM_TAG_LENGTH_BITS = 128
 
-    init {
-        LogCatcher.markComponentActive("VaultCryptoManager", "Crypto", "Ready")
-    }
 
     /**
      * Checks if the hardware master key is already initialized in AndroidKeyStore.

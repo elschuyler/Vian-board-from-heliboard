@@ -30,7 +30,6 @@ class VoiceReplacementDao private constructor(private val db: Database) {
     private val cache = mutableListOf<VoiceReplacementEntry>().apply {
         ensureTableExists(db.writableDatabase)
         loadFromDb(this)
-        LogCatcher.markComponentActive("VoiceReplacementDao", "Database", "Ready (${size} rules)")
     }
 
     private fun loadFromDb(target: MutableList<VoiceReplacementEntry>) {
@@ -99,7 +98,6 @@ class VoiceReplacementDao private constructor(private val db: Database) {
                 LogCatcher.i("VoiceReplacementDao", "Added replacement: '$trimmedOrig' -> '$trimmedRepl'")
             }
         }
-        LogCatcher.markComponentActive("VoiceReplacementDao", "Database", "Active (${cache.size} rules)")
         listener?.onReplacementsChanged()
         return id
     }
@@ -109,7 +107,6 @@ class VoiceReplacementDao private constructor(private val db: Database) {
         if (deleted) {
             cache.removeAll { it.id == id }
             LogCatcher.i("VoiceReplacementDao", "Deleted replacement rule id $id")
-            LogCatcher.markComponentActive("VoiceReplacementDao", "Database", "Active (${cache.size} rules)")
             listener?.onReplacementsChanged()
         }
         deleted
@@ -119,7 +116,6 @@ class VoiceReplacementDao private constructor(private val db: Database) {
         db.writableDatabase.delete(TABLE, null, null)
         cache.clear()
         LogCatcher.i("VoiceReplacementDao", "Cleared all voice replacements")
-        LogCatcher.markComponentActive("VoiceReplacementDao", "Database", "Empty (0 rules)")
         listener?.onReplacementsChanged()
     }
 
@@ -127,7 +123,6 @@ class VoiceReplacementDao private constructor(private val db: Database) {
         cache.clear()
         loadFromDb(cache)
         LogCatcher.i("VoiceReplacementDao", "Reloaded cache (${cache.size} rules)")
-        LogCatcher.markComponentActive("VoiceReplacementDao", "Database", "Ready (${cache.size} rules)")
         listener?.onReplacementsChanged()
     }
 

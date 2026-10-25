@@ -32,7 +32,6 @@ class VaultDao private constructor(private val db: Database) {
     private val cache = mutableListOf<VaultEntry>().apply {
         ensureTableExists(db.writableDatabase)
         loadFromDb(this)
-        LogCatcher.markComponentActive("VaultDao", "Database", "Ready (${size} entries)")
     }
 
     private fun loadFromDb(target: MutableList<VaultEntry>) {
@@ -101,30 +100,37 @@ class VaultDao private constructor(private val db: Database) {
      * 2. Shortcut prefix match (query length >= 1)
      * 3. Phrase prefix or word-in-phrase prefix match (requires query length >= 3 to avoid false positives)
      */
+    /**
+     * Finds vault suggestions for the typed query:
+     * 1. Exact shortcut match (highest priority, query length >= 1)
+     * 2. Shortcut prefix match (query length >= 1)
+     * 3. Phrase prefix or word-in-phrase prefix match (requires query length >= 2)
+     * 4. Notes keyword match (requires query length >= 2)
+     */
     fun findSuggestions(query: String): List<VaultEntry> = synchronized(this) {
         if (query.isBlank()) return emptyList()
         val trimmed = query.trim()
         val results = mutableListOf<VaultEntry>()
         val seenIds = mutableSetOf<Long>()
 
-        // 1. Exact shortcut
+        // 1. Exact shortcut (if shortcut set)
         for (entry in cache) {
-            if (entry.shortcut.equals(trimmed, ignoreCase = true)) {
+            if (entry.shortcut.isNotBlank() && entry.shortcut.equals(trimmed, ignoreCase = true)) {
                 results.add(entry)
                 seenIds.add(entry.id)
             }
         }
 
-        // 2. Shortcut prefix
+        // 2. Shortcut prefix (if shortcut set)
         for (entry in cache) {
-            if (!seenIds.contains(entry.id) && entry.shortcut.startsWith(trimmed, ignoreCase = true)) {
+            if (entry.shortcut.isNotBlank() && !seenIds.contains(entry.id) && entry.shortcut.startsWith(trimmed, ignoreCase = true)) {
                 results.add(entry)
                 seenIds.add(entry.id)
             }
         }
 
-        // 3. Phrase prefix (>= 3 chars)
-        if (trimmed.length >= 3) {
+        // 3. Phrase prefix & token match (>= 2 chars)
+        if (trimmed.length >= 2) {
             for (entry in cache) {
                 if (!seenIds.contains(entry.id)) {
                     val p = entry.phrase
@@ -140,18 +146,35 @@ class VaultDao private constructor(private val db: Database) {
                     }
                 }
             }
+
+            // 4. Notes token match (>= 2 chars)
+            for (entry in cache) {
+                if (!seenIds.contains(entry.id) && entry.notes.isNotBlank()) {
+                    val noteParts = entry.notes.split(' ', ',', ';', '.', '_', '-')
+                    if (noteParts.any { it.startsWith(trimmed, ignoreCase = true) }) {
+                        results.add(entry)
+                        seenIds.add(entry.id)
+                    }
+                }
+            }
         }
 
         results
     }
 
-    fun addOrUpdate(shortcut: String, phrase: String, notes: String = ""): Long = synchronized(this) {
+    fun addOrUpdate(id: Long? = null, shortcut: String = "", phrase: String, notes: String = ""): Long = synchronized(this) {
         val trimmedShortcut = shortcut.trim()
         val trimmedPhrase = phrase.trim()
         val trimmedNotes = notes.trim()
-        if (trimmedShortcut.isEmpty() || trimmedPhrase.isEmpty()) return -1L
+        if (trimmedPhrase.isEmpty()) return -1L
 
-        val existingIndex = cache.indexOfFirst { it.shortcut.equals(trimmedShortcut, ignoreCase = true) }
+        val existingIndex = if (id != null && id > 0) {
+            cache.indexOfFirst { it.id == id }
+        } else if (trimmedShortcut.isNotEmpty()) {
+            cache.indexOfFirst { it.shortcut.isNotBlank() && it.shortcut.equals(trimmedShortcut, ignoreCase = true) }
+        } else {
+            -1
+        }
         val now = System.currentTimeMillis()
 
         val encryptedPhrase = try {
@@ -175,23 +198,26 @@ class VaultDao private constructor(private val db: Database) {
             put(COLUMN_TIMESTAMP, now)
         }
 
-
-        val id: Long
+        val resultId: Long
         if (existingIndex >= 0) {
             val existing = cache[existingIndex]
             db.writableDatabase.update(TABLE, cv, "$COLUMN_ID = ?", arrayOf(existing.id.toString()))
-            id = existing.id
-            cache[existingIndex] = VaultEntry(id, trimmedShortcut, trimmedPhrase, trimmedNotes, now)
-            LogCatcher.i("VaultDao", "Updated vault entry: '$trimmedShortcut'")
+            resultId = existing.id
+            cache[existingIndex] = VaultEntry(resultId, trimmedShortcut, trimmedPhrase, trimmedNotes, now)
+            LogCatcher.i("VaultDao", "Updated vault entry id=$resultId (shortcut='$trimmedShortcut')")
         } else {
-            id = db.writableDatabase.insert(TABLE, null, cv)
-            if (id != -1L) {
-                cache.add(0, VaultEntry(id, trimmedShortcut, trimmedPhrase, trimmedNotes, now))
-                LogCatcher.i("VaultDao", "Added vault entry: '$trimmedShortcut'")
+            resultId = db.writableDatabase.insert(TABLE, null, cv)
+            if (resultId != -1L) {
+                cache.add(0, VaultEntry(resultId, trimmedShortcut, trimmedPhrase, trimmedNotes, now))
+                LogCatcher.i("VaultDao", "Added vault entry id=$resultId (shortcut='$trimmedShortcut')")
             }
         }
         listener?.onVaultEntriesChanged()
-        return id
+        return resultId
+    }
+
+    fun addOrUpdate(shortcut: String, phrase: String, notes: String = ""): Long {
+        return addOrUpdate(null, shortcut, phrase, notes)
     }
 
     fun delete(id: Long): Boolean = synchronized(this) {

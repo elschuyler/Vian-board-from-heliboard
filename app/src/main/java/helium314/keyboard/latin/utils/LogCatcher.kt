@@ -137,16 +137,17 @@ object LogCatcher {
 
     @JvmStatic
     fun markComponentInactive(name: String, status: String = "Stopped") {
-        val info = activeComponents[name]
-        if (info != null) {
-            info.lastSeenAt = SystemClock.elapsedRealtime()
-            info.status = status
-        }
+        activeComponents.remove(name)
     }
 
     @JvmStatic
     fun getActiveComponents(): List<ComponentInfo> {
-        return activeComponents.values.toList().sortedBy { it.name }
+        return activeComponents.values.filter {
+            !it.status.equals("Stopped", ignoreCase = true) &&
+            !it.status.equals("Idle", ignoreCase = true) &&
+            !it.status.equals("Locked", ignoreCase = true) &&
+            !it.status.equals("Dismissed", ignoreCase = true)
+        }.sortedBy { it.name }
     }
 
     @JvmStatic
