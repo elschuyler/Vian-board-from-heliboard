@@ -23,8 +23,50 @@ data class BackupManifest(
 data class VaultBackupData(
     val hasPattern: Boolean,
     val saltHex: String? = null,
-    val hashHex: String? = null
+    val hashHex: String? = null,
+    val isSeparatePatterns: Boolean = false,
+    val securitySaltHex: String? = null,
+    val securityHashHex: String? = null
 )
+
+@Serializable
+data class PortableVaultGroup(
+    val groupUuid: String,
+    val parentGroupUuid: String? = null,
+    val name: String,
+    val iconId: Int = 0
+)
+
+@Serializable
+data class PortableVaultEntry(
+    val entryUuid: String,
+    val groupUuid: String,
+    val title: String,
+    val username: String? = null,
+    val passwordPlain: String? = null,
+    val urlOrPackage: String? = null,
+    val totpSecretPlain: String? = null,
+    val notesPlain: String? = null,
+    val customFieldsPlainJson: String? = null,
+    val updatedAt: Long = System.currentTimeMillis()
+)
+
+@Serializable
+data class PortableVaultAttachment(
+    val attachmentUuid: String,
+    val entryUuid: String,
+    val filename: String,
+    val mimeType: String? = null,
+    val dataBase64: String? = null
+)
+
+@Serializable
+data class PortableVaultContainer(
+    val groups: List<PortableVaultGroup> = emptyList(),
+    val entries: List<PortableVaultEntry> = emptyList(),
+    val attachments: List<PortableVaultAttachment> = emptyList()
+)
+
 
 @Serializable
 data class ClipboardBackupEntry(

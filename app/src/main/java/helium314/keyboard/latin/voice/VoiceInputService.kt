@@ -19,10 +19,9 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * Isolated multi-process background service running under android:process=":voice".
+ * Speech recognition service running in the Main IME Process.
  * Host for AudioRecordPipeline, speech segmentation, and on-device Whisper AI inference.
- * Decouples audio capture and native JNI inference from the main IME process to guarantee
- * that any native crash or audio buffer issue never crashes the keyboard.
+ * Captures microphone under the active IME window with logs flowing directly into LogCatcher.
  */
 class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
 
@@ -60,8 +59,8 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
     override fun onCreate() {
         super.onCreate()
         val pid = android.os.Process.myPid()
-        LogCatcher.i(TAG, "VoiceInputService created in isolated process :voice (PID: $pid)")
-        LogCatcher.markComponentActive(COMPONENT_NAME, "IPC Service", "Process :voice (PID: $pid)")
+        LogCatcher.i(TAG, "VoiceInputService created in Main IME Process (PID: $pid)")
+        LogCatcher.markComponentActive(COMPONENT_NAME, "IPC Service", "Main IME Process (PID: $pid)")
         audioPipeline = AudioRecordPipeline(this)
         resetIdleTimeout()
     }

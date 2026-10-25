@@ -383,12 +383,16 @@ private fun VaultEntryItemCard(
             if (!entry.customFieldsJson.isNullOrBlank()) {
                 val customMap = remember(entry.customFieldsJson) {
                     try {
-                        val json = Json.parseToJsonElement(entry.customFieldsJson) as? JsonObject
-                        json?.mapValues { (_, v) -> (v as? JsonPrimitive)?.content ?: "" } ?: emptyMap()
+                        val unpacked = VaultCryptoManager.unpackCustomFieldsJson(entry.customFieldsJson)
+                        if (!unpacked.isNullOrBlank()) {
+                            val json = Json.parseToJsonElement(unpacked) as? JsonObject
+                            json?.mapValues { (_, v) -> (v as? JsonPrimitive)?.content ?: "" } ?: emptyMap()
+                        } else emptyMap()
                     } catch (_: Throwable) {
                         emptyMap()
                     }
                 }
+
 
                 if (customMap.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))

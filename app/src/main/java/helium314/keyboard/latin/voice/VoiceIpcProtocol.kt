@@ -3,7 +3,7 @@ package helium314.keyboard.latin.voice
 
 /**
  * IPC message definitions and data keys for communication between
- * the main IME process (:root) and the isolated voice recording service (:voice).
+ * the main IME process and VoiceInputService.
  */
 object VoiceIpcProtocol {
     // Client -> Service Commands

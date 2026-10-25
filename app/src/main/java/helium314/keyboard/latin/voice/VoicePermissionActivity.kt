@@ -6,9 +6,12 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import helium314.keyboard.keyboard.KeyboardSwitcher
 import helium314.keyboard.latin.utils.LogCatcher
 
 object VoicePermissionBridge {
@@ -46,9 +49,23 @@ class VoicePermissionActivity : ComponentActivity() {
         LogCatcher.i("VoicePermissionActivity", "Permission result: RECORD_AUDIO granted=$isGranted, showRationale=$showRationale")
         val callback = VoicePermissionBridge.onPermissionResult
         VoicePermissionBridge.onPermissionResult = null
-        callback?.invoke(isGranted)
-        finish()
-        overridePendingTransition(0, 0)
+        val switcher = KeyboardSwitcher.getInstance()
+        if (isGranted) {
+            switcher.setPendingVoiceLaunch(true)
+            finish()
+            overridePendingTransition(0, 0)
+            Handler(Looper.getMainLooper()).postDelayed({
+                if (!switcher.isShowingVoiceInput()) {
+                    switcher.setPendingVoiceLaunch(false)
+                    callback?.invoke(true)
+                }
+            }, 350L)
+        } else {
+            switcher.setPendingVoiceLaunch(false)
+            finish()
+            overridePendingTransition(0, 0)
+            callback?.invoke(false)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,9 +74,16 @@ class VoicePermissionActivity : ComponentActivity() {
         if (VoicePermissionBridge.hasRecordAudioPermission(this)) {
             val callback = VoicePermissionBridge.onPermissionResult
             VoicePermissionBridge.onPermissionResult = null
-            callback?.invoke(true)
+            val switcher = KeyboardSwitcher.getInstance()
+            switcher.setPendingVoiceLaunch(true)
             finish()
             overridePendingTransition(0, 0)
+            Handler(Looper.getMainLooper()).postDelayed({
+                if (!switcher.isShowingVoiceInput()) {
+                    switcher.setPendingVoiceLaunch(false)
+                    callback?.invoke(true)
+                }
+            }, 350L)
             return
         }
         requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)

@@ -1011,12 +1011,14 @@ public class LatinIME extends InputMethodService implements
         } else if (restarting) {
             // TODO: Come up with a more comprehensive way to reset the keyboard layout when
             // a keyboard layout set doesn't get reloaded in this method.
-            switcher.resetKeyboardStateToAlphabet(getCurrentAutoCapsState(), getCurrentRecapitalizeState());
-            // In apps like Talk, we come here when the text is sent and the field gets emptied and
-            // we need to re-evaluate the shift state, but not the whole layout which would be
-            // disruptive.
-            // Space state must be updated before calling updateShiftState
-            switcher.requestUpdatingShiftState(getCurrentAutoCapsState(), getCurrentRecapitalizeState());
+            if (!switcher.isPendingVoiceLaunch() && !switcher.isShowingVoiceInput()) {
+                switcher.resetKeyboardStateToAlphabet(getCurrentAutoCapsState(), getCurrentRecapitalizeState());
+                // In apps like Talk, we come here when the text is sent and the field gets emptied and
+                // we need to re-evaluate the shift state, but not the whole layout which would be
+                // disruptive.
+                // Space state must be updated before calling updateShiftState
+                switcher.requestUpdatingShiftState(getCurrentAutoCapsState(), getCurrentRecapitalizeState());
+            }
         }
         // Set neutral suggestions and show the toolbar if the "Auto show toolbar" setting is enabled.
         if (!mHandler.hasPendingResumeSuggestions()) {
@@ -1041,9 +1043,7 @@ public class LatinIME extends InputMethodService implements
         if (mKeyboardSwitcher.isPendingVoiceLaunch()) {
             mKeyboardSwitcher.setPendingVoiceLaunch(false);
             if (VoicePermissionBridge.INSTANCE.hasRecordAudioPermission(this)) {
-                mHandler.post(() -> {
-                    mKeyboardSwitcher.setVoiceInputKeyboard();
-                });
+                mKeyboardSwitcher.setVoiceInputKeyboard();
             } else {
                 mKeyboardSwitcher.setAlphabetKeyboard(ShiftMode.UNSHIFT);
             }
@@ -1278,18 +1278,27 @@ public class LatinIME extends InputMethodService implements
             mSuggestionStripView.setMoreSuggestionsHeight(visibleTopY);
         }
 
-        // Need to set expanded touchable region only if a keyboard view is being shown.
-        if (visibleKeyboardView.isShown()) {
+        // Need to set expanded touchable region if a keyboard view is shown or if floating keyboard is folded
+        if (visibleKeyboardView.isShown() || (mSettings.getCurrent().mIsFloatingKeyboard && FloatingKeyboardUtils.isFolded())) {
             int touchLeft = 0;
             int touchTop = mKeyboardSwitcher.isShowingPopupKeysPanel() ? 0 : visibleTopY;
             int touchRight = visibleKeyboardView.getWidth();
             int touchBottom = inputHeight + EXTENDED_TOUCHABLE_REGION_HEIGHT; // Extend touchable region below the keyboard.
             if (mSettings.getCurrent().mIsFloatingKeyboard) {
-                var xy = FloatingKeyboardUtils.readPosition(this, Integer.MAX_VALUE, Integer.MAX_VALUE);
-                touchLeft = xy.component1();
-                touchTop = xy.component2();
-                touchRight = touchLeft + mSettings.getCurrent().mFloatingWidth;
-                touchBottom = touchTop + mSettings.getCurrent().mFloatingHeight + stripHeight + (int)FloatingKeyboardUtils.getFloatingHandleHeight(getResources());
+                if (FloatingKeyboardUtils.isFolded()) {
+                    var xy = FloatingKeyboardUtils.getFoldedPosition(this);
+                    int size = FloatingKeyboardUtils.getFoldedSizePx(this);
+                    touchLeft = xy.component1();
+                    touchTop = xy.component2();
+                    touchRight = touchLeft + size;
+                    touchBottom = touchTop + size;
+                } else {
+                    var xy = FloatingKeyboardUtils.readPosition(this, Integer.MAX_VALUE, Integer.MAX_VALUE);
+                    touchLeft = xy.component1();
+                    touchTop = xy.component2();
+                    touchRight = touchLeft + mSettings.getCurrent().mFloatingWidth;
+                    touchBottom = touchTop + mSettings.getCurrent().mFloatingHeight + stripHeight + (int)FloatingKeyboardUtils.getFloatingHandleHeight(getResources());
+                }
             }
             outInsets.touchableInsets = InputMethodService.Insets.TOUCHABLE_INSETS_REGION;
             outInsets.touchableRegion.set(touchLeft, touchTop, touchRight, touchBottom);

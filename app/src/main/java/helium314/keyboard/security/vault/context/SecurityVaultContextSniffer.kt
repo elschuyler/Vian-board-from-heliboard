@@ -22,6 +22,7 @@ import helium314.keyboard.keyboard.KeyboardSwitcher
 import helium314.keyboard.keyboard.KeyboardTypeface
 import helium314.keyboard.latin.LatinIME
 import helium314.keyboard.latin.R
+import helium314.keyboard.latin.SuggestedWords
 import helium314.keyboard.latin.common.ColorType
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.InputTypeUtils
@@ -136,16 +137,8 @@ object SecurityVaultContextSniffer {
             }
         }
 
-        // 3. Match hint text if provided (e.g., web domains in browser address bars or fields)
-        val hint = editorInfo.hintText?.toString()?.trim()
-        if (!hint.isNullOrBlank() && hint.length >= 4) {
-            val hintMatches = dao.findByPackageOrUrl(hint)
-            for (m in hintMatches) {
-                if (results.none { it.entryUuid == m.entryUuid }) {
-                    results.add(m)
-                }
-            }
-        }
+        // Note: Untrusted hintText wildcard querying is strictly excluded to prevent
+        // untrusted web pages and third-party apps from phishing or probing for account records.
 
         if (results.isNotEmpty()) {
             LogCatcher.log('I', TAG, "Found ${results.size} context match(es) for pkg=$pkg")
@@ -187,7 +180,41 @@ object SecurityVaultContextSniffer {
             setPadding(8.dpToPx(resources), 2.dpToPx(resources), 8.dpToPx(resources), 2.dpToPx(resources))
         }
 
-        if (matches.size == 1) {
+        val isVaultUnlocked = VaultSessionManager.isSecuritySessionValid()
+        if (!isVaultUnlocked) {
+            // Privacy protection: do not display username or account title while vault is locked
+            val maskedPill = buildPillLayout(context, chipBgCol).apply {
+                val icon = ImageView(context).apply {
+                    setImageResource(R.drawable.ic_vpn_key)
+                    setColorFilter(keyIconCol)
+                    layoutParams = LinearLayout.LayoutParams(16.dpToPx(resources), 16.dpToPx(resources)).apply {
+                        marginEnd = 6.dpToPx(resources)
+                    }
+                }
+                val label = TextView(context).apply {
+                    text = "Autofill"
+                    setTextColor(keyTextCol)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+                    KeyboardTypeface.applyToTextView(this)
+                }
+                addView(icon)
+                addView(label)
+                setOnClickListener {
+                    if (matches.size == 1) {
+                        handleCredentialCommit(latinIME, editorInfo, matches[0])
+                    } else {
+                        val switcher = KeyboardSwitcher.getInstance()
+                        switcher.showStealthPatternUnlock(
+                            {
+                                latinIME.mHandler.postUpdateSuggestionStrip(SuggestedWords.INPUT_STYLE_TYPING)
+                            },
+                            { LogCatcher.log('I', TAG, "Autofill unlock challenge dismissed") }
+                        )
+                    }
+                }
+            }
+            root.addView(maskedPill)
+        } else if (matches.size == 1) {
             val entry = matches[0]
             val pill = buildSinglePillView(context, entry, chipBgCol, keyTextCol, keyIconCol) {
                 handleCredentialCommit(latinIME, editorInfo, entry)
@@ -251,6 +278,7 @@ object SecurityVaultContextSniffer {
             container.addView(scrollContainer)
             root.addView(container)
         }
+
 
         // Close button to dismiss suggestions
         val closeBtn = ImageView(context).apply {

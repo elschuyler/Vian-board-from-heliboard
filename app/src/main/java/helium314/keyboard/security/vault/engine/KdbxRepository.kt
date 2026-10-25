@@ -193,7 +193,7 @@ object KdbxRepository {
                         put(k, JsonPrimitive(v))
                     }
                 }
-                jsonObject.toString()
+                VaultCryptoManager.packCustomFieldsJson(jsonObject.toString())
             } else null
 
             entriesList.add(
@@ -220,6 +220,7 @@ object KdbxRepository {
 
     /**
      * Serializes the current local SQLite sandbox back to an external KDBX stream.
+     * Preserves existing database metadata, custom icons, and binaries whenever possible.
      */
     fun exportToUri(
         context: Context,
@@ -245,18 +246,33 @@ object KdbxRepository {
             val rootGroupEntity = groups.firstOrNull { it.parentGroupUuid == null } ?: groups.first()
             val kotpassRootGroup = buildKotpassGroup(rootGroupEntity, groups, allEntries)
 
-            val baseDb = KeePassDatabase.Ver4x.create(
-                rootName = rootGroupEntity.name,
-                meta = Meta(),
-                credentials = credentials
-            )
-            val db = baseDb.copy(content = baseDb.content.copy(group = kotpassRootGroup))
+            // Non-destructive export: attempt to decode existing database first to preserve metadata
+            val existingDb = try {
+                context.contentResolver.openInputStream(uri)?.use { stream ->
+                    KeePassDatabase.decode(stream, credentials)
+                }
+            } catch (_: Throwable) {
+                null
+            }
+
+            val db = when (existingDb) {
+                is KeePassDatabase.Ver4x -> existingDb.copy(content = existingDb.content.copy(group = kotpassRootGroup))
+                is KeePassDatabase.Ver3x -> existingDb.copy(content = existingDb.content.copy(group = kotpassRootGroup))
+                else -> {
+                    val baseDb = KeePassDatabase.Ver4x.create(
+                        rootName = rootGroupEntity.name,
+                        meta = Meta(generator = "VianBoard"),
+                        credentials = credentials
+                    )
+                    baseDb.copy(content = baseDb.content.copy(group = kotpassRootGroup))
+                }
+            }
 
             outputStream = context.contentResolver.openOutputStream(uri, "wt")
                 ?: return false
 
             db.encode(outputStream)
-            LogCatcher.log('I', TAG, "Exported ${allEntries.size} entries back to KDBX successfully")
+            LogCatcher.log('I', TAG, "Exported ${allEntries.size} entries back to KDBX successfully (non-destructive=${existingDb != null})")
             return true
         } catch (t: Throwable) {
             LogCatcher.log('E', TAG, "KDBX export error: ${t.message}", t)
@@ -267,6 +283,7 @@ object KdbxRepository {
             } catch (_: Throwable) {}
         }
     }
+
 
     private fun buildKotpassGroup(
         groupEntity: VaultGroupEntity,
@@ -298,17 +315,21 @@ object KdbxRepository {
             // Restore all custom string fields
             if (!e.customFieldsJson.isNullOrBlank()) {
                 try {
-                    val jsonObj = Json.parseToJsonElement(e.customFieldsJson) as? JsonObject
-                    jsonObj?.forEach { (k, v) ->
-                        val stringVal = (v as? JsonPrimitive)?.content
-                        if (!stringVal.isNullOrEmpty() && !fieldsMap.containsKey(k)) {
-                            fieldsMap[k] = EntryValue.Plain(stringVal)
+                    val unpacked = VaultCryptoManager.unpackCustomFieldsJson(e.customFieldsJson)
+                    if (!unpacked.isNullOrBlank()) {
+                        val jsonObj = Json.parseToJsonElement(unpacked) as? JsonObject
+                        jsonObj?.forEach { (k, v) ->
+                            val stringVal = (v as? JsonPrimitive)?.content
+                            if (!stringVal.isNullOrEmpty() && !fieldsMap.containsKey(k)) {
+                                fieldsMap[k] = EntryValue.Plain(stringVal)
+                            }
                         }
                     }
                 } catch (t: Throwable) {
                     LogCatcher.log('W', TAG, "Failed to restore custom fields for entry ${e.entryUuid}: ${t.message}")
                 }
             }
+
 
             val entryUuid = try {
                 UUID.fromString(e.entryUuid)

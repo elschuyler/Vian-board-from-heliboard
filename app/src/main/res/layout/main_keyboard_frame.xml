@@ -104,19 +104,52 @@
         android:id="@+id/float_handle_container"
         android:orientation="horizontal"
         android:visibility="gone"
+        android:gravity="center_vertical"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
         <ImageView
+            android:id="@+id/close_floating_handle"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/config_floating_handle_height"
+            android:src="@drawable/ic_close_rounded"
+            android:contentDescription="Close floating keyboard"
+            android:scaleType="centerInside"
+            android:padding="6dp" />
+        <ImageView
+            android:id="@+id/minimize_floating_handle"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/config_floating_handle_height"
+            android:src="@drawable/ic_floating_minimize"
+            android:contentDescription="Minimize floating keyboard"
+            android:scaleType="centerInside"
+            android:padding="6dp" />
+        <ImageView
             android:id="@+id/resize_handle"
             android:layout_weight="1"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="@dimen/config_floating_handle_height"
-            android:src="@drawable/ic_arrow_horizontal"/>
-        <ImageView
-            android:id="@+id/drag_handle"
-            android:layout_weight="1"
-            android:layout_width="wrap_content"
-            android:layout_height="@dimen/config_floating_handle_height"
-            android:src="@drawable/ic_drag_indicator"/>
+            android:src="@drawable/ic_arrow_horizontal"
+            android:contentDescription="Resize floating keyboard"
+            android:scaleType="centerInside"
+            android:padding="6dp" />
     </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/floating_folded_button"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:visibility="gone"
+        android:background="@drawable/bg_floating_folded_bubble"
+        android:clickable="true"
+        android:focusable="true">
+        <ImageView
+            android:id="@+id/floating_folded_icon"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="center"
+            android:src="@mipmap/ic_launcher"
+            android:contentDescription="Unfold floating keyboard" />
+    </FrameLayout>
 </LinearLayout>

@@ -75,17 +75,21 @@ class PatternUnlockView @JvmOverloads constructor(
         setMeasuredDimension(width, height)
     }
 
+    private var isSecurityVaultTarget: Boolean = true
+
     @JvmOverloads
     fun startPatternUnlock(
         listener: KeyboardActionListener,
         keyVisualAttributes: KeyVisualAttributes?,
         isStealthMode: Boolean = true,
+        isSecurityVault: Boolean = true,
         onSuccess: () -> Unit
     ) {
         keyboardActionListener = listener
         onUnlockSuccessCallback = onSuccess
         isUnlocked = false
         isStealth = isStealthMode
+        isSecurityVaultTarget = isSecurityVault
         isShowingPattern = true
         gridView.isStealthMode = isStealthMode
 
@@ -150,10 +154,18 @@ class PatternUnlockView @JvmOverloads constructor(
     }
 
     private fun handlePatternEntered(pattern: List<Int>) {
-        val matches = VaultSessionManager.verifyPattern(context, pattern)
+        val matches = if (isSecurityVaultTarget && VaultSessionManager.isSeparatePatternsEnabled(context)) {
+            VaultSessionManager.verifySecurityPattern(context, pattern)
+        } else {
+            VaultSessionManager.verifyPattern(context, pattern)
+        }
         if (matches) {
             isUnlocked = true
-            VaultSessionManager.startSecuritySession()
+            if (isSecurityVaultTarget) {
+                VaultSessionManager.startSecuritySession(context)
+            } else {
+                VaultSessionManager.startPrivacySession(context)
+            }
             if (!isStealth) {
                 statusTextView?.text = context.getString(R.string.pattern_unlocked)
             }
@@ -163,6 +175,7 @@ class PatternUnlockView @JvmOverloads constructor(
                 cb?.invoke()
             }, 80)
         } else {
+
             if (isStealth) {
                 // Stealth mode: silently clear pattern with zero error banners or visual tells
                 gridView.clearPattern()

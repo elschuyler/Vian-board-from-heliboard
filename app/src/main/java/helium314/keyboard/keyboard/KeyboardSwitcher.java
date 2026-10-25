@@ -713,6 +713,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     public void showVaultUnlock(String targetVault, Runnable onUnlockSuccess) {
         final boolean isStealth = DeviceProtectedUtils.getSharedPreferences(mLatinIME)
                 .getBoolean("pref_vault_stealth_gatekeeper", true);
+        final boolean isSecurityVault = targetVault == null || !targetVault.equals(BiometricAuthTrampolineActivity.VAULT_PRIVACY);
         final VaultSessionManager.UnlockMethod primaryMethod = VaultSessionManager.INSTANCE.getPrimaryUnlockMethod(mLatinIME);
         if (primaryMethod == VaultSessionManager.UnlockMethod.BIOMETRIC ||
             primaryMethod == VaultSessionManager.UnlockMethod.DEVICE_PIN) {
@@ -737,13 +738,13 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                                     if (pinSuccess) {
                                         if (onUnlockSuccess != null) onUnlockSuccess.run();
                                     } else {
-                                        showPatternUnlockView(onUnlockSuccess, isStealth);
+                                        showPatternUnlockView(onUnlockSuccess, isStealth, isSecurityVault);
                                     }
                                     return kotlin.Unit.INSTANCE;
                                 }
                             );
                         } else {
-                            showPatternUnlockView(onUnlockSuccess, isStealth);
+                            showPatternUnlockView(onUnlockSuccess, isStealth, isSecurityVault);
                         }
                     }
                     return kotlin.Unit.INSTANCE;
@@ -751,16 +752,20 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             );
             return;
         }
-        showPatternUnlockView(onUnlockSuccess, isStealth);
+        showPatternUnlockView(onUnlockSuccess, isStealth, isSecurityVault);
     }
 
     public void showPatternUnlockView(Runnable onUnlockSuccess) {
         final boolean isStealth = DeviceProtectedUtils.getSharedPreferences(mLatinIME)
                 .getBoolean("pref_vault_stealth_gatekeeper", true);
-        showPatternUnlockView(onUnlockSuccess, isStealth);
+        showPatternUnlockView(onUnlockSuccess, isStealth, true);
     }
 
     public void showPatternUnlockView(Runnable onUnlockSuccess, boolean isStealth) {
+        showPatternUnlockView(onUnlockSuccess, isStealth, true);
+    }
+
+    public void showPatternUnlockView(Runnable onUnlockSuccess, boolean isStealth, boolean isSecurityVault) {
         if (mPatternUnlockView == null) return;
         mMainKeyboardFrame.setVisibility(View.VISIBLE);
         if (isStealth) {
@@ -813,6 +818,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                 mLatinIME.mKeyboardActionListener,
                 mKeyboardView != null ? mKeyboardView.getKeyVisualAttribute() : null,
                 isStealth,
+                isSecurityVault,
                 () -> {
                     if (onUnlockSuccess != null) {
                         onUnlockSuccess.run();
@@ -825,6 +831,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         mPatternUnlockView.setVisibility(View.VISIBLE);
         enforceLiteModeSingleModal(mPatternUnlockView);
     }
+
 
     public void setSecurityVaultExplorerKeyboard() {
         if (DEBUG_ACTION) {
@@ -1196,7 +1203,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         final boolean wasClipboard = isShowingClipboardHistory();
         final boolean wasPrompt = isShowingPromptHistory();
         final boolean wasDesktopShortcuts = isShowingDesktopShortcuts();
-        final boolean wasVoice = isShowingVoiceInput();
+        final boolean wasVoice = isShowingVoiceInput() || mPendingVoiceLaunch;
         loadKeyboard(mLatinIME.getCurrentInputEditorInfo(), Settings.getValues(),
                 mLatinIME.getCurrentAutoCapsState(), mLatinIME.getCurrentRecapitalizeState(), null);
         if (isOwnDialogInput) {

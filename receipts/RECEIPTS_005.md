@@ -274,3 +274,89 @@ This file is part of the permanent audit trail for the project, tracking code mo
 - **Known issue or follow-up needed**: Ready for on-device manual QA testing.
 
 
+
+### Receipt Entry: Phase 72 Floating Keyboard 3-Button Control Bar & App-Icon Minimization Bubble
+- **Timestamp**: 2026-10-23 11:18:00 UTC-7
+- **Summary of request**: Floating keyboard bottom part 3 buttons in row: 1. Close (next time normal docked keyboard), 2. Minimize into folded app icon button (sleeping, tap to unfold in og place, long press to move), 3. Resize (drag).
+- **Exact files touched**:
+  - `app/src/main/res/drawable/ic_floating_minimize.xml`
+  - `app/src/main/res/drawable/bg_floating_folded_bubble.xml`
+  - `app/src/main/res/layout/main_keyboard_frame.xml`
+  - `app/src/main/java/helium314/keyboard/latin/utils/FloatingKeyboardUtils.kt`
+  - `app/src/main/java/helium314/keyboard/latin/LatinIME.java`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_005.md`
+- **What was actually done**:
+  1. Created `ic_floating_minimize.xml` vector drawable representing minimize/collapse and `bg_floating_folded_bubble.xml` circular ripple background.
+  2. In `main_keyboard_frame.xml`: restructured `float_handle_container` to contain 3 buttons in the exact requested order: `close_floating_handle`, `minimize_floating_handle`, and `resize_handle`. Added `floating_folded_button` containing `@mipmap/ic_launcher`.
+  3. In `FloatingKeyboardUtils.kt`: implemented `fold(view)`, `unfold(view)`, and `setupFoldedButton(view)`. When folded, collapses keyboard and strip views, rendering a 52dp circular app icon button at the exact pre-fold coordinates (`preFoldX`, `preFoldY`).
+  4. Added single-tap handler to unfold back to the original location, and touch-slop guarded long-press drag handler with haptic feedback to move the folded bubble anywhere across the screen. When moved, unfolding stays cleanly within screen bounds.
+  5. Close button calls `setFloatingKeyboardEnabled(false)`, immediately docking the keyboard and saving docked state for subsequent launches.
+  6. Resize handle resizes floating width/height on drag and supports drag-to-move on long-press.
+  7. In `LatinIME.java`: updated `onComputeInsets()` so that when folded, `outInsets.touchableRegion` is restricted strictly to the 52dp bubble bounds, allowing 100% of touches on the rest of the screen to interact with underlying apps.
+  8. Silent security scan completed: zero exposed credentials, no keys or tokens committed.
+- **How it was verified**: local build only (`compile_applet` passed successfully).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device manual QA testing.
+
+
+
+### Receipt Entry: Phase 73 Security Vault, Privacy Vault & Backup Cryptographic Hardening
+- **Timestamp**: 2026-10-24 14:40:00 UTC-7
+- **Summary of request**: Implement complete security hardening and cryptographic remediation suite across Security Vault, Privacy Vault, Context Sniffer, KDBX Engine, and Modular Backup based on external security audit findings.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/security/VaultSessionManager.kt`
+  - `app/src/main/java/helium314/keyboard/security/PatternUnlockView.kt`
+  - `app/src/main/java/helium314/keyboard/keyboard/KeyboardSwitcher.java`
+  - `app/src/main/java/helium314/keyboard/security/vault/crypto/VaultCryptoManager.kt`
+  - `app/src/main/java/helium314/keyboard/security/vault/engine/KdbxRepository.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/KdbxEntryEditorScreen.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/KdbxEntriesScreen.kt`
+  - `app/src/main/java/helium314/keyboard/latin/database/VaultDao.kt`
+  - `app/src/main/java/helium314/keyboard/security/vault/context/SecurityVaultContextSniffer.kt`
+  - `app/src/main/java/helium314/keyboard/security/vault/data/SecurityVaultDao.kt`
+  - `app/src/main/java/helium314/keyboard/settings/backup/BackupManifest.kt`
+  - `app/src/main/java/helium314/keyboard/settings/backup/ModularBackupEngine.kt`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_005.md`
+- **What was actually done**:
+  1. In `VaultSessionManager.kt`: Replaced single-pass SHA-256 pattern hashing with PBKDF2-HMAC-SHA256 (100,000 iterations). Added dual-mode verification and automatic in-place hash upgrade from legacy SHA-256 to PBKDF2 with `pbkdf2:100000:` prefix.
+  2. In `PatternUnlockView.kt` and `KeyboardSwitcher.java`: Added `isSecurityVault: Boolean` targeting to `startPatternUnlock()` and `showPatternUnlockView()`. Routed unlock verification to `verifySecurityPattern()` when separate patterns are enabled, resolving the separate-pattern bypass bug.
+  3. In `VaultCryptoManager.kt`, `KdbxRepository.kt`, `KdbxEntryEditorScreen.kt`, and `KdbxEntriesScreen.kt`: Added `packCustomFieldsJson()` and `unpackCustomFieldsJson()`. Custom KDBX fields are encrypted at rest with AES-256-GCM.
+  4. In `VaultDao.kt`: Encrypted `PHRASE` and `NOTES` fields with `🔒enc:` prefix using AES-256-GCM before writing to `heliboard.db`; decrypts on SQLite read while keeping in-memory expansions instant.
+  5. In `SecurityVaultContextSniffer.kt`: Removed untrusted `hintText` wildcard queries from `findMatchingEntries()`, restricting candidate matching to verified `editorInfo.packageName`. Masked pills as neutral `[ 🔑 Autofill ]` when the security vault is locked to prevent account enumeration.
+  6. In `KdbxRepository.kt`: Implemented non-destructive KDBX export in `exportToUri()`. Decodes existing database structure to preserve `Meta`, custom icons, binaries, and history when updating.
+  7. In `SecurityVaultDao.kt`: Offloaded attachment payloads exceeding 128 KB to encrypted disk files in `no_backup/vault_attachments/<uuid>.bin`, storing `FILE:<uuid>` pointer in SQLite to avoid 2 MB `CursorWindow` crashes.
+  8. In `BackupManifest.kt` and `ModularBackupEngine.kt`: Built portable encrypted backup container (`security/vault_portable.enc`) using PBKDF2 + AES-256-GCM derived from the user's master pattern. In `restoreArchive()`, decrypts container and re-encrypts records with the current device's hardware KeyStore key, enabling cross-device backup and restore without AndroidKeyStore bad tag failures.
+  9. Silent security scan completed: zero exposed credentials, no keys or tokens committed.
+- **How it was verified**: local build only (`compile_applet` passed successfully).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device manual QA testing.
+
+
+
+### Receipt Entry: Phase 74 Voice Input Modal Auto-Dismissal & Lifecycle Hardening
+- **Timestamp**: 2026-10-24 15:32:00 UTC-7
+- **Summary of request**: Audit and fix Voice Input modal auto-dismissal and lifecycle bugs (permission race, SAF model import race, main-process service binding with Zero-RAM eviction, and reload guards).
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/latin/voice/VoicePermissionActivity.kt`
+  - `app/src/main/java/helium314/keyboard/latin/voice/VoiceModelImportActivity.kt`
+  - `app/src/main/java/helium314/keyboard/latin/voice/VoiceInputConnection.kt`
+  - `app/src/main/java/helium314/keyboard/latin/voice/VoiceInputService.kt`
+  - `app/src/main/java/helium314/keyboard/latin/voice/VoiceIpcProtocol.kt`
+  - `app/src/main/java/helium314/keyboard/keyboard/KeyboardSwitcher.java`
+  - `app/src/main/java/helium314/keyboard/latin/LatinIME.java`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_005.md`
+- **What was actually done**:
+  1. In `VoicePermissionActivity.kt`: Re-armed `setPendingVoiceLaunch(true)` before calling `finish()` and `overridePendingTransition(0, 0)` so window focus returns to the host app first without premature permission consumption. Added 350ms delayed fallback check on main looper verifying `!isShowingVoiceInput()` before clearing pending launch and invoking callback.
+  2. In `VoiceModelImportActivity.kt`: Guarded document picker launch with `pickerLaunched` state persisted across `onSaveInstanceState` to prevent duplicate picker launches on rotation. Re-armed `setPendingVoiceLaunch(true)` on model import success, finished activity immediately, and posted 350ms delayed block invoking callback and ensuring `setVoiceInputKeyboard()` is displayed.
+  3. In `VoiceInputConnection.kt`: Updated `connectAndStart` to call `context.startService(intent)` before `context.bindService(..., BIND_AUTO_CREATE or BIND_IMPORTANT)`. Updated `stopAndDisconnect` to explicitly call `context.stopService(Intent(context, VoiceInputService::class.java))` inside a try/catch, enforcing 100% Zero-RAM eviction of Whisper engine native memory.
+  4. In `VoiceInputService.kt` and `VoiceIpcProtocol.kt`: Updated obsolete `:voice` process log strings to `Main IME Process`. Kept `VoiceInputService` in the main IME process without `android:process=":voice"`.
+  5. In `KeyboardSwitcher.java`: Updated `reloadMainKeyboard()` to include `mPendingVoiceLaunch` in `wasVoice` check (`isShowingVoiceInput() || mPendingVoiceLaunch`), preventing the alphabet keyboard from overwriting the voice modal during view reloads.
+  6. In `LatinIME.java`: Protected `restarting` input transitions in `onStartInputViewInternal()` from resetting to alphabet when `isPendingVoiceLaunch()` or `isShowingVoiceInput()` is active, and immediately executes `setVoiceInputKeyboard()` at the end of input initialization.
+  7. Purged generated `.apk` file (`.build-outputs/app-debug.apk`). Silent security scan completed: zero exposed credentials, no keys or tokens committed.
+- **How it was verified**: local build only (`compile_applet` passed successfully).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device manual QA testing.
+

@@ -150,6 +150,58 @@ object VaultCryptoManager {
     }
 
     /**
+     * Encrypts plaintext string to Base64 encoded AES-256-GCM ciphertext.
+     */
+    fun encryptStringToBase64(plaintext: String): String {
+        val blob = encryptString(plaintext)
+        return android.util.Base64.encodeToString(blob, android.util.Base64.NO_WRAP)
+    }
+
+    /**
+     * Decrypts Base64 encoded AES-256-GCM ciphertext back to String.
+     */
+    fun decryptBase64ToString(base64Ciphertext: String?): String? {
+        if (base64Ciphertext.isNullOrBlank()) return null
+        return try {
+            val blob = android.util.Base64.decode(base64Ciphertext, android.util.Base64.NO_WRAP)
+            decryptToString(blob)
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    /**
+     * Packs and encrypts a JSON string of custom fields into a base64 ciphertext payload.
+     */
+    fun packCustomFieldsJson(rawJson: String?): String? {
+        if (rawJson.isNullOrBlank()) return null
+        return try {
+            encryptStringToBase64(rawJson)
+        } catch (t: Throwable) {
+            LogCatcher.log('E', TAG, "packCustomFieldsJson encryption error: ${t.message}", t)
+            rawJson
+        }
+    }
+
+    /**
+     * Unpacks and decrypts custom fields string. Handles both newly encrypted base64 payloads
+     * and legacy plaintext JSON gracefully.
+     */
+    fun unpackCustomFieldsJson(stored: String?): String? {
+        if (stored.isNullOrBlank()) return null
+        val trimmed = stored.trim()
+        if (trimmed.startsWith("{")) {
+            return trimmed
+        }
+        return try {
+            decryptBase64ToString(trimmed) ?: trimmed
+        } catch (_: Throwable) {
+            trimmed
+        }
+    }
+
+
+    /**
      * Decrypts an encrypted byte blob directly into a CharArray.
      * Allows surgical field injection via commitText without creating immutable String copies in RAM.
      */

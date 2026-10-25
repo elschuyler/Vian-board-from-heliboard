@@ -862,6 +862,64 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
   - **Component 3: Build & Security Verification**:
     - Clean compilation confirmed via `compile_applet`. Conducted silent security scan per Mandates 2 & 3 (workspace clean, zero exposed credentials).
 
+- **2026-10-23**: Completed Phase 72 (Floating Keyboard 3-Button Control Bar & App-Icon Minimization Bubble):
+  - **Component 1: 3-Button Control Bar Layout (`main_keyboard_frame.xml`, `ic_floating_minimize.xml`)**:
+    - Replaced legacy 2-button layout in `float_handle_container` with a 3-button control row in the requested order:
+      1. `close_floating_handle`: Closes floating mode and immediately reverts to standard bottom-docked keyboard now and on subsequent sessions.
+      2. `minimize_floating_handle`: Minimizes the floating keyboard into a sleeping/folded circular bubble displaying the app launcher icon.
+      3. `resize_handle`: Resizes width/height on drag, with long-press drag support for repositioning the floating keyboard.
+    - Added clean Material vector `ic_floating_minimize.xml` and bubble background `bg_floating_folded_bubble.xml`.
+  - **Component 2: Floating Minimize / Fold to App Icon Bubble (`FloatingKeyboardUtils.kt`, `LatinIME.java`)**:
+    - In `FloatingKeyboardUtils.kt`: implemented `fold(view)`, `unfold(view)`, `setupFoldedButton(view)`, and `isFolded()`.
+    - When minimized, collapses the full keyboard and suggestion strip, rendering a compact 52dp circular button featuring `@mipmap/ic_launcher`.
+    - Preserves exact pre-fold position (`preFoldX`, `preFoldY`) and unfolding behavior: single tap restores the keyboard to its original pre-fold location.
+    - Long-press touch gesture allows freely moving the folded bubble anywhere across the screen, updating unfolded coordinates smoothly within screen bounds.
+    - In `LatinIME.java`: updated `onComputeInsets()` to dynamically restrict `outInsets.touchableRegion` to only the 52dp bubble when folded, passing all touches on the rest of the screen directly through to underlying apps.
+  - **Component 3: Build & Security Verification**:
+    - Clean compilation confirmed via `compile_applet`. Conducted silent security scan per Mandates 2 & 3 (workspace clean, zero exposed credentials).
+
+- **2026-10-24**: Completed Phase 73 (Security Hardening & Cryptographic Remediation Suite):
+  - **Component 1: Pattern Key Stretching & Backward Compatibility (`VaultSessionManager.kt`)**:
+    - Upgraded pattern derivation from single-pass SHA-256 to PBKDF2-HMAC-SHA256 with 100,000 iterations and 16-byte cryptographically secure salt.
+    - Implemented seamless dual-mode verification: hashes starting with `pbkdf2:` verify via PBKDF2-HMAC-SHA256, while legacy SHA-256 hashes are verified and automatically upgraded and re-saved using PBKDF2 upon successful unlock.
+  - **Component 2: Independent Pattern Unlock Routing (`PatternUnlockView.kt`, `KeyboardSwitcher.java`)**:
+    - Added `isSecurityVault: Boolean` targeting to `startPatternUnlock()` and `showPatternUnlockView()`.
+    - In `PatternUnlockView.kt`: `handlePatternEntered` now calls `VaultSessionManager.verifySecurityPattern()` when unlocking the Security Vault with separate patterns enabled, completely resolving the security vault bypass bug.
+  - **Component 3: Custom KDBX Fields Encryption At Rest (`KdbxRepository.kt`, `KdbxEntryEditorScreen.kt`)**:
+    - Encrypted `customFieldsJson` with AES-256-GCM via `VaultCryptoManager.encryptString()` before committing to `security_vault.db`.
+    - Added transparent decryption helper supporting both newly encrypted payloads and legacy plaintext JSON.
+  - **Component 4: Privacy Vault Phrase & Note Encryption At Rest (`VaultDao.kt`)**:
+    - Encrypted `PHRASE` and `NOTES` columns in `heliboard.db` using AES-256-GCM (`VaultCryptoManager.encryptString()`) with a `🔒enc:` prefix.
+    - Transparently decrypts on DB load, safeguarding phrases in device backups and raw SQLite dumps while keeping in-memory expansions instant.
+  - **Component 5: Input Context Sniffing Hardening & Locked-State Privacy (`SecurityVaultContextSniffer.kt`)**:
+    - Excised untrusted `hintText` wildcard queries from `findMatchingEntries()`, restricting matching strictly to verified `editorInfo.packageName` and clean extracted package keywords.
+    - In `createSuggestionPillView()`: if the security vault is locked, masks credentials with a neutral `[ 🔑 Autofill ]` pill, requiring authentication before exposing usernames or account titles.
+  - **Component 6: Non-Destructive KDBX Export (`KdbxRepository.kt`)**:
+    - In `exportToUri()`: decodes and merges existing KDBX structure when present, updating modified credentials while strictly preserving original metadata, custom icons, attachments, deleted objects, and history.
+  - **Component 7: Large BLOB Disk Offloading for Attachments (`SecurityVaultDao.kt`)**:
+    - Offloads attachment payloads exceeding 128 KB to encrypted sandbox files (`no_backup/vault_attachments/<uuid>.bin`), completely avoiding SQLite 2 MB `CursorWindow` crashes.
+  - **Component 8: Portable Encrypted Backup Pipeline (`ModularBackupEngine.kt`)**:
+    - Replaced raw KeyStore-tied `security_vault.db` backup trap with a portable encrypted container (`security/vault_portable.enc`) protected via PBKDF2 + AES-256-GCM derived from the master pattern. Restores reliably across different devices and OS reinstalls without KeyStore bad tag failures.
+  - **Component 9: Build & Security Verification**:
+- **2026-10-24**: Completed Phase 74 (Voice Input Modal Auto-Dismissal & Lifecycle Hardening):
+  - **Component 1: Permission Grant Focus Race Remediation (`VoicePermissionActivity.kt`)**:
+    - Re-armed `setPendingVoiceLaunch(true)` before calling `finish()` and `overridePendingTransition(0, 0)` so window focus returns to the host app first without premature permission consumption.
+    - Added a 350ms delayed fallback check on the main looper verifying `!isShowingVoiceInput()`, safely clearing pending launch state and invoking callback.
+  - **Component 2: SAF Model Import Focus Race Remediation (`VoiceModelImportActivity.kt`)**:
+    - Guarded SAF document picker launch with `pickerLaunched` state persisted across `onSaveInstanceState` to prevent duplicate picker launches on configuration change.
+    - Re-armed `setPendingVoiceLaunch(true)` upon successful `.bin` model import, finished activity immediately, and posted a 350ms delayed block invoking callback and ensuring `setVoiceInputKeyboard()` is displayed.
+  - **Component 3: Main-Process Service Binding & Strict Zero-RAM Eviction (`VoiceInputConnection.kt`, `VoiceInputService.kt`, `VoiceIpcProtocol.kt`)**:
+    - In `VoiceInputConnection.kt`: updated `connectAndStart` to call `context.startService(intent)` before `context.bindService(..., BIND_AUTO_CREATE or BIND_IMPORTANT)`.
+    - In `stopAndDisconnect`: after sending `CMD_UNREGISTER_CLIENT`, `CMD_STOP_RECORDING`, and `CMD_FORCE_RELEASE`, explicitly calls `context.stopService(...)` inside a try/catch, guaranteeing 100% Zero-RAM eviction of Whisper engine native memory.
+    - Updated obsolete `:voice` process log strings to `Main IME Process` across `VoiceInputConnection.kt`, `VoiceInputService.kt`, and `VoiceIpcProtocol.kt`.
+  - **Component 4: Reload Guard & Focus Transition Protection (`KeyboardSwitcher.java`, `LatinIME.java`)**:
+    - In `KeyboardSwitcher.java`: updated `reloadMainKeyboard()` to include `mPendingVoiceLaunch` in `wasVoice` check (`isShowingVoiceInput() || mPendingVoiceLaunch`), preventing the alphabet keyboard from overwriting the voice modal during view reloads.
+    - In `LatinIME.java`: protected `restarting` input transitions in `onStartInputViewInternal()` from resetting to alphabet when `isPendingVoiceLaunch()` or `isShowingVoiceInput()` is active, and immediately executes `setVoiceInputKeyboard()` at the end of input initialization.
+  - **Component 5: Build & Security Verification**:
+    - Verified clean build via `compile_applet`. Conducted silent security scan per Mandates 2 & 3.
+
+
+
 
 
 

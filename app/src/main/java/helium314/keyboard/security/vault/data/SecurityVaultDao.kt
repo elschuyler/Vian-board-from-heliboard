@@ -6,13 +6,18 @@ import android.content.Context
 import android.database.Cursor
 import androidx.core.database.sqlite.transaction
 import helium314.keyboard.latin.utils.LogCatcher
+import java.io.File
 
 /**
  * Thread-safe Data Access Object for the Security Vault sandbox database.
  * Provides optimized, indexed queries for in-keyboard auto-matching,
  * folder tree rendering, and full CRUD operations in Settings.
  */
-class SecurityVaultDao private constructor(private val dbHelper: SecurityVaultDatabase) {
+class SecurityVaultDao private constructor(
+    private val context: Context,
+    private val dbHelper: SecurityVaultDatabase
+) {
+
 
     interface Listener {
         fun onSecurityVaultDataChanged()
@@ -352,14 +357,37 @@ class SecurityVaultDao private constructor(private val dbHelper: SecurityVaultDa
 
     // --- Attachments CRUD ---
 
+    private fun getAttachmentsDir(): File {
+        val dir = File(context.noBackupFilesDir, "vault_attachments")
+        if (!dir.exists()) dir.mkdirs()
+        return dir
+    }
+
+    private fun prepareAttachmentBlob(attachmentUuid: String, blob: ByteArray?): ByteArray? {
+        if (blob == null) return null
+        return if (blob.size > 128 * 1024) {
+            try {
+                val file = File(getAttachmentsDir(), "$attachmentUuid.bin")
+                file.writeBytes(blob)
+                "FILE:$attachmentUuid".toByteArray(Charsets.UTF_8)
+            } catch (t: Throwable) {
+                LogCatcher.log('E', TAG, "Failed to offload large attachment to disk: ${t.message}", t)
+                blob
+            }
+        } else {
+            blob
+        }
+    }
+
     fun insertOrUpdateAttachment(attachment: VaultAttachmentEntity): Boolean = synchronized(this) {
         try {
+            val storedBlob = prepareAttachmentBlob(attachment.attachmentUuid, attachment.dataBlobEncrypted)
             val cv = ContentValues().apply {
                 put(SecurityVaultDatabase.COLUMN_ATTACHMENT_UUID, attachment.attachmentUuid)
                 put(SecurityVaultDatabase.COLUMN_ATTACHMENT_ENTRY_UUID, attachment.entryUuid)
                 put(SecurityVaultDatabase.COLUMN_ATTACHMENT_FILENAME, attachment.filename)
                 put(SecurityVaultDatabase.COLUMN_ATTACHMENT_MIME_TYPE, attachment.mimeType)
-                put(SecurityVaultDatabase.COLUMN_ATTACHMENT_DATA_BLOB, attachment.dataBlobEncrypted)
+                put(SecurityVaultDatabase.COLUMN_ATTACHMENT_DATA_BLOB, storedBlob)
             }
             val rowId = dbHelper.writableDatabase.insertWithOnConflict(
                 SecurityVaultDatabase.TABLE_ATTACHMENTS,
@@ -376,6 +404,11 @@ class SecurityVaultDao private constructor(private val dbHelper: SecurityVaultDa
 
     fun deleteAttachment(attachmentUuid: String): Boolean = synchronized(this) {
         try {
+            try {
+                val file = File(getAttachmentsDir(), "$attachmentUuid.bin")
+                if (file.exists()) file.delete()
+            } catch (_: Throwable) {}
+
             val rows = dbHelper.writableDatabase.delete(
                 SecurityVaultDatabase.TABLE_ATTACHMENTS,
                 "${SecurityVaultDatabase.COLUMN_ATTACHMENT_UUID} = ?",
@@ -387,6 +420,7 @@ class SecurityVaultDao private constructor(private val dbHelper: SecurityVaultDa
             return false
         }
     }
+
 
     fun getAttachmentsForEntry(entryUuid: String): List<VaultAttachmentEntity> = synchronized(this) {
         val result = mutableListOf<VaultAttachmentEntity>()
@@ -471,12 +505,13 @@ class SecurityVaultDao private constructor(private val dbHelper: SecurityVaultDa
                 }
 
                 for (a in attachments) {
+                    val storedBlob = prepareAttachmentBlob(a.attachmentUuid, a.dataBlobEncrypted)
                     val cv = ContentValues().apply {
                         put(SecurityVaultDatabase.COLUMN_ATTACHMENT_UUID, a.attachmentUuid)
                         put(SecurityVaultDatabase.COLUMN_ATTACHMENT_ENTRY_UUID, a.entryUuid)
                         put(SecurityVaultDatabase.COLUMN_ATTACHMENT_FILENAME, a.filename)
                         put(SecurityVaultDatabase.COLUMN_ATTACHMENT_MIME_TYPE, a.mimeType)
-                        put(SecurityVaultDatabase.COLUMN_ATTACHMENT_DATA_BLOB, a.dataBlobEncrypted)
+                        put(SecurityVaultDatabase.COLUMN_ATTACHMENT_DATA_BLOB, storedBlob)
                     }
                     insert(SecurityVaultDatabase.TABLE_ATTACHMENTS, null, cv)
                 }
@@ -492,6 +527,10 @@ class SecurityVaultDao private constructor(private val dbHelper: SecurityVaultDa
 
     fun clearAll(): Boolean = synchronized(this) {
         try {
+            try {
+                getAttachmentsDir().deleteRecursively()
+            } catch (_: Throwable) {}
+
             dbHelper.writableDatabase.transaction {
                 execSQL("DELETE FROM ${SecurityVaultDatabase.TABLE_ATTACHMENTS}")
                 execSQL("DELETE FROM ${SecurityVaultDatabase.TABLE_ENTRIES}")
@@ -543,12 +582,28 @@ class SecurityVaultDao private constructor(private val dbHelper: SecurityVaultDa
 
     private fun parseAttachment(cursor: Cursor): VaultAttachmentEntity {
         val blobCol = cursor.getColumnIndexOrThrow(SecurityVaultDatabase.COLUMN_ATTACHMENT_DATA_BLOB)
+        val rawBlob = if (cursor.isNull(blobCol)) null else cursor.getBlob(blobCol)
+        val resolvedBlob = if (rawBlob != null && rawBlob.size < 80 && String(rawBlob, Charsets.UTF_8).startsWith("FILE:")) {
+            val fileUuid = String(rawBlob, Charsets.UTF_8).removePrefix("FILE:")
+            val file = File(getAttachmentsDir(), "$fileUuid.bin")
+            if (file.exists()) {
+                try {
+                    file.readBytes()
+                } catch (t: Throwable) {
+                    LogCatcher.log('E', TAG, "Failed to read attachment file $fileUuid: ${t.message}", t)
+                    null
+                }
+            } else null
+        } else {
+            rawBlob
+        }
+
         return VaultAttachmentEntity(
             attachmentUuid = cursor.getString(cursor.getColumnIndexOrThrow(SecurityVaultDatabase.COLUMN_ATTACHMENT_UUID)),
             entryUuid = cursor.getString(cursor.getColumnIndexOrThrow(SecurityVaultDatabase.COLUMN_ATTACHMENT_ENTRY_UUID)),
             filename = cursor.getString(cursor.getColumnIndexOrThrow(SecurityVaultDatabase.COLUMN_ATTACHMENT_FILENAME)),
             mimeType = cursor.getString(cursor.getColumnIndexOrThrow(SecurityVaultDatabase.COLUMN_ATTACHMENT_MIME_TYPE)),
-            dataBlobEncrypted = if (cursor.isNull(blobCol)) null else cursor.getBlob(blobCol)
+            dataBlobEncrypted = resolvedBlob
         )
     }
 
@@ -562,12 +617,13 @@ class SecurityVaultDao private constructor(private val dbHelper: SecurityVaultDa
             return instance ?: synchronized(this) {
                 instance ?: run {
                     val db = SecurityVaultDatabase.getInstance(context)
-                    SecurityVaultDao(db).also {
+                    SecurityVaultDao(context.applicationContext, db).also {
                         instance = it
                     }
                 }
             }
         }
+
 
         fun resetInstance() {
             synchronized(this) {

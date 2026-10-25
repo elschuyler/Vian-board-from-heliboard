@@ -120,14 +120,16 @@ fun KdbxEntryEditorScreen(
     // Custom Fields Map (parsed from customFieldsJson)
     var customFieldsList by remember {
         val initialMap = try {
-            if (!entry?.customFieldsJson.isNullOrBlank()) {
-                val json = Json.parseToJsonElement(entry?.customFieldsJson!!) as? JsonObject
+            val unpacked = VaultCryptoManager.unpackCustomFieldsJson(entry?.customFieldsJson)
+            if (!unpacked.isNullOrBlank()) {
+                val json = Json.parseToJsonElement(unpacked) as? JsonObject
                 json?.map { (k, v) -> Pair(k, (v as? JsonPrimitive)?.content ?: "") }?.toMutableList()
             } else null
         } catch (_: Throwable) {
             null
         }
         mutableStateOf(initialMap ?: mutableListOf<Pair<String, String>>())
+
     }
 
     var newCustomKey by remember { mutableStateOf("") }
@@ -269,8 +271,9 @@ fun KdbxEntryEditorScreen(
                                                     put(k, JsonPrimitive(v))
                                                 }
                                             }
-                                            jsonObject.toString()
+                                            VaultCryptoManager.packCustomFieldsJson(jsonObject.toString())
                                         } else null
+
 
                                         val updated = VaultEntryEntity(
                                             entryUuid = entry?.entryUuid ?: UUID.randomUUID().toString(),

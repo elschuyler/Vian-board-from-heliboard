@@ -5,6 +5,8 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import helium314.keyboard.latin.utils.LogCatcher
+import helium314.keyboard.security.vault.crypto.VaultCryptoManager
+
 
 data class VaultEntry(
     val id: Long,
@@ -45,17 +47,27 @@ class VaultDao private constructor(private val db: Database) {
                 "$COLUMN_TIMESTAMP DESC"
             ).use { cursor ->
                 while (cursor.moveToNext()) {
+                    val rawPhrase = cursor.getString(2) ?: ""
+                    val rawNotes = cursor.getString(3) ?: ""
+                    val decryptedPhrase = if (rawPhrase.startsWith(ENCRYPTED_PREFIX)) {
+                        VaultCryptoManager.decryptBase64ToString(rawPhrase.removePrefix(ENCRYPTED_PREFIX)) ?: rawPhrase
+                    } else rawPhrase
+                    val decryptedNotes = if (rawNotes.startsWith(ENCRYPTED_PREFIX)) {
+                        VaultCryptoManager.decryptBase64ToString(rawNotes.removePrefix(ENCRYPTED_PREFIX)) ?: rawNotes
+                    } else rawNotes
+
                     target.add(
                         VaultEntry(
                             id = cursor.getLong(0),
                             shortcut = cursor.getString(1) ?: "",
-                            phrase = cursor.getString(2) ?: "",
-                            notes = cursor.getString(3) ?: "",
+                            phrase = decryptedPhrase,
+                            notes = decryptedNotes,
                             timestamp = cursor.getLong(4)
                         )
                     )
                 }
             }
+
         } catch (t: Throwable) {
             LogCatcher.e("VaultDao", "Error loading vault entries from database", t)
         }
@@ -141,12 +153,28 @@ class VaultDao private constructor(private val db: Database) {
 
         val existingIndex = cache.indexOfFirst { it.shortcut.equals(trimmedShortcut, ignoreCase = true) }
         val now = System.currentTimeMillis()
+
+        val encryptedPhrase = try {
+            ENCRYPTED_PREFIX + VaultCryptoManager.encryptStringToBase64(trimmedPhrase)
+        } catch (t: Throwable) {
+            LogCatcher.e("VaultDao", "Failed to encrypt phrase, saving plaintext fallback: ${t.message}", t)
+            trimmedPhrase
+        }
+        val encryptedNotes = if (trimmedNotes.isNotEmpty()) {
+            try {
+                ENCRYPTED_PREFIX + VaultCryptoManager.encryptStringToBase64(trimmedNotes)
+            } catch (_: Throwable) {
+                trimmedNotes
+            }
+        } else ""
+
         val cv = ContentValues().apply {
             put(COLUMN_SHORTCUT, trimmedShortcut)
-            put(COLUMN_PHRASE, trimmedPhrase)
-            put(COLUMN_NOTES, trimmedNotes)
+            put(COLUMN_PHRASE, encryptedPhrase)
+            put(COLUMN_NOTES, encryptedNotes)
             put(COLUMN_TIMESTAMP, now)
         }
+
 
         val id: Long
         if (existingIndex >= 0) {
@@ -198,6 +226,8 @@ class VaultDao private constructor(private val db: Database) {
         const val COLUMN_PHRASE = "PHRASE"
         const val COLUMN_NOTES = "NOTES"
         const val COLUMN_TIMESTAMP = "TIMESTAMP"
+        const val ENCRYPTED_PREFIX = "🔒enc:"
+
 
         const val CREATE_TABLE = """
             CREATE TABLE IF NOT EXISTS $TABLE (

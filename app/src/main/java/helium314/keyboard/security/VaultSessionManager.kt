@@ -7,6 +7,8 @@ import helium314.keyboard.latin.utils.LogCatcher
 import helium314.keyboard.latin.utils.prefs
 import java.security.MessageDigest
 import java.security.SecureRandom
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.PBEKeySpec
 
 /**
  * VaultSessionManager handles secure pattern storage (salted SHA-256 hash)
@@ -205,13 +207,13 @@ object VaultSessionManager {
         }
         try {
             val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
-            val hash = computeHash(pattern, salt)
+            val hash = computePbkdf2Hash(pattern, salt)
 
             context.prefs().edit {
                 putString(PREF_SECURITY_PATTERN_SALT, salt.toHexString())
-                putString(PREF_SECURITY_PATTERN_HASH, hash.toHexString())
+                putString(PREF_SECURITY_PATTERN_HASH, HASH_PREFIX_PBKDF2 + hash.toHexString())
             }
-            LogCatcher.log('I', TAG, "saveSecurityPattern: Dedicated security vault pattern configured")
+            LogCatcher.log('I', TAG, "saveSecurityPattern: Dedicated security vault pattern configured (PBKDF2-HMAC-SHA256)")
             return true
         } catch (t: Throwable) {
             LogCatcher.log('E', TAG, "saveSecurityPattern error: ${t.message}", t)
@@ -233,8 +235,21 @@ object VaultSessionManager {
 
         try {
             val salt = saltHex.hexToByteArray()
-            val inputHash = computeHash(pattern, salt).toHexString()
-            val matches = MessageDigest.isEqual(inputHash.toByteArray(), storedHashHex.toByteArray())
+            val matches = if (storedHashHex.startsWith(HASH_PREFIX_PBKDF2)) {
+                val rawStored = storedHashHex.removePrefix(HASH_PREFIX_PBKDF2)
+                val inputHash = computePbkdf2Hash(pattern, salt).toHexString()
+                MessageDigest.isEqual(inputHash.toByteArray(), rawStored.toByteArray())
+            } else {
+                // Legacy SHA-256 verification with automatic PBKDF2 upgrade
+                val inputHash = computeLegacySha256(pattern, salt).toHexString()
+                val legacyMatch = MessageDigest.isEqual(inputHash.toByteArray(), storedHashHex.toByteArray())
+                if (legacyMatch) {
+                    saveSecurityPattern(context, pattern) // In-place upgrade
+                    LogCatcher.log('I', TAG, "verifySecurityPattern: Upgraded legacy pattern hash to PBKDF2-HMAC-SHA256")
+                }
+                legacyMatch
+            }
+
             if (matches) {
                 LogCatcher.log('I', TAG, "verifySecurityPattern: Security verification succeeded")
             } else {
@@ -247,7 +262,7 @@ object VaultSessionManager {
         }
     }
 
-    /** Saves a new pattern using salted SHA-256 */
+    /** Saves a new pattern using PBKDF2-HMAC-SHA256 (100,000 iterations) */
     fun savePattern(context: Context, pattern: List<Int>): Boolean {
         if (pattern.size < 4) {
             LogCatcher.log('W', TAG, "savePattern: Pattern too short (min 4 nodes required)")
@@ -255,13 +270,13 @@ object VaultSessionManager {
         }
         try {
             val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
-            val hash = computeHash(pattern, salt)
+            val hash = computePbkdf2Hash(pattern, salt)
 
             context.prefs().edit {
                 putString(PREF_PATTERN_SALT, salt.toHexString())
-                putString(PREF_PATTERN_HASH, hash.toHexString())
+                putString(PREF_PATTERN_HASH, HASH_PREFIX_PBKDF2 + hash.toHexString())
             }
-            LogCatcher.log('I', TAG, "savePattern: Master unlock pattern successfully configured")
+            LogCatcher.log('I', TAG, "savePattern: Master unlock pattern successfully configured (PBKDF2-HMAC-SHA256)")
             return true
         } catch (t: Throwable) {
             LogCatcher.log('E', TAG, "savePattern error: ${t.message}", t)
@@ -269,7 +284,7 @@ object VaultSessionManager {
         }
     }
 
-    /** Verifies an input pattern against the stored hash */
+    /** Verifies an input pattern against the stored hash with automatic PBKDF2 upgrade */
     fun verifyPattern(context: Context, pattern: List<Int>): Boolean {
         val sp = context.prefs()
         val saltHex = sp.getString(PREF_PATTERN_SALT, null)
@@ -282,8 +297,20 @@ object VaultSessionManager {
 
         try {
             val salt = saltHex.hexToByteArray()
-            val inputHash = computeHash(pattern, salt).toHexString()
-            val matches = MessageDigest.isEqual(inputHash.toByteArray(), storedHashHex.toByteArray())
+            val matches = if (storedHashHex.startsWith(HASH_PREFIX_PBKDF2)) {
+                val rawStored = storedHashHex.removePrefix(HASH_PREFIX_PBKDF2)
+                val inputHash = computePbkdf2Hash(pattern, salt).toHexString()
+                MessageDigest.isEqual(inputHash.toByteArray(), rawStored.toByteArray())
+            } else {
+                // Legacy SHA-256 verification with automatic PBKDF2 upgrade
+                val inputHash = computeLegacySha256(pattern, salt).toHexString()
+                val legacyMatch = MessageDigest.isEqual(inputHash.toByteArray(), storedHashHex.toByteArray())
+                if (legacyMatch) {
+                    savePattern(context, pattern) // In-place upgrade
+                    LogCatcher.log('I', TAG, "verifyPattern: Upgraded legacy pattern hash to PBKDF2-HMAC-SHA256")
+                }
+                legacyMatch
+            }
 
             if (matches) {
                 LogCatcher.log('I', TAG, "verifyPattern: Verification succeeded")
@@ -296,6 +323,7 @@ object VaultSessionManager {
             return false
         }
     }
+
 
     /** Clears configured pattern and purges active sessions */
     fun clearPattern(context: Context) {
@@ -401,16 +429,33 @@ object VaultSessionManager {
 
     // --- Crypto Helpers ---
 
-    private fun computeHash(pattern: List<Int>, salt: ByteArray): ByteArray {
+    private const val PBKDF2_ITERATIONS = 100_000
+    private const val PBKDF2_KEY_LENGTH = 256
+    const val HASH_PREFIX_PBKDF2 = "pbkdf2:100000:"
+
+    fun computePbkdf2Hash(pattern: List<Int>, salt: ByteArray, iterations: Int = PBKDF2_ITERATIONS): ByteArray {
+        val patternChars = pattern.joinToString("").toCharArray()
+        val spec = PBEKeySpec(patternChars, salt, iterations, PBKDF2_KEY_LENGTH)
+        val skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+        return skf.generateSecret(spec).encoded
+    }
+
+    fun computeLegacySha256(pattern: List<Int>, salt: ByteArray): ByteArray {
         val md = MessageDigest.getInstance("SHA-256")
         md.update(salt)
         val patternBytes = ByteArray(pattern.size) { i -> pattern[i].toByte() }
         return md.digest(patternBytes)
     }
 
-    private fun ByteArray.toHexString(): String = joinToString("") { "%02x".format(it) }
+    fun deriveKeyFromSaltAndHash(salt: ByteArray, hashBytes: ByteArray): ByteArray {
+        val spec = PBEKeySpec(hashBytes.toHexString().toCharArray(), salt, 10_000, 256)
+        val skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+        return skf.generateSecret(spec).encoded
+    }
 
-    private fun String.hexToByteArray(): ByteArray {
+    fun ByteArray.toHexString(): String = joinToString("") { "%02x".format(it) }
+
+    fun String.hexToByteArray(): ByteArray {
         val result = ByteArray(length / 2)
         for (i in indices step 2) {
             result[i / 2] = substring(i, i + 2).toInt(16).toByte()
@@ -418,3 +463,4 @@ object VaultSessionManager {
         return result
     }
 }
+
