@@ -5,8 +5,11 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.util.AttributeSet
 import android.view.View
+import android.view.WindowInsets
+import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.widget.FrameLayout
 import android.widget.ImageButton
@@ -63,6 +66,8 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
     private var keyboardActionListener: KeyboardActionListener? = null
     private val scope = CoroutineScope(Dispatchers.Main + Job())
     private var tickerJob: Job? = null
+    private var basePaddingBottom = 0
+    private var navBarBottomInset = 0
 
     companion object {
         private const val TAG = "SecurityVaultExplorerView"
@@ -71,6 +76,7 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
     init {
         orientation = VERTICAL
         fitsSystemWindows = true
+        basePaddingBottom = paddingBottom
     }
 
     override fun onFinishInflate() {
@@ -134,8 +140,39 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         SecurityVaultDao.getInstance(context).addListener(this)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val wm = context.getSystemService(WindowManager::class.java)
+            val windowMetrics = wm?.currentWindowMetrics
+            val windowInsets = windowMetrics?.windowInsets
+            if (windowInsets != null) {
+                val insets = windowInsets.getInsetsIgnoringVisibility(
+                    WindowInsets.Type.navigationBars() or WindowInsets.Type.displayCutout()
+                )
+                applyBottomInset(insets.bottom)
+            }
+        }
         if (visibility == View.VISIBLE) {
             startCountdownTicker()
+        }
+    }
+
+    override fun onApplyWindowInsets(insets: WindowInsets): WindowInsets {
+        val navBottom = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            insets.getInsets(WindowInsets.Type.navigationBars() or WindowInsets.Type.displayCutout()).bottom
+        } else {
+            @Suppress("DEPRECATION")
+            insets.systemWindowInsetBottom
+        }
+        applyBottomInset(navBottom)
+        return super.onApplyWindowInsets(insets)
+    }
+
+    private fun applyBottomInset(bottomInset: Int) {
+        val effectiveInset = if (Settings.getValues().mIsFloatingKeyboard) 0 else bottomInset
+        if (navBarBottomInset != effectiveInset) {
+            navBarBottomInset = effectiveInset
+            setPadding(paddingLeft, paddingTop, paddingRight, basePaddingBottom + effectiveInset)
+            requestLayout()
         }
     }
 

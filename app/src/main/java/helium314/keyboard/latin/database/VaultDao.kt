@@ -100,15 +100,38 @@ class VaultDao private constructor(private val db: Database) {
      * 2. Shortcut prefix match (query length >= 1)
      * 3. Phrase prefix or word-in-phrase prefix match (requires query length >= 3 to avoid false positives)
      */
+    private fun isDelimiter(c: Char): Boolean =
+        c == ' ' || c == '.' || c == '_' || c == '-' || c == '@' || c == ',' || c == ';'
+
+    private fun containsDelimitedTokenStartingWith(text: String, prefix: String): Boolean {
+        if (text.isEmpty() || prefix.isEmpty()) return false
+        val len = text.length
+        val pLen = prefix.length
+        if (pLen > len) return false
+        var i = 0
+        while (i < len) {
+            while (i < len && isDelimiter(text[i])) {
+                i++
+            }
+            if (i >= len) break
+            if (text.regionMatches(i, prefix, 0, pLen, ignoreCase = true)) {
+                return true
+            }
+            while (i < len && !isDelimiter(text[i])) {
+                i++
+            }
+        }
+        return false
+    }
+
     /**
      * Finds vault suggestions for the typed query:
      * 1. Exact shortcut match (highest priority, query length >= 1)
      * 2. Shortcut prefix match (query length >= 1)
-     * 3. Phrase prefix or word-in-phrase prefix match (requires query length >= 2)
-     * 4. Notes keyword match (requires query length >= 2)
+     * 3. Phrase prefix or delimited token match (requires query length >= 3 to avoid interfering with regular typing)
      */
     fun findSuggestions(query: String): List<VaultEntry> = synchronized(this) {
-        if (query.isBlank()) return emptyList()
+        if (query.isBlank() || cache.isEmpty()) return emptyList()
         val trimmed = query.trim()
         val results = mutableListOf<VaultEntry>()
         val seenIds = mutableSetOf<Long>()
@@ -129,29 +152,15 @@ class VaultDao private constructor(private val db: Database) {
             }
         }
 
-        // 3. Phrase prefix & token match (>= 2 chars)
-        if (trimmed.length >= 2) {
+        // 3. Phrase & notes token match (only for query length >= 3, allocation-free)
+        if (trimmed.length >= 3) {
             for (entry in cache) {
                 if (!seenIds.contains(entry.id)) {
                     val p = entry.phrase
-                    if (p.startsWith(trimmed, ignoreCase = true)) {
+                    if (p.startsWith(trimmed, ignoreCase = true) || containsDelimitedTokenStartingWith(p, trimmed)) {
                         results.add(entry)
                         seenIds.add(entry.id)
-                    } else {
-                        val parts = p.split(' ', '.', '_', '-', '@')
-                        if (parts.any { it.startsWith(trimmed, ignoreCase = true) }) {
-                            results.add(entry)
-                            seenIds.add(entry.id)
-                        }
-                    }
-                }
-            }
-
-            // 4. Notes token match (>= 2 chars)
-            for (entry in cache) {
-                if (!seenIds.contains(entry.id) && entry.notes.isNotBlank()) {
-                    val noteParts = entry.notes.split(' ', ',', ';', '.', '_', '-')
-                    if (noteParts.any { it.startsWith(trimmed, ignoreCase = true) }) {
+                    } else if (entry.notes.isNotBlank() && containsDelimitedTokenStartingWith(entry.notes, trimmed)) {
                         results.add(entry)
                         seenIds.add(entry.id)
                     }

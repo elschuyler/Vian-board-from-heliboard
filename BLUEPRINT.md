@@ -929,8 +929,21 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
   - **Component 4: On-Demand Subsystem Lifecycle & Telemetry Clean-up (`LogCatcher.kt`, `VaultCryptoManager.kt`, `VaultSessionManager.kt`, `VaultDao.kt`, `TotpGenerator.kt`, `VoiceReplacementDao.kt`)**:
     - Removed eager `markComponentActive()` registrations from static `init {}` blocks across crypto, session, database, and TOTP singletons.
     - Updated `LogCatcher.markComponentInactive()` to remove evicted components and filtered out idle/locked/stopped components in `getActiveComponents()`, keeping `--- ACTIVE SUBSYSTEMS ---` strictly limited to truly running services.
-  - **Component 5: Build & Security Verification**:
-    - Verified clean build via `compile_applet`. Conducted silent security scan per Mandates 2 & 3.
+- **2026-10-26**: Completed Phase 76 (Suggestion Pipeline Priority, Long-Press Demote/Delete, and Vault Insets Hardening):
+  - **Component 1: Autocorrect Crash & Silent Starvation Remediation (`Suggest.kt`)**:
+    - Null-safe guarded `firstSuggestion.mSourceDict?.mLocale` and `typedWordInfo?.mSourceDict?.mLocale` in `shouldBeAutoCorrected()`, completely eliminating the unhandled `NullPointerException` that caused `InputLogic.java` to silently wipe out suggestions on normal typing.
+    - Repositioned Privacy Vault suggestions out of raw `suggestionResults` and appended them cleanly to `suggestionsContainer` after dictionary suggestions, ensuring dictionary predictions always retain primary priority and never get displaced by vault items.
+  - **Component 2: Zero-Allocation Vault Token Scanning (`VaultDao.kt`)**:
+    - Replaced heavy multi-delimiter `String.split()` regex operations in `findSuggestions()` with allocation-free char index scanning (`containsDelimitedTokenStartingWith`).
+    - Restricted phrase/notes scanning to query length $\ge 3$, eliminating GC latency and preventing suggestion thread timeouts ($>500\text{ms}$) under heavy load on low-end hardware.
+  - **Component 3: Suggestion Strip Long-Press Action Completeness (`SuggestionStripView.kt`)**:
+    - Removed blanket suppression on `DICTIONARY_USER_TYPED` and guarded `dict?.mDictType` safely.
+    - Configured Delete (`NAME_BIN`) icon exclusively for personal/learned history words (`TYPE_USER`, `TYPE_USER_HISTORY`), and Demote (`NAME_DEMOTE`) icon for all other words (including typed and dictionary words), guaranteeing every unwanted word in the suggestion strip has an actionable choice to remove or reduce its frequency.
+  - **Component 4: Security Vault Explorer Navigation Bar Insets (`SecurityVaultExplorerView.kt`)**:
+    - Added `onApplyWindowInsets()` and `WindowMetrics` insets query (`WindowInsets.Type.navigationBars() or WindowInsets.Type.displayCutout()`).
+    - Applied dynamic bottom padding (`basePaddingBottom + effectiveInset`) so the Vault Explorer modal and action buttons sit cleanly above the Android gesture pill and 3-button navigation bar.
+  - **Component 5: Compilation & Security Verification**:
+    - Verified clean build via `compile_applet`. Zero exposed credentials, zero lint errors.
 
 
 
