@@ -8,10 +8,13 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.util.AttributeSet
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowInsets
+import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.ImageButton
@@ -84,6 +87,7 @@ class ChosenEntryView @JvmOverloads constructor(
     private var totpTickerJob: Job? = null
     private var sessionTickerJob: Job? = null
     private var activePopupWindow: PopupWindow? = null
+    private var navBarBottomInset: Int = 0
 
     companion object {
         private const val TAG = "ChosenEntryView"
@@ -96,6 +100,26 @@ class ChosenEntryView @JvmOverloads constructor(
         val keyboardViewAttr = context.obtainStyledAttributes(attrs, R.styleable.KeyboardView, defStyle, R.style.KeyboardView)
         keyBackgroundId = keyboardViewAttr.getResourceId(R.styleable.KeyboardView_keyBackground, 0)
         keyboardViewAttr.recycle()
+    }
+
+    override fun onApplyWindowInsets(insets: WindowInsets): WindowInsets {
+        val navBottom = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            insets.getInsets(WindowInsets.Type.navigationBars() or WindowInsets.Type.displayCutout()).bottom
+        } else {
+            @Suppress("DEPRECATION")
+            insets.systemWindowInsetBottom
+        }
+        applyBottomInset(navBottom)
+        return super.onApplyWindowInsets(insets)
+    }
+
+    private fun applyBottomInset(bottomInset: Int) {
+        val effectiveInset = if (Settings.getValues().mIsFloatingKeyboard) 0 else bottomInset
+        if (navBarBottomInset != effectiveInset) {
+            navBarBottomInset = effectiveInset
+            setPadding(paddingLeft, paddingTop, paddingRight, effectiveInset)
+            requestLayout()
+        }
     }
 
     override fun onFinishInflate() {
@@ -189,6 +213,17 @@ class ChosenEntryView @JvmOverloads constructor(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val wm = context.getSystemService(WindowManager::class.java)
+            val windowMetrics = wm?.currentWindowMetrics
+            val windowInsets = windowMetrics?.windowInsets
+            if (windowInsets != null) {
+                val insets = windowInsets.getInsetsIgnoringVisibility(
+                    WindowInsets.Type.navigationBars() or WindowInsets.Type.displayCutout()
+                )
+                applyBottomInset(insets.bottom)
+            }
+        }
         if (visibility == View.VISIBLE) {
             startSessionTicker()
         }

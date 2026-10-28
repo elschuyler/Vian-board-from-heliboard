@@ -28,6 +28,8 @@ class VaultDao private constructor(private val db: Database) {
     }
 
     var listener: Listener? = null
+    @Volatile
+    var isSuspended: Boolean = false
 
     private val cache = mutableListOf<VaultEntry>().apply {
         ensureTableExists(db.writableDatabase)
@@ -126,13 +128,14 @@ class VaultDao private constructor(private val db: Database) {
 
     /**
      * Finds vault suggestions for the typed query:
-     * 1. Exact shortcut match (highest priority, query length >= 1)
-     * 2. Shortcut prefix match (query length >= 1)
-     * 3. Phrase prefix or delimited token match (requires query length >= 3 to avoid interfering with regular typing)
+     * 1. Exact shortcut match (highest priority, query length >= 4)
+     * 2. Shortcut prefix match (query length >= 4)
+     * 3. Phrase prefix or delimited token match (requires query length >= 4 to avoid interfering with regular typing)
      */
     fun findSuggestions(query: String): List<VaultEntry> = synchronized(this) {
-        if (query.isBlank() || cache.isEmpty()) return emptyList()
+        if (isSuspended || query.isBlank() || cache.isEmpty()) return emptyList()
         val trimmed = query.trim()
+        if (trimmed.length < 4) return emptyList()
         val results = mutableListOf<VaultEntry>()
         val seenIds = mutableSetOf<Long>()
 

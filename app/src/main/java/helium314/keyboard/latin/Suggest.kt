@@ -180,28 +180,6 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
             }
         }
 
-        // Privacy Vault shortcuts and phrases matching (appended after dictionary suggestions, non-interfering)
-        val ctx = mDictionaryFacilitator.context
-        if (typedWordString.isNotEmpty() && ctx != null) {
-            val vaultEntries = VaultDao.getInstance(ctx).findSuggestions(typedWordString)
-            for (entry in vaultEntries.take(3)) {
-                if (suggestionsContainer.none { it.mWord == entry.phrase }) {
-                    val maskedLabel = VaultDao.maskPhrase(entry.phrase)
-                    suggestionsContainer.add(
-                        SuggestedWordInfo(
-                            entry.phrase,
-                            maskedLabel,
-                            "",
-                            1, // Lower score so normal dictionary predictions take precedence
-                            SuggestedWordInfo.KIND_VAULT_ENTRY,
-                            Dictionary.DICTIONARY_VAULT,
-                            SuggestedWordInfo.NOT_AN_INDEX,
-                            SuggestedWordInfo.NOT_A_CONFIDENCE
-                        )
-                    )
-                }
-            }
-        }
 
         val suggestionsList = if (SuggestionStripView.DEBUG_SUGGESTIONS && suggestionsContainer.isNotEmpty())
                 getSuggestionsInfoListWithDebugInfo(capitalizedTypedWord, suggestionsContainer)

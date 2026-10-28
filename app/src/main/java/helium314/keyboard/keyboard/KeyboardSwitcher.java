@@ -637,10 +637,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         if (DEBUG_ACTION) {
             Log.d(TAG, "onLongPressAlphaSymbol");
         }
-        final Keyboard keyboard = getKeyboard();
-        if (keyboard == null) {
-            return;
-        }
+        showSecurityVaultExplorerWithAuth();
+    }
+
+    public void showSecurityVaultExplorerWithAuth() {
         if (!VaultSessionManager.INSTANCE.isPatternSet(mLatinIME)) {
             showFakeToast("Set up Pattern in Settings > Security", 2000);
             return;
@@ -1473,7 +1473,11 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mPatternUnlockView.stopPatternUnlock();
         }
         if (mVoiceInputView != null) {
-            mVoiceInputView.stopVoiceInput();
+            if (mVoiceInputView.getVisibility() == View.VISIBLE) {
+                mVoiceInputView.pauseVoiceInput();
+            } else {
+                mVoiceInputView.stopVoiceInput();
+            }
         }
         if (mSecurityVaultExplorerView != null) {
             mSecurityVaultExplorerView.stopExplorer();

@@ -927,8 +927,15 @@ public final class InputLogic {
                         .setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                 );
                 break;
+            case KeyCode.SECURITY_VAULT:
+                KeyboardSwitcher.getInstance().showSecurityVaultExplorerWithAuth();
+                break;
             case KeyCode.PRIVACY_VAULT:
-                android.widget.Toast.makeText(mLatinIME, "Privacy Vault (Placeholder)", android.widget.Toast.LENGTH_SHORT).show();
+                mLatinIME.startActivity(
+                    new android.content.Intent(mLatinIME, helium314.keyboard.settings.SettingsActivity2.class)
+                        .putExtra("startDestination", "privacy_vault")
+                        .setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                );
                 break;
             case KeyCode.PROMPT_LIST, KeyCode.DESKTOP_SHORTCUTS, KeyCode.INCOGNITO_TEMP_2MIN,
                  KeyCode.DPAD, KeyCode.NUMPAD, KeyCode.SYMBOL, KeyCode.ALPHA, KeyCode.SYMBOL_ALPHA,

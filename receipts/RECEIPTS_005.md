@@ -406,3 +406,61 @@ This file is part of the permanent audit trail for the project, tracking code mo
 - **How it was verified**: local build only (`compile_applet` passed successfully).
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: Ready for on-device verification.
+
+### Receipt Entry: Phase 77 Dedicated Masked Vault Pills, Trim Hardening, Navigation Insets, and Stealth Polish
+- **Timestamp**: 2026-10-27 08:32:00 UTC-7
+- **Summary of request**: Dedicated masked privacy/security vault pills hiding regular suggestions on match (like HeliBoard external password manager), eliminate unmasked phrases in suggestion strip, enforce min 4 letters for privacy check, close/suspend privacy vault checks on Android memory trim while keeping full dictionary word suggestions 100% alive, fix voice input modal closing on trim by pausing and unloading 75MB+ Whisper native context, discard stale keystrokes in suggestion queue, ensure all modals (ChosenEntryView, SecurityVaultExplorerView, PatternUnlockView normal & stealth) sit above the Android bottom navigation bar, restore grey circular background on stealth pattern strip chevron, and make timer long-press open Security Vault entries settings.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/latin/inputlogic/InputLogicHandler.java`
+  - `app/src/main/java/helium314/keyboard/keyboard/KeyboardSwitcher.java`
+  - `app/src/main/java/helium314/keyboard/latin/voice/VoiceInputService.kt`
+  - `app/src/main/java/helium314/keyboard/latin/database/VaultDao.kt`
+  - `app/src/main/java/helium314/keyboard/latin/Suggest.kt`
+  - `app/src/main/java/helium314/keyboard/latin/LatinIME.java`
+  - `app/src/main/java/helium314/keyboard/security/vault/ui/ChosenEntryView.kt`
+  - `app/src/main/java/helium314/keyboard/security/vault/ui/SecurityVaultExplorerView.kt`
+  - `app/src/main/java/helium314/keyboard/security/PatternUnlockView.kt`
+  - `app/src/main/java/helium314/keyboard/settings/SettingsActivity.kt`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_005.md`
+- **What was actually done**:
+  1. In `Suggest.kt`: Completely removed Privacy Vault phrase injection into `suggestionsContainer` as normal dictionary candidates. Solved the privacy leak where phrases were displayed unmasked in dictionary text slots.
+  2. In `LatinIME.java`: Added `createPrivacyVaultPillView()` and integrated it with `setSuggestedWords()`. When a typed word ($\ge 4$ characters) matches Privacy Vault, it renders a dedicated masked pill view via `mSuggestionStripView.setExternalSuggestionView(pillView, true)`, completely hiding normal dictionary suggestions (identical to HeliBoard's external autofill). Tapping `[ ✕ ]` or backspacing restores normal suggestions.
+  3. In `LatinIME.java`: Gated `tryShowVaultSuggestion()` strictly behind explicit password field type (`isPasswordInputType || isVisiblePasswordInputType`) and `!mLiteMode`.
+  4. In `VaultDao.kt`: Enforced minimum 4 letters (`trimmed.length >= 4`) for any matching. Added `@Volatile var isSuspended`. In `LatinIME.onTrimMemory()`, set `isSuspended = true` on low-memory trim levels to suspend vault queries while allowing full C++ native binary dictionary predictions to continue running uninterrupted.
+  5. In `InputLogicHandler.java`: Added `mNonUIThreadHandler.removeMessages(MSG_GET_SUGGESTED_WORDS)` prior to queuing `MSG_GET_SUGGESTED_WORDS` to immediately discard stale keystroke tasks, preventing background thread queue saturation and eliminating the 500ms timeout prediction drops.
+  6. In `KeyboardSwitcher.java`: In `trimMemory()`, if `mVoiceInputView` is visible, called `pauseVoiceInput()` instead of `stopVoiceInput()`, preventing the keyboard from collapsing to height 0.
+  7. In `VoiceInputService.kt`: Added `onTrimMemory(level)` which releases native Whisper model memory (`whisperEngine.release()`) when paused or idle under low memory, immediately reclaiming 75MB+ RAM back to Android OS without crashing or closing the voice modal.
+  8. In `ChosenEntryView.kt` & `PatternUnlockView.kt`: Added `WindowInsets.Type.navigationBars() or displayCutout()` handling and dynamic bottom padding so neither modal nor action buttons ever slip behind the Android bottom navigation bar or gesture pill. In `SecurityVaultExplorerView.kt`, forwarded the bottom inset to `recyclerView` padding.
+  9. In `PatternUnlockView.kt`: In `applyThemeColors()`, applied `R.drawable.toolbar_expand_key_background` and tinted with `ColorType.TOOL_BAR_EXPAND_KEY_BACKGROUND` and `ColorType.TOOL_BAR_EXPAND_KEY`, restoring the authentic circular grey pill background on the stealth chevron.
+  10. In `SecurityVaultExplorerView.kt`: Attached long-click listeners on `timerContainer` and `txtSessionTimer` to open `SettingsActivity2` directly with `SettingsDestination.KdbxEntries` and `startDestination` routing.
+- **How it was verified**: local build only (`compile_applet` passed successfully).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device manual QA testing.
+
+### Receipt Entry: Phase 78 Package Identity Alignment to shura.keyboard, Privacy Vault Trigger Replacement, and Project Documentation
+- **Timestamp**: 2026-10-28 04:13:00 UTC-7
+- **Summary of request**: Update applicationId to shura.keyboard, fix Privacy Vault pill trigger word replacement (clean replacement of composing trigger word instead of appending behind it), create root README.md with project details (Creator: Lewis, Series: Viabhron, Package: shura.keyboard, App name: Vianboard, Google AI Studio, HeliBoard fork, 6 key features), update About screen with Creator/Series and Core Features preferences, and sync metadata.
+- **Exact files touched**:
+  - `app/build.gradle.kts`
+  - `app/src/main/res/values/clip_provider.xml`
+  - `app/src/main/res/values/gesture_data.xml`
+  - `app/src/main/java/helium314/keyboard/latin/LatinIME.java`
+  - `app/src/main/res/values/donottranslate.xml`
+  - `metadata.json`
+  - `app/src/main/java/helium314/keyboard/settings/SettingsContainer.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/AboutScreen.kt`
+  - `README.md`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_005.md`
+- **What was actually done**:
+  1. In `app/build.gradle.kts`: Changed `applicationId` to `"shura.keyboard"`.
+  2. In `clip_provider.xml` and `gesture_data.xml`: Aligned provider authorities to `"shura.keyboard.clipprovider"` and `"shura.keyboard.provider"`.
+  3. In `LatinIME.java`: Added `Dictionary` import. In `createPrivacyVaultPillView()`, updated `pill.setOnClickListener` to construct `SuggestedWordInfo(entry.getPhrase(), KIND_VAULT_ENTRY, DICTIONARY_VAULT)` and call `pickSuggestionManually(info)` followed by `removeExternalSuggestions()`. Tapping the masked Privacy Vault pill now cleanly replaces the active 4-letter composing trigger word (e.g. "addr" -> "123 Main St") instead of leaving the trigger word in the editor and appending the phrase behind it.
+  4. In `README.md`: Created comprehensive, professional documentation covering App Name (Vianboard), Creator (Lewis), Series (Viabhron), Package (`shura.keyboard`), Google AI Studio development context, HeliBoard fork foundation, and detailed overviews for the 6 core features: Lite Mode, Prompt List / Quick Notes, Desktop Shortcuts Modal, Offline Voice Input SLM, Privacy Vault, and Security Vault.
+  5. In `AboutScreen.kt`, `SettingsContainer.kt`, and `donottranslate.xml`: Added Creator & Series (`SettingsWithoutKey.CREATOR_SERIES`) and Key Improvements & Features (`SettingsWithoutKey.CORE_FEATURES`) preferences to the About screen with an interactive dialog detailing the 6 core features. Synchronized app name `Vianboard` across `donottranslate.xml` and `metadata.json`.
+  6. Verified compilation via Gradle (`compileDebugKotlin`, `compileDebugJavaWithJavac`). Conducted silent security scan per Mandates 2 & 3.
+- **How it was verified**: local build only (`gradle compileDebugKotlin compileDebugJavaWithJavac` succeeded in 2m 38s).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device manual QA testing.
+

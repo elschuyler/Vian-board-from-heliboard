@@ -4,8 +4,11 @@ package helium314.keyboard.security
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
+import android.os.Build
 import android.util.AttributeSet
 import android.view.View
+import android.view.WindowInsets
+import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.LinearLayout
@@ -49,9 +52,46 @@ class PatternUnlockView @JvmOverloads constructor(
     var isShowingPattern: Boolean = false
         private set
 
+    private var navBarBottomInset: Int = 0
+
     init {
-        fitsSystemWindows = true
+        fitsSystemWindows = false
         setPadding(0, 0, 0, 0)
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val wm = context.getSystemService(WindowManager::class.java)
+            val windowMetrics = wm?.currentWindowMetrics
+            val windowInsets = windowMetrics?.windowInsets
+            if (windowInsets != null) {
+                val insets = windowInsets.getInsetsIgnoringVisibility(
+                    WindowInsets.Type.navigationBars() or WindowInsets.Type.displayCutout()
+                )
+                applyBottomInset(insets.bottom)
+            }
+        }
+    }
+
+    override fun onApplyWindowInsets(insets: WindowInsets): WindowInsets {
+        val navBottom = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            insets.getInsets(WindowInsets.Type.navigationBars() or WindowInsets.Type.displayCutout()).bottom
+        } else {
+            @Suppress("DEPRECATION")
+            insets.systemWindowInsetBottom
+        }
+        applyBottomInset(navBottom)
+        return super.onApplyWindowInsets(insets)
+    }
+
+    private fun applyBottomInset(bottomInset: Int) {
+        val effectiveInset = if (Settings.getValues().mIsFloatingKeyboard) 0 else bottomInset
+        if (navBarBottomInset != effectiveInset) {
+            navBarBottomInset = effectiveInset
+            setPadding(paddingLeft, paddingTop, paddingRight, effectiveInset)
+            requestLayout()
+        }
     }
 
     override fun onFinishInflate() {
@@ -207,12 +247,13 @@ class PatternUnlockView @JvmOverloads constructor(
             chevronButton?.let { btn ->
                 btn.layoutParams.height = toolbarHeight
                 btn.layoutParams.width = toolbarHeight
-                colors.setBackground(btn, ColorType.STRIP_BACKGROUND)
+                btn.setBackgroundResource(R.drawable.toolbar_expand_key_background)
+                colors.setColor(btn.background, ColorType.TOOL_BAR_EXPAND_KEY_BACKGROUND)
                 val isRtl = strip?.layoutDirection == View.LAYOUT_DIRECTION_RTL
                 btn.scaleX = if (isRtl) -1f else 1f
                 val arrowIcon = KeyboardIconsSet.instance.getNewDrawable(KeyboardIconsSet.NAME_TOOLBAR_KEY, context)
                 if (arrowIcon != null) btn.setImageDrawable(arrowIcon)
-                colors.setColor(btn, ColorType.TOOL_BAR_KEY)
+                colors.setColor(btn, ColorType.TOOL_BAR_EXPAND_KEY)
             }
             selectButton?.let { btn ->
                 val selectIcon = KeyboardIconsSet.instance.getNewDrawable(ToolbarKey.SELECT_WORD.name, context)
@@ -248,6 +289,8 @@ class PatternUnlockView @JvmOverloads constructor(
             val iconColor = if (isNight) Color.WHITE else Color.BLACK
             val stripBg = if (isNight) Color.parseColor("#202124") else Color.parseColor("#EEEEEE")
             strip?.setBackgroundColor(stripBg)
+            chevronButton?.setBackgroundResource(R.drawable.toolbar_expand_key_background)
+            chevronButton?.background?.setTint(if (isNight) Color.parseColor("#33888888") else Color.parseColor("#D0D0D0"))
             chevronButton?.setColorFilter(iconColor)
             selectButton?.setColorFilter(iconColor)
             copyButton?.setColorFilter(iconColor)

@@ -1,8 +1,8 @@
-# Project Blueprint: VianBoard
+# Project Blueprint: Vianboard
 
 ## 1. Overview
-VianBoard is a fully customizable, privacy-conscious offline Android keyboard application based on AOSP / OpenBoard / HeliBoard.
-- **Application ID**: `shura.vianboard`
+Vianboard is a fully customizable, privacy-conscious offline Android keyboard application based on AOSP / OpenBoard / HeliBoard.
+- **Application ID**: `shura.keyboard`
 - **Namespace**: `helium314.keyboard.latin`
 - **Architecture**: MVVM / Clean Android Architecture with LatinIME Service and Jetpack Compose for modern Settings UI.
 - **Offline / Privacy Guarantee**: 100% offline, zero internet permissions.
@@ -944,6 +944,64 @@ VianBoard is a fully customizable, privacy-conscious offline Android keyboard ap
     - Applied dynamic bottom padding (`basePaddingBottom + effectiveInset`) so the Vault Explorer modal and action buttons sit cleanly above the Android gesture pill and 3-button navigation bar.
   - **Component 5: Compilation & Security Verification**:
     - Verified clean build via `compile_applet`. Zero exposed credentials, zero lint errors.
+
+- **2026-10-27**: Completed Phase 77 (Dedicated Masked Vault Pills, Trim Hardening, Navigation Insets, and Stealth Polish):
+  - **Component 1: Dedicated Masked Vault Pills with Suggestion Concealment (`Suggest.kt`, `LatinIME.java`)**:
+    - Purged raw Privacy Vault phrase injection into `suggestionsContainer` as normal dictionary candidate words in `Suggest.kt`, completely eliminating the leak where private phrases appeared unmasked across the dictionary strip.
+    - Added `createPrivacyVaultPillView()` in `LatinIME.java`. When a typed word ($\ge 4$ characters) matches Privacy Vault, `mSuggestionStripView.setExternalSuggestionView(pillView, true)` is displayed, concealing regular word suggestions (matching HeliBoard's inline password manager behavior).
+    - Tapping the pill commits the phrase (or triggers stealth pattern unlock if locked); tapping `[ ✕ ]` or backspacing immediately restores normal word predictions.
+    - Strictly gated `tryShowVaultSuggestion()` behind explicit password fields (`isPasswordInputType || isVisiblePasswordInputType`) and `!mLiteMode`.
+  - **Component 2: Privacy Vault Trim Memory Hardening & 4-Letter Minimum (`VaultDao.kt`, `LatinIME.java`)**:
+    - Added `@Volatile var isSuspended` to `VaultDao.kt` and enforced a strict 4-character minimum threshold (`query.trim().length >= 4`) for any matching.
+    - In `LatinIME.onTrimMemory()`, set `isSuspended = true` under low-memory trim levels to suspend database queries while ensuring full native C++ binary dictionary word predictions remain 100% active and unhindered.
+  - **Component 3: Suggestion Queue Starvation Fix (`InputLogicHandler.java`)**:
+    - Called `mNonUIThreadHandler.removeMessages(MSG_GET_SUGGESTED_WORDS)` prior to queueing new prediction requests, dropping obsolete keystroke tasks and preventing the 500ms timeout prediction drop during rapid typing.
+  - **Component 4: Voice Modal Memory Trim & Native Engine Eviction (`KeyboardSwitcher.java`, `VoiceInputService.kt`)**:
+    - In `KeyboardSwitcher.trimMemory()`, called `pauseVoiceInput()` instead of `stopVoiceInput()` when the voice modal is open, preventing the keyboard view from collapsing to 0 height.
+    - Added `VoiceInputService.onTrimMemory(level)`: calls `whisperEngine.release()` when paused or idle under memory pressure, instantly returning 75MB+ native RAM back to Android OS while keeping the voice modal UI intact.
+  - **Component 5: Universal Modal Navigation Bar Insets (`ChosenEntryView.kt`, `SecurityVaultExplorerView.kt`, `PatternUnlockView.kt`)**:
+    - Added `WindowInsets.Type.navigationBars() or displayCutout()` handling and dynamic bottom padding to `ChosenEntryView.kt` and `PatternUnlockView.kt` (normal and stealth modes).
+    - In `SecurityVaultExplorerView.kt`, forwarded bottom insets to `recyclerView.setPadding()` so bottom items never get obscured behind Android navigation bars.
+  - **Component 6: Stealth Pattern Chevron Styling & Explorer Timer Long-Press (`PatternUnlockView.kt`, `SecurityVaultExplorerView.kt`, `SettingsActivity.kt`)**:
+    - Restored `R.drawable.toolbar_expand_key_background` and tinted with `ColorType.TOOL_BAR_EXPAND_KEY_BACKGROUND` and `ColorType.TOOL_BAR_EXPAND_KEY` on `pattern_strip_chevron_btn`, recovering the authentic circular grey pill background.
+- **2026-10-28**: Completed Phase 78 (Package Identity Alignment to `shura.keyboard`, Privacy Vault Trigger Replacement, and Project Documentation):
+  - **Component 1: Package Identity & Provider Authorities Alignment (`build.gradle.kts`, `clip_provider.xml`, `gesture_data.xml`)**:
+    - Updated `applicationId` to `shura.keyboard` in `app/build.gradle.kts`.
+    - Aligned clipboard and gesture data content provider authorities to `shura.keyboard.clipprovider` and `shura.keyboard.provider`.
+  - **Component 2: Privacy Vault Pill Trigger Word Replacement (`LatinIME.java`)**:
+    - In `createPrivacyVaultPillView()`, replaced `onTextInput(entry.getPhrase())` with `pickSuggestionManually(SuggestedWordInfo(entry.getPhrase(), KIND_VAULT_ENTRY, DICTIONARY_VAULT))` followed by `removeExternalSuggestions()`.
+    - Guarantees that tapping the masked vault pill cleanly replaces the 4-letter composing trigger word (e.g. "addr") rather than appending behind it.
+  - **Component 3: Root Documentation (`README.md`)**:
+    - Created comprehensive, polished `README.md` detailing App Name (Vianboard), Creator (Lewis), Series (Viabhron), Package (`shura.keyboard`), Google AI Studio development context, HeliBoard fork foundation, and deep-dive technical overviews for all 6 core features (Lite Mode, Quick Notes / Prompt List, Desktop Shortcuts Modal, Offline Voice Input SLM, Privacy Vault, Security Vault).
+  - **Component 4: About Settings UI Refresh (`AboutScreen.kt`, `SettingsContainer.kt`, `donottranslate.xml`, `metadata.json`)**:
+    - Added Creator & Series preference item (Creator: Lewis • Series: Viabhron • Package: `shura.keyboard` • Built with Google AI Studio).
+    - Added Key Improvements & Features preference with interactive breakdown dialog covering all 6 core modules.
+    - Synchronized application naming (`Vianboard`) across `donottranslate.xml` (`english_ime_name`), `metadata.json`, and `app_slogan`.
+  - **Component 5: Compilation & Security Verification**:
+    - Clean compilation verified via Gradle (`compileDebugKotlin`, `compileDebugJavaWithJavac`). Zero compile errors.
+    - Conducted silent security scan per Mandates 2 & 3. Zero exposed credentials.
+
+- **2026-10-28**: Completed Phase 79 (Number Pad Space Bar Vault Explorer Long-Press, Toolbar Vault Keys, and Comma Key Popups Catalog Expansion):
+  - **Component 1: Number Pad Space Bar Long-Press Interception (`PointerTracker.java`, `KeyboardActionListener.java`, `KeyboardActionListenerImpl.kt`, `KeyboardSwitcher.java`)**:
+    - In `PointerTracker.java`, intercepted long-press strictly when `code == Constants.CODE_SPACE && mKeyboard != null && mKeyboard.mId.getElement() == KeyboardElement.NUMPAD`. Suppressed the system IME switcher dialog and dispatched `CustomAction.SHOW_SECURITY_VAULT_EXPLORER`.
+    - Implemented `KeyboardSwitcher.showSecurityVaultExplorerWithAuth()`: verifies active security session; if locked, challenges with stealth pattern or primary biometric/PIN before opening `SecurityVaultExplorerView`.
+    - Strictly preserves normal single-tap space on numpad, and leaves space bar long-press on all other layouts (QWERTY, symbols, etc.) completely untouched.
+  - **Component 2: Toolbar Keys for Security Vault Explorer & Privacy Vault (`ToolbarUtils.kt`, `KeyCode.kt`, `KeyboardCodesSet.java`, `KeyboardIconsSet.kt`, `InputLogic.java`)**:
+    - Added `ToolbarKey.SECURITY_VAULT` and `ToolbarKey.PRIVACY_VAULT` to `ToolbarKey` enum.
+    - Assigned `KeyCode.SECURITY_VAULT (-10060)` and wired string name `key_security_vault` in `KeyboardCodesSet.java`.
+    - Bound `R.drawable.ic_vpn_key` and `R.drawable.ic_settings_security` across both standard and rounded icon sets in `KeyboardIconsSet.kt`.
+    - Handled functional key events in `InputLogic.java`: `SECURITY_VAULT` triggers `showSecurityVaultExplorerWithAuth()`, and `PRIVACY_VAULT` launches Privacy Vault management settings.
+    - Configured default toolbar preferences to keep existing 8 default tools active, providing vault tools in the customizer without cluttering the factory default strip.
+  - **Component 3: Comma Key Popups Expansion with Preserved Defaults (`CommaPopupItem.kt`, `CommaPopupsCustomizer.kt`)**:
+    - Expanded `CommaPopupsCatalog.ALL_ITEMS` to include all toolbar tools (Security Vault, Clipboard History, Numpad, DPAD, Undo, Redo, Cut, Copy, Paste, Select All, Select Word, Incognito, Autocorrect, Clear Clipboard, Split, Floating, Navigation Arrows, Start/End of Line).
+    - Preserved `DEFAULT_IDS` strictly to the 7 original items (`[Settings, Log Keeper, Voice Input, One-Handed, Privacy Vault, Emoji, Desktop Shortcuts]`), defaulting all additional tools to disabled unless activated by the user.
+    - Updated `CommaPopupsCustomizer.kt` to reset strictly to `DEFAULT_IDS` on tapping "Default", and added a helpful recommendation hint for optimal popup grid ergonomics.
+  - **Component 4: Compilation & Security Verification**:
+    - Clean compilation verified via Gradle (`compileDebugKotlin`, `compileDebugJavaWithJavac` succeeded in 1m 45s).
+    - Silent security scan confirmed zero exposed credentials.
+
+
+
 
 
 

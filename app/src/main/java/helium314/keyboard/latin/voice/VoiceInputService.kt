@@ -2,6 +2,7 @@
 package helium314.keyboard.latin.voice
 
 import android.app.Service
+import android.content.ComponentCallbacks2
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
@@ -81,6 +82,16 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
         whisperEngine.release()
         stopSelf()
         return false
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW || level == ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) {
+            if (currentState == VoiceIpcProtocol.ServiceState.PAUSED || currentState == VoiceIpcProtocol.ServiceState.IDLE) {
+                LogCatcher.i(TAG, "Releasing native Whisper model context onTrimMemory (level=$level)")
+                whisperEngine.release()
+            }
+        }
     }
 
     override fun onDestroy() {

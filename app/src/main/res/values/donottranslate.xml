@@ -50,8 +50,12 @@
     <!-- Description for Hebrew 2 subtype. -->
     <string name="subtype_hebrew_1452_2" translatable="false">%s (1452-2)</string>
 
-    <string name="english_ime_name" translatable="false">VianBoard</string>
+    <string name="english_ime_name" translatable="false">Vianboard</string>
     <!-- App slogan-->
-    <string name="app_slogan" translatable="false">100% FOSS keyboard, based on HeliBoard and AOSP.</string>
+    <string name="app_slogan" translatable="false">100% FOSS keyboard built in Google AI Studio. Fork of HeliBoard.</string>
+    <string name="about_creator_title" translatable="false">Creator &amp; Series</string>
+    <string name="about_creator_summary" translatable="false">Creator: Lewis • Series: Viabhron\nPackage: shura.keyboard • Built with Google AI Studio</string>
+    <string name="about_features_title" translatable="false">Key Improvements &amp; Features</string>
+    <string name="about_features_summary" translatable="false">Lite Mode, Quick Notes / Prompts, Desktop Shortcuts, Offline Voice SLM, Privacy &amp; Security Vaults</string>
 
 </resources>

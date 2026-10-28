@@ -168,6 +168,8 @@ class KeyboardIconsSet private constructor() {
                     ToolbarKey.BACKGROUND_GATHERING -> R.drawable.ic_settings_gesture
                     ToolbarKey.DESKTOP_SHORTCUTS -> R.drawable.ic_setup_key
                     ToolbarKey.LOG_KEEPER -> R.drawable.ic_settings_about_log
+                    ToolbarKey.SECURITY_VAULT -> R.drawable.ic_vpn_key
+                    ToolbarKey.PRIVACY_VAULT -> R.drawable.ic_settings_security
                 })
             }
         } }
@@ -237,6 +239,8 @@ class KeyboardIconsSet private constructor() {
                     ToolbarKey.BACKGROUND_GATHERING -> R.drawable.ic_settings_gesture
                     ToolbarKey.DESKTOP_SHORTCUTS -> R.drawable.ic_setup_key
                     ToolbarKey.LOG_KEEPER -> R.drawable.ic_settings_about_log
+                    ToolbarKey.SECURITY_VAULT -> R.drawable.ic_vpn_key
+                    ToolbarKey.PRIVACY_VAULT -> R.drawable.ic_settings_security
                 })
             }
         } }

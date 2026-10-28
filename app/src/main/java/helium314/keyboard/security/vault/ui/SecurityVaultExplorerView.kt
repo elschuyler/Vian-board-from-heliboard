@@ -3,10 +3,14 @@ package helium314.keyboard.security.vault.ui
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.util.AttributeSet
+import helium314.keyboard.latin.utils.dpToPx
+import helium314.keyboard.settings.SettingsActivity2
+import helium314.keyboard.settings.SettingsDestination
 import android.view.View
 import android.view.WindowInsets
 import android.view.WindowManager
@@ -172,6 +176,9 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
         if (navBarBottomInset != effectiveInset) {
             navBarBottomInset = effectiveInset
             setPadding(paddingLeft, paddingTop, paddingRight, basePaddingBottom + effectiveInset)
+            if (::recyclerView.isInitialized) {
+                recyclerView.setPadding(recyclerView.paddingLeft, recyclerView.paddingTop, recyclerView.paddingRight, 8.dpToPx(resources) + effectiveInset)
+            }
             requestLayout()
         }
     }

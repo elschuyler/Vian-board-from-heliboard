@@ -70,7 +70,7 @@ fun CommaPopupsCustomizer(
         },
         neutralButtonText = stringResource(R.string.button_default),
         onNeutral = {
-            items = CommaPopupsCatalog.ALL_ITEMS.map { it to true }
+            items = CommaPopupsCatalog.ALL_ITEMS.map { it to (it.id in CommaPopupsCatalog.DEFAULT_IDS) }
         },
         title = {
             Column {
@@ -79,7 +79,7 @@ fun CommaPopupsCustomizer(
                     style = MaterialTheme.typography.titleLarge
                 )
                 Text(
-                    text = "Reorder and toggle popup actions (Active: $activeCount/${items.size})",
+                    text = "Reorder and toggle popup actions (Active: $activeCount/${items.size})\nTip: 5–8 active items recommended",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

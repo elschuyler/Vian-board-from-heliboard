@@ -198,6 +198,10 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             performHapticFeedback(HapticEvent.KEY_LONG_PRESS)
             true
         }
+        KeyboardActionListener.CustomAction.SHOW_SECURITY_VAULT_EXPLORER -> {
+            keyboardSwitcher.showSecurityVaultExplorerWithAuth()
+            true
+        }
     }
 
     override fun onHorizontalSpaceSwipe(steps: Int): Boolean = when (Settings.getValues().mSpaceSwipeHorizontal) {

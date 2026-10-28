@@ -53,6 +53,8 @@ fun AboutScreen(
 ) {
     val items = listOf(
         SettingsWithoutKey.APP,
+        SettingsWithoutKey.CREATOR_SERIES,
+        SettingsWithoutKey.CORE_FEATURES,
         SettingsWithoutKey.VERSION,
         SettingsWithoutKey.LICENSE,
         SettingsWithoutKey.HIDDEN_FEATURES,
@@ -76,6 +78,43 @@ fun createAboutSettings(context: Context) = listOf(
             description = it.description,
             onClick = { },
             icon = R.mipmap.ic_launcher_round
+        )
+    },
+    Setting(context, SettingsWithoutKey.CREATOR_SERIES, R.string.about_creator_title, R.string.about_creator_summary) {
+        Preference(
+            name = it.title,
+            description = it.description,
+            onClick = { },
+            icon = R.drawable.ic_settings_about_version
+        )
+    },
+    Setting(context, SettingsWithoutKey.CORE_FEATURES, R.string.about_features_title, R.string.about_features_summary) {
+        val ctx = LocalContext.current
+        Preference(
+            name = it.title,
+            description = it.description,
+            onClick = {
+                val message = """
+                    • Lite Mode: Attempt to make a lightweight, battery-saving mode with minimal background footprint.
+                    
+                    • Quick Notes / Prompts: Stored notes & prompts panel beside clipboard for quick paste, with add & edit. Toolbar quick access via long-press copy tool button.
+                    
+                    • Desktop Shortcuts Modal: Customizable keys for frequently used desktop key combinations and shortcuts.
+                    
+                    • Voice Input: Simple, private voice-to-text with offline SLM Whisper binary model import.
+                    
+                    • Privacy Vault: Quick, masked auto-fill for frequently used phrases and sensitive text.
+                    
+                    • Security Vault: Encrypted password & credential store with stealth pattern lock, decoy explorer mode, and auto-lock lifecycle.
+                """.trimIndent()
+                AlertDialog.Builder(ctx)
+                    .setIcon(R.drawable.ic_settings_about_hidden_features)
+                    .setTitle(R.string.about_features_title)
+                    .setMessage(message)
+                    .setPositiveButton(R.string.dialog_close, null)
+                    .show()
+            },
+            icon = R.drawable.ic_settings_about_hidden_features
         )
     },
     Setting(context, SettingsWithoutKey.VERSION, R.string.version) {

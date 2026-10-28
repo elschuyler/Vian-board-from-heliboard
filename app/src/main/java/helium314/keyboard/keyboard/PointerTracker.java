@@ -1170,6 +1170,12 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
             sListener.onReleaseKey(popupKeyCode, false);
             return;
         }
+        if (code == Constants.CODE_SPACE && mKeyboard != null && mKeyboard.mId.getElement() == KeyboardElement.NUMPAD) {
+            cancelKeyTracking();
+            sListener.onCustomRequest(KeyboardActionListener.CustomAction.SHOW_SECURITY_VAULT_EXPLORER);
+            sListener.onReleaseKey(code, false);
+            return;
+        }
         if (code == KeyCode.LANGUAGE_SWITCH
                 || (code == Constants.CODE_SPACE && key.getPopupKeys() == null && Settings.getValues().mSpaceForLangChange)
         ) {

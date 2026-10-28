@@ -17,16 +17,27 @@ import android.content.res.Resources;
 import android.graphics.Color;
 import android.inputmethodservice.InputMethodService;
 import android.media.AudioManager;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Debug;
 import android.os.Message;
 import android.os.Process;
+import android.text.TextUtils;
 import android.util.PrintWriterPrinter;
 import android.util.Printer;
+import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import helium314.keyboard.keyboard.KeyboardTypeface;
+import helium314.keyboard.latin.common.Colors;
+import helium314.keyboard.latin.utils.InputTypeUtils;
 import android.view.inputmethod.CompletionInfo;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InlineSuggestion;
@@ -47,6 +58,7 @@ import helium314.keyboard.keyboard.emoji.EmojiSearchActivity;
 import helium314.keyboard.keyboard.internal.KeyboardIconsSet;
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode;
 import helium314.keyboard.latin.common.InsetsOutlineProvider;
+import helium314.keyboard.latin.dictionary.Dictionary;
 import helium314.keyboard.dictionarypack.DictionaryPackConstants;
 import helium314.keyboard.event.Event;
 import helium314.keyboard.event.InputTransaction;
@@ -92,6 +104,8 @@ import helium314.keyboard.latin.utils.SubtypeSettings;
 import helium314.keyboard.latin.utils.SubtypeState;
 import helium314.keyboard.latin.utils.TempIncognitoManager;
 import helium314.keyboard.latin.utils.ToolbarMode;
+import helium314.keyboard.latin.database.VaultDao;
+import helium314.keyboard.latin.database.VaultEntry;
 import helium314.keyboard.security.VaultSessionManager;
 import helium314.keyboard.security.vault.context.SecurityVaultContextSniffer;
 import helium314.keyboard.security.vault.data.VaultEntryEntity;
@@ -921,6 +935,7 @@ public class LatinIME extends InputMethodService implements
             return;
         }
         SecurityVaultContextSniffer.INSTANCE.recordExternalContext(editorInfo);
+        VaultDao.Companion.getInstance(this).setSuspended(false);
         Log.i(TAG, (restarting ? "Res" : "S") +"tarting input. Cursor position = " + editorInfo.initialSelStart + "," + editorInfo.initialSelEnd);
         if (DebugFlags.DEBUG_ENABLED) {
             EditorInfoCompatUtils.INSTANCE.debugLog(editorInfo, TAG);
@@ -1602,6 +1617,20 @@ public class LatinIME extends InputMethodService implements
             return;
         }
 
+        final String typedWord = (suggestedWords != null && suggestedWords.mTypedWordInfo != null)
+                ? suggestedWords.mTypedWordInfo.mWord : null;
+        if (typedWord != null && typedWord.length() >= 4
+                && !currentSettingsValues.mLiteMode && !VaultDao.Companion.getInstance(this).isSuspended()) {
+            final List<VaultEntry> privacyMatches = VaultDao.Companion.getInstance(this).findSuggestions(typedWord);
+            if (!privacyMatches.isEmpty()) {
+                final View pillView = createPrivacyVaultPillView(privacyMatches.get(0));
+                if (pillView != null) {
+                    mSuggestionStripView.setExternalSuggestionView(pillView, true);
+                    return;
+                }
+            }
+        }
+
         final boolean isEmptyApplicationSpecifiedCompletions =
                 currentSettingsValues.mInputAttributes.mApplicationSpecifiedCompletionOn
                         && suggestedWords.isEmpty();
@@ -1666,6 +1695,80 @@ public class LatinIME extends InputMethodService implements
         updateStateAfterInputTransaction(completeInputTransaction);
     }
 
+    private View createPrivacyVaultPillView(final VaultEntry entry) {
+        final Context context = this;
+        final Colors colors = mSettings.getCurrent().mColors;
+        final int keyTextCol = colors != null ? colors.get(ColorType.KEY_TEXT) : Color.WHITE;
+        final int keyIconCol = colors != null ? colors.get(ColorType.KEY_ICON) : Color.WHITE;
+        final int chipBgCol = colors != null ? colors.get(ColorType.KEY_BACKGROUND) : Color.parseColor("#303134");
+
+        final LinearLayout root = new LinearLayout(context);
+        root.setOrientation(LinearLayout.HORIZONTAL);
+        root.setGravity(Gravity.CENTER_VERTICAL);
+        root.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        int padH = (int) (8 * context.getResources().getDisplayMetrics().density);
+        int padV = (int) (2 * context.getResources().getDisplayMetrics().density);
+        root.setPadding(padH, padV, padH, padV);
+
+        final LinearLayout pill = new LinearLayout(context);
+        pill.setOrientation(LinearLayout.HORIZONTAL);
+        pill.setGravity(Gravity.CENTER_VERTICAL);
+        final GradientDrawable bg = new GradientDrawable();
+        bg.setShape(GradientDrawable.RECTANGLE);
+        bg.setCornerRadius(18f * context.getResources().getDisplayMetrics().density);
+        bg.setColor(chipBgCol);
+        pill.setBackground(bg);
+        int pillPadH = (int) (10 * context.getResources().getDisplayMetrics().density);
+        int pillPadV = (int) (5 * context.getResources().getDisplayMetrics().density);
+        pill.setPadding(pillPadH, pillPadV, pillPadH, pillPadV);
+        pill.setClickable(true);
+        pill.setFocusable(true);
+
+        final ImageView icon = new ImageView(context);
+        icon.setImageResource(R.drawable.ic_vpn_key);
+        icon.setColorFilter(keyIconCol);
+        int iconSize = (int) (16 * context.getResources().getDisplayMetrics().density);
+        LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(iconSize, iconSize);
+        iconLp.setMarginEnd((int) (6 * context.getResources().getDisplayMetrics().density));
+        icon.setLayoutParams(iconLp);
+
+        final TextView label = new TextView(context);
+        final String maskedText = VaultDao.Companion.maskPhrase(entry.getPhrase());
+        final String displayLabel = !TextUtils.isEmpty(entry.getShortcut()) ? maskedText + " (" + entry.getShortcut() + ")" : maskedText;
+        label.setText(displayLabel);
+        label.setTextColor(keyTextCol);
+        label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f);
+        KeyboardTypeface.applyToTextView(label);
+
+        pill.addView(icon);
+        pill.addView(label);
+
+        pill.setOnClickListener(v -> {
+            final SuggestedWordInfo info = new SuggestedWordInfo(
+                entry.getPhrase(), "", "", 1000,
+                SuggestedWordInfo.KIND_VAULT_ENTRY,
+                Dictionary.DICTIONARY_VAULT,
+                SuggestedWordInfo.NOT_AN_INDEX,
+                SuggestedWordInfo.NOT_A_CONFIDENCE
+            );
+            if (!VaultSessionManager.INSTANCE.isPatternSet(this) || VaultSessionManager.INSTANCE.isPrivacySessionValid()) {
+                pickSuggestionManually(info);
+                removeExternalSuggestions();
+            } else {
+                KeyboardSwitcher.getInstance().showStealthPatternUnlock(
+                    () -> {
+                        pickSuggestionManually(info);
+                        removeExternalSuggestions();
+                    },
+                    () -> LogCatcher.log('I', "PrivacyVault", "Pattern unlock dismissed", null)
+                );
+            }
+        });
+
+        root.addView(pill);
+        return root;
+    }
+
     /**
      *  Checks if matching vault credentials exist for the focused application/URL.
      *  If available, renders stealth context pills directly on the suggestion strip.
@@ -1674,6 +1777,12 @@ public class LatinIME extends InputMethodService implements
         if (!hasSuggestionStripView()) return false;
         final EditorInfo editorInfo = getCurrentInputEditorInfo();
         if (editorInfo == null) return false;
+        if (!InputTypeUtils.isPasswordInputType(editorInfo.inputType) && !InputTypeUtils.isVisiblePasswordInputType(editorInfo.inputType)) {
+            return false;
+        }
+        if (mSettings.getCurrent().mLiteMode) {
+            return false;
+        }
         final List<VaultEntryEntity> matches = SecurityVaultContextSniffer.INSTANCE.findMatchingEntries(this, editorInfo);
         if (matches.isEmpty()) return false;
 
@@ -2071,6 +2180,7 @@ public class LatinIME extends InputMethodService implements
             case TRIM_MEMORY_RUNNING_LOW, TRIM_MEMORY_RUNNING_CRITICAL, TRIM_MEMORY_COMPLETE -> {
                 KeyboardLayoutSet.Companion.onSystemLocaleChanged(); // clears caches, nothing else
                 mKeyboardSwitcher.trimMemory();
+                VaultDao.Companion.getInstance(this).setSuspended(true);
             }
             // deallocateMemory always called on hiding, and should not be called when showing
         }

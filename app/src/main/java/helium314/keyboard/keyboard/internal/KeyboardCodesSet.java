@@ -61,6 +61,7 @@ public final class KeyboardCodesSet {
         "key_log_keeper",
         "key_desktop_shortcuts",
         "key_privacy_vault",
+        "key_security_vault",
     };
 
     private static final int[] DEFAULT = {
@@ -92,6 +93,7 @@ public final class KeyboardCodesSet {
         KeyCode.LOG_KEEPER,
         KeyCode.DESKTOP_SHORTCUTS,
         KeyCode.PRIVACY_VAULT,
+        KeyCode.SECURITY_VAULT,
     };
 
     static {
