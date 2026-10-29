@@ -96,7 +96,7 @@ fun AdvancedSettingsScreen(
                 ) { NextScreenIcon() }
                 Preference(
                     name = stringResource(R.string.backup_restore_title),
-                    description = "Backup all, restore all, and import HeliBoard backups",
+                    description = "Modular backup (.zip) and Security Vault KeePass (.kdbx)",
                     icon = R.drawable.ic_settings_advanced,
                     onClick = onClickBackupRestore
                 ) { NextScreenIcon() }

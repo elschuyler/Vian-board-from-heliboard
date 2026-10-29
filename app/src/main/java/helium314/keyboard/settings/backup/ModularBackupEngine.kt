@@ -359,74 +359,9 @@ object ModularBackupEngine {
                         zip.closeEntry()
                         stats["vault_configured"] = if (vaultData.hasPattern) 1 else 0
 
-                        // Export portable encrypted vault container
-                        if (salt != null && hash != null) {
-                            try {
-                                val saltBytes = hexToByteArray(salt)
-                                val keyBytes = VaultSessionManager.deriveKeyFromSaltAndHash(saltBytes, hash.toByteArray(Charsets.UTF_8))
-                                val dao = SecurityVaultDao.getInstance(context)
-                                val groups = dao.getAllGroups().map {
-                                    PortableVaultGroup(it.groupUuid, it.parentGroupUuid, it.name, it.iconId)
-                                }
-                                val entries = dao.getAllEntries().map {
-                                    PortableVaultEntry(
-                                        entryUuid = it.entryUuid,
-                                        groupUuid = it.groupUuid,
-                                        title = it.title,
-                                        username = it.username,
-                                        passwordPlain = VaultCryptoManager.decryptToString(it.passwordEncrypted),
-                                        urlOrPackage = it.urlOrPackage,
-                                        totpSecretPlain = VaultCryptoManager.decryptToString(it.totpSecretEncrypted),
-                                        notesPlain = VaultCryptoManager.decryptToString(it.notesEncrypted),
-                                        customFieldsPlainJson = VaultCryptoManager.unpackCustomFieldsJson(it.customFieldsJson),
-                                        updatedAt = it.updatedAt
-                                    )
-                                }
-                                val attachments = mutableListOf<PortableVaultAttachment>()
-                                for (e in dao.getAllEntries()) {
-                                    for (att in dao.getAttachmentsForEntry(e.entryUuid)) {
-                                        val dataBytes = att.dataBlobEncrypted?.let { blob ->
-                                            try {
-                                                VaultCryptoManager.decrypt(blob)
-                                            } catch (_: Throwable) {
-                                                blob
-                                            }
-                                        }
-                                        val b64 = if (dataBytes != null) Base64.encodeToString(dataBytes, Base64.NO_WRAP) else null
-                                        attachments.add(
-                                            PortableVaultAttachment(
-                                                attachmentUuid = att.attachmentUuid,
-                                                entryUuid = att.entryUuid,
-                                                filename = att.filename,
-                                                mimeType = att.mimeType,
-                                                dataBase64 = b64
-                                            )
-                                        )
-                                    }
-                                }
-
-                                val container = PortableVaultContainer(groups, entries, attachments)
-                                val containerJsonBytes = json.encodeToString(container).toByteArray(Charsets.UTF_8)
-                                val encryptedBytes = encryptWithKey(keyBytes, containerJsonBytes)
-                                zip.putNextEntry(ZipEntry("security/vault_portable.enc"))
-                                zip.write(encryptedBytes)
-                                zip.closeEntry()
-                                stats["vault_entries_exported"] = entries.size
-                                LogCatcher.i(TAG, "Exported portable encrypted vault archive (${entries.size} entries, ${groups.size} groups)")
-                            } catch (t: Throwable) {
-                                LogCatcher.e(TAG, "Failed to export portable encrypted vault: ${t.message}", t)
-                            }
-                        }
-
-                        // Also export encrypted security_vault.db sandbox if present
-                        val vaultDbFile = File(context.noBackupFilesDir, SecurityVaultDatabase.DATABASE_NAME)
-                        if (vaultDbFile.exists()) {
-                            zip.putNextEntry(ZipEntry("security/${SecurityVaultDatabase.DATABASE_NAME}"))
-                            FileInputStream(vaultDbFile).use { it.copyTo(zip) }
-                            zip.closeEntry()
-                            stats["vault_db_exported"] = 1
-                            LogCatcher.i(TAG, "Exported Security Vault sandbox database (${vaultDbFile.length()} bytes)")
-                        }
+                        // Decoupled architecture: Security Vault database entries are completely excluded from .zip backups.
+                        // Standard KeePass (.kdbx) export must be used for portable credentials.
+                        LogCatcher.i(TAG, "Excluded Security Vault database entries from ZIP archive. KeePass (.kdbx) handles credential export.")
                     }
 
 
@@ -527,8 +462,10 @@ object ModularBackupEngine {
                             detectedModules.add(BackupModule.WORD_IMPROVEMENT)
                         } else if (name.contains("privacy_vault")) {
                             detectedModules.add(BackupModule.PRIVACY_VAULT)
-                        } else if (name.contains("vault.json") || name.contains("vault_portable.enc") || name.contains(SecurityVaultDatabase.DATABASE_NAME)) {
+                        } else if (name.contains("vault.json")) {
                             detectedModules.add(BackupModule.SECURITY_VAULT)
+                        } else if (name.contains("vault_portable.enc") || name.contains(SecurityVaultDatabase.DATABASE_NAME)) {
+                            LogCatcher.i(TAG, "Legacy database/entry container ($name) ignored from zip inspection. Credentials must be imported via .kdbx.")
                         } else if (name == Database.NAME) {
                             hasLegacyDb = true
                             detectedModules.add(BackupModule.CLIPBOARD_PROMPTS)
@@ -616,8 +553,6 @@ object ModularBackupEngine {
             var prefLines: List<String>? = null
             var protectedPrefLines: List<String>? = null
             var vaultData: VaultBackupData? = null
-            var restoredVaultDbBytes: ByteArray? = null
-            var restoredVaultPortableBytes: ByteArray? = null
             var clipboardJson: String? = null
             var promptsJson: String? = null
             var voiceReplJson: String? = null
@@ -646,15 +581,8 @@ object ModularBackupEngine {
                                     vaultData = json.decodeFromString<VaultBackupData>(content)
                                 }
                             }
-                            name == "security/vault_portable.enc" -> {
-                                if (BackupModule.SECURITY_VAULT in selectedModules) {
-                                    restoredVaultPortableBytes = zip.readBytes()
-                                }
-                            }
-                            name == "security/${SecurityVaultDatabase.DATABASE_NAME}" -> {
-                                if (BackupModule.SECURITY_VAULT in selectedModules) {
-                                    restoredVaultDbBytes = zip.readBytes()
-                                }
+                            name == "security/vault_portable.enc" || name == "security/${SecurityVaultDatabase.DATABASE_NAME}" -> {
+                                LogCatcher.i(TAG, "Skipped legacy Security Vault database ($name) from .zip. Credentials must be imported separately via .kdbx file.")
                             }
                             name == "database/clipboard.json" -> {
                                 if (BackupModule.CLIPBOARD_PROMPTS in selectedModules) {
@@ -734,72 +662,8 @@ object ModularBackupEngine {
                 readJsonLinesToSettings(protectedPrefLines!!, protectedPrefs)
             }
 
-            // 2. Restore Security Vault
+            // 2. Restore Security Vault (Pattern lock & settings only)
             if (BackupModule.SECURITY_VAULT in selectedModules) {
-                var restoredFromPortable = false
-                if (restoredVaultPortableBytes != null) {
-                    try {
-                        val s = vaultData?.saltHex ?: context.prefs().getString(PREF_PATTERN_SALT, null)
-                        val h = vaultData?.hashHex ?: context.prefs().getString(PREF_PATTERN_HASH, null)
-                        if (s != null && h != null) {
-                            val saltBytes = hexToByteArray(s)
-                            val keyBytes = VaultSessionManager.deriveKeyFromSaltAndHash(saltBytes, h.toByteArray(Charsets.UTF_8))
-                            val decryptedBytes = decryptWithKey(keyBytes, restoredVaultPortableBytes!!)
-                            val containerJson = String(decryptedBytes, Charsets.UTF_8)
-                            val container = json.decodeFromString<PortableVaultContainer>(containerJson)
-
-                            val dao = SecurityVaultDao.getInstance(context)
-                            val groups = container.groups.map {
-                                VaultGroupEntity(it.groupUuid, it.parentGroupUuid, it.name, it.iconId)
-                            }
-                            val entries = container.entries.map {
-                                VaultEntryEntity(
-                                    entryUuid = it.entryUuid,
-                                    groupUuid = it.groupUuid,
-                                    title = it.title,
-                                    username = it.username,
-                                    passwordEncrypted = it.passwordPlain?.let { p -> VaultCryptoManager.encryptString(p) },
-                                    urlOrPackage = it.urlOrPackage,
-                                    totpSecretEncrypted = it.totpSecretPlain?.let { t -> VaultCryptoManager.encryptString(t) },
-                                    notesEncrypted = it.notesPlain?.let { n -> VaultCryptoManager.encryptString(n) },
-                                    customFieldsJson = VaultCryptoManager.packCustomFieldsJson(it.customFieldsPlainJson),
-                                    updatedAt = it.updatedAt
-                                )
-                            }
-                            val attachments = container.attachments.map {
-                                val rawBytes = it.dataBase64?.let { b64 -> Base64.decode(b64, Base64.DEFAULT) }
-                                val encryptedBlob = rawBytes?.let { b -> VaultCryptoManager.encrypt(b) }
-                                VaultAttachmentEntity(
-                                    attachmentUuid = it.attachmentUuid,
-                                    entryUuid = it.entryUuid,
-                                    filename = it.filename,
-                                    mimeType = it.mimeType,
-                                    dataBlobEncrypted = encryptedBlob
-                                )
-                            }
-                            dao.replaceAllWith(groups, entries, attachments)
-                            restoredFromPortable = true
-                            restoredStats["security_vault_portable"] = entries.size
-                            LogCatcher.i(TAG, "Restored portable encrypted vault: ${entries.size} entries, ${groups.size} groups")
-                        }
-                    } catch (t: Throwable) {
-                        LogCatcher.e(TAG, "Failed to restore portable vault: ${t.message}", t)
-                    }
-                }
-
-                if (!restoredFromPortable && restoredVaultDbBytes != null) {
-                    try {
-                        SecurityVaultDao.resetInstance()
-                        val noBackupDir = context.noBackupFilesDir
-                        if (!noBackupDir.exists()) noBackupDir.mkdirs()
-                        val vaultDbFile = File(noBackupDir, SecurityVaultDatabase.DATABASE_NAME)
-                        FileOutputStream(vaultDbFile).use { it.write(restoredVaultDbBytes!!) }
-                        restoredStats["security_vault_db"] = 1
-                        LogCatcher.i(TAG, "Restored Security Vault database from backup (${restoredVaultDbBytes!!.size} bytes)")
-                    } catch (t: Throwable) {
-                        LogCatcher.e(TAG, "Failed to restore security_vault.db: ${t.message}", t)
-                    }
-                }
                 if (vaultData != null) {
                     context.prefs().edit {
                         if (vaultData!!.hasPattern && vaultData!!.saltHex != null && vaultData!!.hashHex != null) {
@@ -811,7 +675,7 @@ object ModularBackupEngine {
                         }
                     }
                     restoredStats["security_vault"] = if (vaultData!!.hasPattern) 1 else 0
-                    LogCatcher.i(TAG, "Restored Security Vault from vault.json (hasPattern=${vaultData!!.hasPattern})")
+                    LogCatcher.i(TAG, "Restored Security Vault pattern lock configuration from vault.json. Credential database entries from zip were skipped in favor of KeePass .kdbx.")
                 } else if (BackupModule.SETTINGS !in selectedModules) {
                     // In case settings wasn't selected, check if prefLines contains vault keys
                     if (prefLines != null) {

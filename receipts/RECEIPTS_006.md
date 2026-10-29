@@ -36,3 +36,51 @@ Strictly capped at 500 lines per file.
 - **How it was verified**: local build only (`gradle compileDebugKotlin compileDebugJavaWithJavac` succeeded in 1m 45s).
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: Ready for on-device manual QA testing.
+
+---
+
+### Receipt Entry: Phase 80 Security Vault Crash Hardening, Keystore Mismatch Handling, and Modular Backup Separation (.zip & .kdbx)
+- **Timestamp**: 2026-10-29 03:45:00 UTC-7
+- **Summary of request**: Fix fatal app crash occurring when opening Security Vault settings page entry list (`KdbxEntriesScreen.kt`) caused by restoring old backups containing AndroidKeyStore-locked entries; decouple backup architecture so general keyboard data is saved as `.zip` and Security Vault credentials are kept separately as standard KeePass `.kdbx` files.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/security/vault/crypto/VaultCryptoManager.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/KdbxEntriesScreen.kt`
+  - `app/src/main/java/helium314/keyboard/settings/backup/ModularBackupEngine.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/BackupRestoreScreen.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/AdvancedScreen.kt`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_006.md`
+- **What was actually done**:
+  1. Analyzed crash dump `/public/assets/aistudio/VianBoard_CRASH_20261029_000939.log_c77c694f.txt`: confirmed root cause was `javax.crypto.AEADBadTagException` occurring when attempting to decrypt legacy SQLite ciphertext using newly generated hardware-backed AndroidKeyStore AES keys on app reinstall.
+  2. In `VaultCryptoManager.kt`: Added defensive exception wrapping in `decryptToString()`, `decryptToCharArray()`, and created `decryptOrNull()`. Decryption failures now return `null` safely rather than crashing the calling UI thread.
+  3. In `KdbxEntriesScreen.kt`: Handled `null` decrypted values gracefully and introduced `isKeyMismatched` badge in `VaultEntryItemCard` (`⚠️ Key Mismatched • Re-import KDBX`), providing visual feedback to the user without interrupting Compose rendering.
+  4. In `ModularBackupEngine.kt`: Removed raw `security_vault.db` SQLite database export from the general `.zip` backup archive to eliminate keystore mismatch conflicts on restore.
+  5. In `BackupRestoreScreen.kt`: Added a dedicated "Security Vault (KeePass .kdbx)" category featuring distinct Preferences for Export (.kdbx) and Import (.kdbx), complete with Master Password setup, validation, confirmation, and optional Key File picker dialogs.
+  6. In `AdvancedScreen.kt`: Updated preference description to clearly distinguish between modular `.zip` backups and KeePass `.kdbx` credential archives.
+  7. Verified compilation cleanly using `compile_applet`. Zero errors.
+  8. Executed silent security self-scan per Mandates 2 & 3: zero exposed credentials found in workspace.
+- **How it was verified**: local build only (`compile_applet` passed cleanly).
+- **Deviation from requested**: Floating window request was postponed as instructed ("Forget floating window for now").
+- **Known issue or follow-up needed**: Ready for user on-device verification.
+
+---
+
+### Receipt Entry: Phase 81 Enforce Total Exclusion of Security Vault Database Entries from ZIP Backup and Restore
+- **Timestamp**: 2026-10-29 04:30:00 UTC-7
+- **Summary of request**: Ensure that if an old backup .zip contains Security Vault credential entries or database files, they are completely excluded and never imported/restored into the local database; strictly decouple all Security Vault credential data so .zip archives never read or write vault entries.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/settings/backup/ModularBackupEngine.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/BackupRestoreScreen.kt`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_006.md`
+- **What was actually done**:
+  1. In `ModularBackupEngine.kt`: Excised `vault_portable.enc` generation and serialization from `createBackup()`. New .zip archives will never contain encrypted entry containers or databases.
+  2. In `ModularBackupEngine.kt`: Updated `inspectArchive()` to bypass `vault_portable.enc` and `security_vault.db` so they are not detected as credential restore targets from .zip files.
+  3. In `ModularBackupEngine.kt`: Excised `restoredVaultDbBytes` and `restoredVaultPortableBytes` variables and read logic from `restoreArchive()`. Any legacy vault database or entry container present inside an old .zip is explicitly skipped and logged.
+  4. In `ModularBackupEngine.kt`: Completely eliminated database replacement/restoration logic (`dao.replaceAllWith()` and file-copying to `SecurityVaultDatabase.DATABASE_NAME`) from the restore execution sequence. If `SECURITY_VAULT` is selected, only the pattern lock configuration (`vault.json`) in `context.prefs()` is restored.
+  5. In `BackupRestoreScreen.kt`: Updated UI description for Restore to explicitly clarify that `.zip` archives exclude vault credentials.
+  6. Verified compilation cleanly using `compile_applet`. Zero errors.
+  7. Performed silent security scan per Mandates 2 & 3: zero exposed credentials found.
+- **How it was verified**: local build only (`compile_applet` passed cleanly).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for user on-device verification.

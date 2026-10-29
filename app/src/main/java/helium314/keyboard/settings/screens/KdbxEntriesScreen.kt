@@ -352,6 +352,16 @@ private fun VaultEntryItemCard(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    val isKeyMismatched = remember(entry.passwordEncrypted) {
+                        entry.passwordEncrypted != null && VaultCryptoManager.decryptToString(entry.passwordEncrypted) == null
+                    }
+                    if (isKeyMismatched) {
+                        Text(
+                            text = "⚠️ Key Mismatched • Re-import KDBX",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
                 if (entry.totpSecretEncrypted != null) {
                     val totpSecret = remember(entry.totpSecretEncrypted) {

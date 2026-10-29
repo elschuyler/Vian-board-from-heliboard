@@ -1000,6 +1000,40 @@ Vianboard is a fully customizable, privacy-conscious offline Android keyboard ap
     - Clean compilation verified via Gradle (`compileDebugKotlin`, `compileDebugJavaWithJavac` succeeded in 1m 45s).
     - Silent security scan confirmed zero exposed credentials.
 
+- **2026-10-29**: Completed Phase 80 (Security Vault Crash Hardening, Hardware Keystore Mismatch Handling, and Modular Backup Separation to KeePass .kdbx):
+  - **Component 1: Vault Crypto Manager Exception Shielding (`VaultCryptoManager.kt`)**:
+    - Wrapped `decryptToString()` and `decryptToCharArray()` in defensive `try-catch` blocks catching `AEADBadTagException` and any decryption failure.
+    - Added `decryptOrNull(encryptedBlob: ByteArray?): ByteArray?` returning `null` safely when ciphertext was sealed with a mismatched or obsolete hardware-backed AndroidKeyStore key.
+    - Completely prevents unhandled crypto exceptions from escaping into Jetpack Compose recomposition cycles.
+  - **Component 2: Compose Entry List Crash Immunity & Visual Indicator (`KdbxEntriesScreen.kt`)**:
+    - Added `isKeyMismatched` check in `VaultEntryItemCard`.
+    - Rendered explicit visual indicator badge `⚠️ Key Mismatched • Re-import KDBX` in place of corrupt or un-decryptable passwords, preventing UI crashes and guiding the user to re-import standard KeePass credentials.
+  - **Component 3: Backup Engine Architecture Decoupling (`ModularBackupEngine.kt`)**:
+    - Excised raw hardware-bound `security_vault.db` SQLite database export from the general `.zip` backup archive.
+    - Separated the backup model: general keyboard configurations, layouts, and clipboard are backed up in `.zip`, while portable credentials reside strictly in industry-standard KeePass `.kdbx` files.
+  - **Component 4: Dedicated KeePass (.kdbx) Export and Import UI (`BackupRestoreScreen.kt`, `AdvancedScreen.kt`)**:
+    - Added dedicated "Security Vault (KeePass .kdbx)" category in `BackupRestoreScreen.kt` with distinct Preferences for Export (.kdbx) and Import (.kdbx).
+    - Built comprehensive Master Password setup dialog with password confirmation and validation for `.kdbx` export.
+    - Built Master Password unlock dialog with show/hide toggle and optional Key File picker for `.kdbx` import.
+    - Updated `AdvancedScreen.kt` description to clearly distinguish between modular `.zip` backup and Security Vault `.kdbx`.
+  - **Component 5: Compilation & Security Verification**:
+    - Clean compilation verified via `compile_applet` with 0 errors.
+    - Performed silent security self-scan per Mandates 2 & 3: zero exposed credentials found.
+
+- **2026-10-29**: Completed Phase 81 (Enforce Total Exclusion of Security Vault Database Entries from ZIP Backup and Restore):
+  - **Component 1: Complete Bypassing of Vault Database Import on Restore (`ModularBackupEngine.kt`)**:
+    - Removed `restoredVaultDbBytes` and `restoredVaultPortableBytes` variables and read logic from `restoreArchive()`.
+    - When encountering legacy `vault_portable.enc` or `security_vault.db` inside an old `.zip` archive, the engine strictly skips them with explicit telemetry logging.
+    - Completely removed database overwrite/injection logic (`dao.replaceAllWith()` and file-copying to `SecurityVaultDatabase.DATABASE_NAME`) from the `.zip` restore sequence.
+    - Preserved only pattern lock hash/salt configuration restoration from `vault.json` if selected.
+  - **Component 2: Archive Inspection Sanitization (`ModularBackupEngine.kt`)**:
+    - In `inspectArchive()`, bypassed legacy `vault_portable.enc` and `security_vault.db` files so they are no longer detected as credential restoration targets from `.zip`.
+  - **Component 3: Complete Decoupling on ZIP Export (`ModularBackupEngine.kt`)**:
+    - Removed `vault_portable.enc` serialization from `createBackup()`. `.zip` archives will never contain credential entries.
+  - **Component 4: Compilation & Security Verification**:
+    - Verified compilation cleanly via `compile_applet`. Zero errors.
+    - Performed silent security self-scan per Mandates 2 & 3: zero exposed credentials.
+
 
 
 

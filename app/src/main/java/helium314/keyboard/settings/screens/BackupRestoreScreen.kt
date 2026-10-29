@@ -40,6 +40,28 @@ import helium314.keyboard.settings.dialogs.ConfirmationDialog
 import helium314.keyboard.settings.dialogs.InfoDialog
 import helium314.keyboard.settings.filePicker
 import helium314.keyboard.settings.preferences.Preference
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.dp
+import helium314.keyboard.security.vault.data.SecurityVaultDao
+import helium314.keyboard.security.vault.engine.KdbxRepository
+import helium314.keyboard.settings.preferences.PreferenceCategory
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -66,6 +88,17 @@ fun BackupRestoreScreen(
     var pendingRestoreUri by remember {
         mutableStateOf<Uri?>(null)
     }
+
+    var showKdbxExportPasswordDialog by rememberSaveable { mutableStateOf(false) }
+    var showKdbxImportPasswordDialog by rememberSaveable { mutableStateOf(false) }
+    var pendingKdbxExportUri by remember { mutableStateOf<Uri?>(null) }
+    var pendingKdbxImportUri by remember { mutableStateOf<Uri?>(null) }
+    var pendingKdbxKeyFileUri by remember { mutableStateOf<Uri?>(null) }
+    var kdbxMasterPasswordInput by remember { mutableStateOf("") }
+    var kdbxConfirmPasswordInput by remember { mutableStateOf("") }
+    var isKdbxPasswordVisible by remember { mutableStateOf(false) }
+    var isKdbxProcessing by remember { mutableStateOf(false) }
+    var kdbxDialogError by remember { mutableStateOf<String?>(null) }
 
     val backupLauncher = filePicker { uri ->
         ExecutorUtils.getBackgroundExecutor(ExecutorUtils.KEYBOARD).execute {
@@ -102,6 +135,26 @@ fun BackupRestoreScreen(
         }
     }
 
+    val kdbxExportLauncher = filePicker { uri ->
+        pendingKdbxExportUri = uri
+        kdbxMasterPasswordInput = ""
+        kdbxConfirmPasswordInput = ""
+        kdbxDialogError = null
+        showKdbxExportPasswordDialog = true
+    }
+
+    val kdbxImportLauncher = filePicker { uri ->
+        pendingKdbxImportUri = uri
+        pendingKdbxKeyFileUri = null
+        kdbxMasterPasswordInput = ""
+        kdbxDialogError = null
+        showKdbxImportPasswordDialog = true
+    }
+
+    val kdbxKeyFileLauncher = filePicker { uri ->
+        pendingKdbxKeyFileUri = uri
+    }
+
     SearchSettingsScreen(
         onClickBack = onClickBack,
         title = stringResource(R.string.backup_restore_title),
@@ -113,6 +166,7 @@ fun BackupRestoreScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(innerPadding)
             ) {
+                PreferenceCategory(title = "Keyboard Data Archive (.zip)")
                 Preference(
                     name = stringResource(R.string.button_backup),
                     description = "Modular export of settings, custom layouts, dictionaries, and clipboard",
@@ -121,7 +175,7 @@ fun BackupRestoreScreen(
                 )
                 Preference(
                     name = stringResource(R.string.button_restore),
-                    description = "Granular restore from backup archive with component selection",
+                    description = "Granular restore from backup archive (.zip excludes vault credentials, use .kdbx)",
                     icon = R.drawable.ic_settings_advanced,
                     onClick = {
                         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
@@ -135,6 +189,37 @@ fun BackupRestoreScreen(
                     description = "Seamlessly import configurations and user data from legacy HeliBoard backups",
                     icon = R.drawable.ic_settings_about,
                     onClick = { showHeliBoardConfirm = true }
+                )
+
+                PreferenceCategory(title = "Security Vault (KeePass .kdbx)")
+                Preference(
+                    name = "Export Security Vault (.kdbx)",
+                    description = "Export credentials into an industry-standard portable KeePass database (.kdbx)",
+                    icon = R.drawable.ic_vpn_key,
+                    onClick = {
+                        val dao = SecurityVaultDao.getInstance(ctx)
+                        if (dao.getAllGroups().isEmpty()) {
+                            Toast.makeText(ctx, "Security Vault has no groups or entries to export", Toast.LENGTH_LONG).show()
+                        } else {
+                            val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Calendar.getInstance().time)
+                            val intent = Intent(Intent.ACTION_CREATE_DOCUMENT)
+                                .addCategory(Intent.CATEGORY_OPENABLE)
+                                .putExtra(Intent.EXTRA_TITLE, "VianBoard_vault_$currentDate.kdbx")
+                                .setType("application/octet-stream")
+                            kdbxExportLauncher.launch(intent)
+                        }
+                    }
+                )
+                Preference(
+                    name = "Import Security Vault (.kdbx)",
+                    description = "Import an external KeePass database (.kdbx) with master password and seal in hardware",
+                    icon = R.drawable.ic_settings_security,
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
+                            .addCategory(Intent.CATEGORY_OPENABLE)
+                            .setType("*/*")
+                        kdbxImportLauncher.launch(intent)
+                    }
                 )
             }
         }
@@ -219,5 +304,252 @@ fun BackupRestoreScreen(
                 stringResource(R.string.backup_error, error!!.drop(1))
             else stringResource(R.string.restore_error, error!!.drop(1))
         ) { error = null }
+    }
+
+    if (showKdbxExportPasswordDialog && pendingKdbxExportUri != null) {
+        val exportUri = pendingKdbxExportUri!!
+        AlertDialog(
+            onDismissRequest = {
+                if (!isKdbxProcessing) {
+                    showKdbxExportPasswordDialog = false
+                    pendingKdbxExportUri = null
+                    kdbxMasterPasswordInput = ""
+                    kdbxConfirmPasswordInput = ""
+                    kdbxDialogError = null
+                }
+            },
+            title = { Text("Export Security Vault (.kdbx)") },
+            text = {
+                Column {
+                    Text(
+                        "Set a master password to encrypt your portable KeePass database. You will use this password to unlock this file in KeePassXC or VianBoard.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = kdbxMasterPasswordInput,
+                        onValueChange = {
+                            kdbxMasterPasswordInput = it
+                            kdbxDialogError = null
+                        },
+                        label = { Text("Master Password") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        visualTransformation = if (isKdbxPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
+                        trailingIcon = {
+                            IconButton(onClick = { isKdbxPasswordVisible = !isKdbxPasswordVisible }) {
+                                Text(if (isKdbxPasswordVisible) "Hide" else "Show", style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = kdbxConfirmPasswordInput,
+                        onValueChange = {
+                            kdbxConfirmPasswordInput = it
+                            kdbxDialogError = null
+                        },
+                        label = { Text("Confirm Password") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        visualTransformation = if (isKdbxPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done)
+                    )
+                    if (kdbxDialogError != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(kdbxDialogError!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (kdbxMasterPasswordInput != kdbxConfirmPasswordInput) {
+                            kdbxDialogError = "Passwords do not match"
+                            return@Button
+                        }
+                        if (kdbxMasterPasswordInput.isEmpty()) {
+                            kdbxDialogError = "Password cannot be empty"
+                            return@Button
+                        }
+                        isKdbxProcessing = true
+                        val pwdChars = kdbxMasterPasswordInput.toCharArray()
+                        ExecutorUtils.getBackgroundExecutor(ExecutorUtils.KEYBOARD).execute {
+                            try {
+                                val success = KdbxRepository.exportToUri(ctx, exportUri, pwdChars)
+                                Handler(Looper.getMainLooper()).post {
+                                    isKdbxProcessing = false
+                                    if (success) {
+                                        showKdbxExportPasswordDialog = false
+                                        pendingKdbxExportUri = null
+                                        kdbxMasterPasswordInput = ""
+                                        kdbxConfirmPasswordInput = ""
+                                        Toast.makeText(ctx, "Security Vault exported to KeePass (.kdbx) successfully", Toast.LENGTH_LONG).show()
+                                    } else {
+                                        kdbxDialogError = "Failed to export KeePass database"
+                                    }
+                                }
+                            } catch (t: Throwable) {
+                                LogCatcher.e("BackupRestoreScreen", "KDBX export failed: ${t.message}", t)
+                                Handler(Looper.getMainLooper()).post {
+                                    isKdbxProcessing = false
+                                    kdbxDialogError = t.message ?: "Export failed"
+                                }
+                            }
+                        }
+                    },
+                    enabled = kdbxMasterPasswordInput.isNotBlank() && !isKdbxProcessing
+                ) {
+                    Text(if (isKdbxProcessing) "Exporting..." else "Export .kdbx")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        if (!isKdbxProcessing) {
+                            showKdbxExportPasswordDialog = false
+                            pendingKdbxExportUri = null
+                            kdbxMasterPasswordInput = ""
+                            kdbxConfirmPasswordInput = ""
+                            kdbxDialogError = null
+                        }
+                    },
+                    enabled = !isKdbxProcessing
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showKdbxImportPasswordDialog && pendingKdbxImportUri != null) {
+        val importUri = pendingKdbxImportUri!!
+        AlertDialog(
+            onDismissRequest = {
+                if (!isKdbxProcessing) {
+                    showKdbxImportPasswordDialog = false
+                    pendingKdbxImportUri = null
+                    pendingKdbxKeyFileUri = null
+                    kdbxMasterPasswordInput = ""
+                    kdbxDialogError = null
+                }
+            },
+            title = { Text("Import Security Vault (.kdbx)") },
+            text = {
+                Column {
+                    Text(
+                        "Enter the master password to decrypt this KeePass file and seal credentials in your device hardware.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = kdbxMasterPasswordInput,
+                        onValueChange = {
+                            kdbxMasterPasswordInput = it
+                            kdbxDialogError = null
+                        },
+                        label = { Text("Master Password") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        visualTransformation = if (isKdbxPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                        trailingIcon = {
+                            IconButton(onClick = { isKdbxPasswordVisible = !isKdbxPasswordVisible }) {
+                                Text(if (isKdbxPasswordVisible) "Hide" else "Show", style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Key File (Optional)", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = pendingKdbxKeyFileUri?.lastPathSegment ?: "None selected",
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 1
+                            )
+                        }
+                        if (pendingKdbxKeyFileUri != null) {
+                            TextButton(onClick = { pendingKdbxKeyFileUri = null }) {
+                                Text("Clear")
+                            }
+                        } else {
+                            TextButton(onClick = {
+                                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
+                                    .addCategory(Intent.CATEGORY_OPENABLE)
+                                    .setType("*/*")
+                                kdbxKeyFileLauncher.launch(intent)
+                            }) {
+                                Text("Browse")
+                            }
+                        }
+                    }
+                    if (kdbxDialogError != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(kdbxDialogError!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        isKdbxProcessing = true
+                        val pwdChars = kdbxMasterPasswordInput.toCharArray()
+                        val keyFileUri = pendingKdbxKeyFileUri
+                        ExecutorUtils.getBackgroundExecutor(ExecutorUtils.KEYBOARD).execute {
+                            try {
+                                val result = KdbxRepository.importFromUri(ctx, importUri, pwdChars, keyFileUri)
+                                Handler(Looper.getMainLooper()).post {
+                                    isKdbxProcessing = false
+                                    if (result.success) {
+                                        showKdbxImportPasswordDialog = false
+                                        pendingKdbxImportUri = null
+                                        pendingKdbxKeyFileUri = null
+                                        kdbxMasterPasswordInput = ""
+                                        Toast.makeText(
+                                            ctx,
+                                            "Security Vault imported successfully: ${result.groupCount} groups, ${result.entryCount} entries",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    } else {
+                                        kdbxDialogError = result.errorMessage ?: "Failed to import KeePass file (invalid password or format)"
+                                    }
+                                }
+                            } catch (t: Throwable) {
+                                LogCatcher.e("BackupRestoreScreen", "KDBX import failed: ${t.message}", t)
+                                Handler(Looper.getMainLooper()).post {
+                                    isKdbxProcessing = false
+                                    kdbxDialogError = t.message ?: "Import failed"
+                                }
+                            }
+                        }
+                    },
+                    enabled = (kdbxMasterPasswordInput.isNotBlank() || pendingKdbxKeyFileUri != null) && !isKdbxProcessing
+                ) {
+                    Text(if (isKdbxProcessing) "Importing..." else "Import .kdbx")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        if (!isKdbxProcessing) {
+                            showKdbxImportPasswordDialog = false
+                            pendingKdbxImportUri = null
+                            pendingKdbxKeyFileUri = null
+                            kdbxMasterPasswordInput = ""
+                            kdbxDialogError = null
+                        }
+                    },
+                    enabled = !isKdbxProcessing
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }

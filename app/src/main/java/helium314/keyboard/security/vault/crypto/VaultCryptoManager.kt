@@ -122,6 +122,20 @@ object VaultCryptoManager {
     }
 
     /**
+     * Decrypts encrypted blob using AES-256-GCM safely.
+     * Returns null instead of throwing on AEADBadTagException or key mismatch.
+     */
+    fun decryptOrNull(encryptedBlob: ByteArray?): ByteArray? {
+        if (encryptedBlob == null || encryptedBlob.size <= GCM_IV_LENGTH_BYTES) return null
+        return try {
+            decrypt(encryptedBlob)
+        } catch (t: Throwable) {
+            LogCatcher.w(TAG, "AES-GCM decryption failed (key mismatch or corrupted payload): ${t.message}")
+            null
+        }
+    }
+
+    /**
      * Encrypts a string directly into an encrypted byte array.
      */
     fun encryptString(plaintext: String): ByteArray {
@@ -135,14 +149,20 @@ object VaultCryptoManager {
 
     /**
      * Decrypts an encrypted byte blob to a String.
+     * Safely returns null on decryption error (e.g. AEADBadTagException) to prevent UI crashes.
      */
     fun decryptToString(encryptedBlob: ByteArray?): String? {
         if (encryptedBlob == null || encryptedBlob.isEmpty()) return null
-        val decryptedBytes = decrypt(encryptedBlob)
-        try {
-            return String(decryptedBytes, StandardCharsets.UTF_8)
-        } finally {
-            zeroize(decryptedBytes)
+        return try {
+            val decryptedBytes = decrypt(encryptedBlob)
+            try {
+                String(decryptedBytes, StandardCharsets.UTF_8)
+            } finally {
+                zeroize(decryptedBytes)
+            }
+        } catch (t: Throwable) {
+            LogCatcher.w(TAG, "decryptToString failed (key mismatch or invalid tag): ${t.message}")
+            null
         }
     }
 
@@ -204,14 +224,19 @@ object VaultCryptoManager {
      */
     fun decryptToCharArray(encryptedBlob: ByteArray?): CharArray? {
         if (encryptedBlob == null || encryptedBlob.isEmpty()) return null
-        val decryptedBytes = decrypt(encryptedBlob)
-        try {
-            val charBuffer = StandardCharsets.UTF_8.decode(ByteBuffer.wrap(decryptedBytes))
-            val charArray = CharArray(charBuffer.remaining())
-            charBuffer.get(charArray)
-            return charArray
-        } finally {
-            zeroize(decryptedBytes)
+        return try {
+            val decryptedBytes = decrypt(encryptedBlob)
+            try {
+                val charBuffer = StandardCharsets.UTF_8.decode(ByteBuffer.wrap(decryptedBytes))
+                val charArray = CharArray(charBuffer.remaining())
+                charBuffer.get(charArray)
+                charArray
+            } finally {
+                zeroize(decryptedBytes)
+            }
+        } catch (t: Throwable) {
+            LogCatcher.w(TAG, "decryptToCharArray failed (key mismatch or invalid tag): ${t.message}")
+            null
         }
     }
 
