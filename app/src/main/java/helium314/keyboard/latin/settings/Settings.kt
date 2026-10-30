@@ -39,6 +39,12 @@ fun isFloatingKeyboardEnabled(context: Context) =
 fun setFloatingKeyboardEnabled(context: Context, enabled: Boolean) =
     context.prefs().edit { putBoolean(Settings.PREF_FLOATING_ENABLED_PREFIX + context.resources.displayMetrics.widthPixels, enabled) }
 
+fun isHalfBoardEnabled(context: Context) =
+    context.prefs().getBoolean(Settings.PREF_HALF_BOARD_ENABLED_PREFIX + context.resources.displayMetrics.widthPixels, false)
+
+fun setHalfBoardEnabled(context: Context, enabled: Boolean) =
+    context.prefs().edit { putBoolean(Settings.PREF_HALF_BOARD_ENABLED_PREFIX + context.resources.displayMetrics.widthPixels, enabled) }
+
 fun readFloatingHeight(context: Context): Int {
     val screenWidth = context.resources.displayMetrics.widthPixels
     val key = Settings.PREF_FLOATING_HEIGHT_PREFIX + screenWidth

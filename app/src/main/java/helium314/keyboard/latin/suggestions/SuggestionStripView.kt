@@ -43,6 +43,7 @@ import helium314.keyboard.latin.common.ColorType
 import helium314.keyboard.latin.common.Colors
 import helium314.keyboard.latin.common.Constants
 import helium314.keyboard.latin.define.DebugFlags
+import helium314.keyboard.latin.utils.FloatingKeyboardUtils
 import helium314.keyboard.latin.settings.DebugSettings
 import helium314.keyboard.latin.settings.Defaults
 import helium314.keyboard.latin.settings.Settings
@@ -210,11 +211,15 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
 
     val isShowingMoreSuggestionPanel get() = moreSuggestionsView.isShowingInParent
 
+    private var inputRootView: View? = null
+
     /** A connection back to the input method. */
     fun setListener(newListener: Listener, inputView: View) {
+        inputRootView = inputView
         listener = newListener
         moreSuggestionsView.listener = newListener
         moreSuggestionsView.mainKeyboardView = inputView.findViewById(R.id.keyboard_view)
+        FloatingKeyboardUtils.setupChevronDrag(toolbarExpandKey, inputView)
     }
 
     fun setRtl(isRtlLanguage: Boolean) {
@@ -571,6 +576,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         }
 
         toolbarExpandKey.setOnClickListener(if (!toolbarIsExpandable) null else this)
+        inputRootView?.let { FloatingKeyboardUtils.setupChevronDrag(toolbarExpandKey, it) }
         pinnedKeys.visibility = suggestionsStrip.visibility
         isExternalSuggestionVisible = false
         updateToolbarButtonsActivatedState(pinnedKeys)

@@ -408,7 +408,9 @@
     <string name="redo" tools:keep="@string/redo">Redo</string>
     <string name="close_history" tools:keep="@string/close_history">Close clipboard history</string>
     <string name="emoji" tools:keep="@string/emoji">Emoji</string>
-    <string name="floating" tools:keep="@string/floating">Floating Keyboard</string>
+    <string name="half_board" tools:keep="@string/half_board">Half Board</string>
+    <string name="floating" tools:keep="@string/floating">Floating Board</string>
+    <string name="floating_board" tools:keep="@string/floating_board">Floating Board</string>
     <string name="desktop_shortcuts" tools:keep="@string/desktop_shortcuts">Desktop shortcuts</string>
     <string name="log_keeper" tools:keep="@string/log_keeper">Log Keeper</string>
     <string name="privacy_vault" tools:keep="@string/privacy_vault">Privacy Vault</string>

@@ -41,6 +41,7 @@ object CommaPopupsCatalog {
     const val ID_AUTOCORRECT = "autocorrect"
     const val ID_CLEAR_CLIPBOARD = "clear_clipboard"
     const val ID_SPLIT = "split"
+    const val ID_HALF_BOARD = "half_board"
     const val ID_FLOATING = "floating"
     const val ID_LEFT = "left"
     const val ID_RIGHT = "right"
@@ -189,9 +190,15 @@ object CommaPopupsCatalog {
             iconRes = R.drawable.ic_ime_switcher
         ),
         CommaPopupItem(
+            id = ID_HALF_BOARD,
+            title = "Half Board",
+            florisSpec = "!icon/half_board|!code/${KeyCode.TOGGLE_HALF_BOARD}",
+            iconRes = R.drawable.ic_half_board
+        ),
+        CommaPopupItem(
             id = ID_FLOATING,
-            title = "Floating Keyboard",
-            florisSpec = "!icon/floating|!code/${KeyCode.TOGGLE_FLOATING_WINDOW}",
+            title = "Floating Board",
+            florisSpec = "!icon/floating|!code/${KeyCode.TOGGLE_FLOATING_BOARD}",
             iconRes = R.drawable.ic_drag_indicator
         ),
         CommaPopupItem(

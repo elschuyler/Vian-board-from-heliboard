@@ -1176,11 +1176,33 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
 
     @Override
     public void setFloatingKeyboardEnabled(boolean enabled) {
-        if (enabled != Settings.getValues().mIsFloatingKeyboard)
+        setFloatingBoardEnabled(enabled);
+    }
+
+    @Override
+    public void setFloatingBoardEnabled(boolean enabled) {
+        if (enabled && Settings.getValues().mIsHalfBoard) {
+            setHalfBoardEnabled(false);
+        }
+        if (enabled != Settings.getValues().mIsFloatingKeyboard) {
             // mIsFloatingKeyboard is always disabled when device is locked, and we shouldn't mess up the setting
             SettingsKt.setFloatingKeyboardEnabled(mThemeContext, enabled);
+        }
         if (enabled) FloatingKeyboardUtils.setFloating(mCurrentInputView);
         else FloatingKeyboardUtils.disableFloating(mCurrentInputView);
+        setBackgroundGatheringIndicatorPosition();
+    }
+
+    @Override
+    public void setHalfBoardEnabled(boolean enabled) {
+        if (enabled && Settings.getValues().mIsFloatingKeyboard) {
+            setFloatingBoardEnabled(false);
+        }
+        if (enabled != Settings.getValues().mIsHalfBoard) {
+            SettingsKt.setHalfBoardEnabled(mThemeContext, enabled);
+        }
+        if (enabled) FloatingKeyboardUtils.setHalfBoard(mCurrentInputView);
+        else FloatingKeyboardUtils.disableHalfBoard(mCurrentInputView);
         setBackgroundGatheringIndicatorPosition();
     }
 

@@ -190,6 +190,8 @@ object KeyCode {
     const val DESKTOP_SHORTCUTS =         -10058
     const val PRIVACY_VAULT =             -10059
     const val SECURITY_VAULT =            -10060
+    const val TOGGLE_HALF_BOARD =         -109
+    const val TOGGLE_FLOATING_BOARD =     -10061
 
     // Valid in popups and for toolbar key long press only
     const val KEY_REPEAT =                -11000
@@ -219,6 +221,7 @@ object KeyCode {
         SEND_INTENT_THREE, EMOJI_SEARCH, INLINE_EMOJI_SEARCH_DONE, META_LOCK,
         BACKGROUND_GATHERING, BACKGROUND_GATHERING_TEMP_OFF, DPAD,
         INCOGNITO_TEMP_2MIN, PROMPT_LIST, LOG_KEEPER, DESKTOP_SHORTCUTS, PRIVACY_VAULT, SECURITY_VAULT,
+        TOGGLE_FLOATING_BOARD,
         -> this
 
         KEY_REPEAT if (longPress) -> this
@@ -348,7 +351,7 @@ object KeyCode {
     }
 
     @JvmStatic fun isIsBlockedWhenLocked(keyCode: Int) = when (keyCode) {
-        SETTINGS, TOGGLE_FLOATING_WINDOW, CLIPBOARD, CLIPBOARD_PASTE -> true
+        SETTINGS, TOGGLE_FLOATING_WINDOW, TOGGLE_FLOATING_BOARD, CLIPBOARD, CLIPBOARD_PASTE -> true
         else -> false
     }
 }

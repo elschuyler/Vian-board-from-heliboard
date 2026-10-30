@@ -84,3 +84,45 @@ Strictly capped at 500 lines per file.
 - **How it was verified**: local build only (`compile_applet` passed cleanly).
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: Ready for user on-device verification.
+
+---
+
+### Receipt Entry: Phase 82 True Floating Board, Half Board Decoupling, 3-Button Control Bar, Folded Bubble, Chevron Move, and Inset Pass-Through
+- **Timestamp**: 2026-10-30 00:40:00 UTC-7
+- **Summary of request**: Preserve existing bottom-docked half-screen keyboard and rename to "Half Board"; implement a new genuine "True Floating Board" movable anywhere on the screen (0 to display height); add 3 bottom control buttons in exact order: Close (restores normal keyboard next time), Minimize (folds into 52dp app icon bubble; tap unfolds, long-press moves), and Resize (dynamic scale drag); configure chevron long-press in suggestion strip to move floating window; add both Half Board and Floating Board to toolbar customization and comma popups; preserve full layout and modal accessibility without overlay permissions.
+- **Exact files touched**:
+  - `app/src/main/res/drawable/ic_half_board.xml`
+  - `app/src/main/res/values/strings.xml`
+  - `app/src/main/java/helium314/keyboard/keyboard/internal/keyboard_parser/floris/KeyCode.kt`
+  - `app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardCodesSet.java`
+  - `app/src/main/java/helium314/keyboard/latin/inputlogic/InputLogic.java`
+  - `app/src/main/java/helium314/keyboard/latin/utils/ToolbarUtils.kt`
+  - `app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt`
+  - `app/src/main/java/helium314/keyboard/keyboard/popup/CommaPopupItem.kt`
+  - `app/src/main/java/helium314/keyboard/latin/settings/Settings.java`
+  - `app/src/main/java/helium314/keyboard/latin/settings/Settings.kt`
+  - `app/src/main/java/helium314/keyboard/latin/settings/SettingsValues.java`
+  - `app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardState.kt`
+  - `app/src/main/java/helium314/keyboard/keyboard/KeyboardSwitcher.java`
+  - `app/src/main/java/helium314/keyboard/latin/InputView.java`
+  - `app/src/main/java/helium314/keyboard/latin/LatinIME.java`
+  - `app/src/main/java/helium314/keyboard/latin/utils/Ktx.kt`
+  - `app/src/main/java/helium314/keyboard/latin/utils/FloatingKeyboardUtils.kt`
+  - `app/src/main/java/helium314/keyboard/latin/suggestions/SuggestionStripView.kt`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_006.md`
+- **What was actually done**:
+  1. Root Cause Resolution: Diagnosed why keyboard previously acted as a bottom-docked half board—`inputArea` and `MainKeyboardView` were constrained by `Gravity.BOTTOM` in `FrameLayout.onLayout()`, which discards `topMargin`. In `Ktx.kt` and `FloatingKeyboardUtils.kt`, dynamically applied `Gravity.TOP or Gravity.START` on `inputArea` and `view` in floating mode, allowing `lp.topMargin` to position the window at any screen coordinate from `y = 0` to display bottom without requiring overlay permissions.
+  2. Half Board Decoupling: Retained the existing docked layout as "Half Board", created `ic_half_board.xml` vector icon, added string resources, assigned `KeyCode.TOGGLE_HALF_BOARD (-109)` and `KeyCode.TOGGLE_FLOATING_BOARD (-10061)`. Implemented mutual exclusivity so activating Half Board disables Floating Board and vice versa.
+  3. Floating Control Bar (3 Buttons in Order): Wired the bottom bar in `FloatingKeyboardUtils.kt`:
+     - Button 1 (Close): Invokes `setFloatingBoardEnabled(false)`, restoring normal docked keyboard and persisting preference.
+     - Button 2 (Minimize): Invokes `fold(view)`, collapsing the keyboard into a 52dp circular sleeping bubble displaying `@mipmap/ic_launcher`. Single tap unfolds back to original pre-fold coordinates; long-press enables free drag-to-move across screen.
+     - Button 3 (Resize): Invokes `setResizeListener(view)`, allowing fluid live dragging of width and height with persistence on touch release (`ACTION_UP`).
+  4. Suggestion Strip Chevron Move: In `FloatingKeyboardUtils.kt` and `SuggestionStripView.kt`, attached long-press drag gesture listener (`setupChevronDrag`) to `suggestions_strip_toolbar_key`. Long-press triggers haptic feedback and moves the floating window. Single tap remains 100% functional for expanding/collapsing the toolbar strip.
+  5. Modals & Inset Pass-Through: In `LatinIME.java`, set `visibleTopY = displayMetrics.heightPixels` to prevent background apps from being pushed upward, and set `touchableRegion` strictly to the floating window bounds (or 52dp folded circle), allowing full touch pass-through to background applications. Extended `touchableRegion` height to `Math.max(floatingHeight, visibleKeyboardView.height)` to ensure modals (Clipboard, Emoji, Prompt notes, Desktop shortcuts, Voice, Vault) receive all touch events without clipping.
+  6. Toolbar & Comma Popups: Added `HALF_BOARD` and `FLOATING_BOARD` to `ToolbarKey`, mapped to `ic_half_board` and `ic_drag_indicator`, and added `ID_HALF_BOARD` and `ID_FLOATING` to `CommaPopupsCatalog.ALL_ITEMS`. Migrated legacy `FLOATING` toolbar tokens safely to `FLOATING_BOARD`.
+  7. Verified compilation with `compile_applet`. Succeeded with 0 errors. Conducted silent security scan per Mandates 2 & 3.
+- **How it was verified**: local build only (`compile_applet` passed cleanly).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device manual QA testing.
+

@@ -12,6 +12,7 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import helium314.keyboard.latin.settings.Settings
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -136,7 +137,11 @@ fun InputMethodService.updateSoftInputWindowLayoutParameters(inputView: View?) {
         ViewGroup.LayoutParams.MATCH_PARENT
     val inputArea = window.findViewById<View?>(R.id.inputArea)
     ViewLayoutUtils.updateLayoutHeightOf(inputArea, layoutHeight)
-    ViewLayoutUtils.updateLayoutGravityOf(inputArea, Gravity.BOTTOM)
+    if (Settings.getValues().mIsFloatingKeyboard) {
+        ViewLayoutUtils.updateLayoutGravityOf(inputArea, Gravity.TOP or Gravity.START)
+    } else {
+        ViewLayoutUtils.updateLayoutGravityOf(inputArea, Gravity.BOTTOM)
+    }
     ViewLayoutUtils.updateLayoutHeightOf(inputView, layoutHeight)
 }
 

@@ -146,7 +146,8 @@ class KeyboardIconsSet private constructor() {
                     ToolbarKey.CUT -> R.drawable.sym_keyboard_cut
                     ToolbarKey.PASTE -> R.drawable.sym_keyboard_paste
                     ToolbarKey.ONE_HANDED -> R.drawable.sym_keyboard_start_onehanded_lxx
-                    ToolbarKey.FLOATING -> R.drawable.ic_drag_indicator
+                    ToolbarKey.HALF_BOARD -> R.drawable.ic_half_board
+                    ToolbarKey.FLOATING_BOARD -> R.drawable.ic_drag_indicator
                     ToolbarKey.INCOGNITO -> R.drawable.sym_keyboard_incognito_lxx
                     ToolbarKey.AUTOCORRECT -> R.drawable.ic_autocorrect
                     ToolbarKey.CLEAR_CLIPBOARD -> R.drawable.sym_keyboard_clear_clipboard_lxx
@@ -217,7 +218,8 @@ class KeyboardIconsSet private constructor() {
                     ToolbarKey.CUT -> R.drawable.sym_keyboard_cut_rounded
                     ToolbarKey.PASTE -> R.drawable.sym_keyboard_paste_rounded
                     ToolbarKey.ONE_HANDED -> R.drawable.sym_keyboard_start_onehanded_rounded
-                    ToolbarKey.FLOATING -> R.drawable.ic_drag_indicator
+                    ToolbarKey.HALF_BOARD -> R.drawable.ic_half_board
+                    ToolbarKey.FLOATING_BOARD -> R.drawable.ic_drag_indicator
                     ToolbarKey.INCOGNITO -> R.drawable.sym_keyboard_incognito_lxx
                     ToolbarKey.AUTOCORRECT -> R.drawable.ic_autocorrect_rounded
                     ToolbarKey.CLEAR_CLIPBOARD -> R.drawable.sym_keyboard_clear_clipboard_rounded

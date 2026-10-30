@@ -1075,6 +1075,8 @@ public class LatinIME extends InputMethodService implements
         if (isInputViewShown()) {
             if (mInputView != null && Settings.getValues().mIsFloatingKeyboard)
                 FloatingKeyboardUtils.setFloating(mInputView);
+            else if (mInputView != null && Settings.getValues().mIsHalfBoard)
+                FloatingKeyboardUtils.setHalfBoard(mInputView);
             setNavigationBarColor();
             workaroundForHuaweiStatusBarIssue();
         }
@@ -1315,8 +1317,10 @@ public class LatinIME extends InputMethodService implements
                     var xy = FloatingKeyboardUtils.readPosition(this, Integer.MAX_VALUE, Integer.MAX_VALUE);
                     touchLeft = xy.component1();
                     touchTop = xy.component2();
-                    touchRight = touchLeft + mSettings.getCurrent().mFloatingWidth;
-                    touchBottom = touchTop + mSettings.getCurrent().mFloatingHeight + stripHeight + (int)FloatingKeyboardUtils.getFloatingHandleHeight(getResources());
+                    final int activeHeight = Math.max(mSettings.getCurrent().mFloatingHeight, visibleKeyboardView.getHeight());
+                    final int activeWidth = Math.max(mSettings.getCurrent().mFloatingWidth, visibleKeyboardView.getWidth());
+                    touchRight = touchLeft + activeWidth;
+                    touchBottom = touchTop + activeHeight + stripHeight + (int)FloatingKeyboardUtils.getFloatingHandleHeight(getResources());
                 }
             }
             outInsets.touchableInsets = InputMethodService.Insets.TOUCHABLE_INSETS_REGION;

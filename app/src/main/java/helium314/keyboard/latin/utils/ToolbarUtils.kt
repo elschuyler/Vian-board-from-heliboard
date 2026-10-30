@@ -59,6 +59,8 @@ private fun setToolbarButtonActivatedState(button: ImageButton) {
         INCOGNITO -> Settings.getValues().mIncognitoModeEnabled || TempIncognitoManager.isActive || button.context.prefs().getBoolean(Settings.PREF_ALWAYS_INCOGNITO_MODE, Defaults.PREF_ALWAYS_INCOGNITO_MODE)
         ONE_HANDED -> Settings.getValues().mOneHandedModeEnabled
         SPLIT -> Settings.getValues().mIsSplitKeyboardEnabled
+        HALF_BOARD -> Settings.getValues().mIsHalfBoard
+        FLOATING_BOARD -> Settings.getValues().mIsFloatingKeyboard
         AUTOCORRECT -> Settings.getValues().mAutoCorrectionEnabledPerUserSettings
         BACKGROUND_GATHERING -> useBackgroundGathering
         else -> true
@@ -79,6 +81,8 @@ fun getCodeForToolbarKey(key: ToolbarKey) = Settings.getInstance().getCustomTool
     CUT -> KeyCode.CLIPBOARD_CUT
     PASTE -> KeyCode.CLIPBOARD_PASTE
     ONE_HANDED -> KeyCode.TOGGLE_ONE_HANDED_MODE
+    HALF_BOARD -> KeyCode.TOGGLE_HALF_BOARD
+    FLOATING_BOARD -> KeyCode.TOGGLE_FLOATING_BOARD
     INCOGNITO -> KeyCode.TOGGLE_INCOGNITO_MODE
     AUTOCORRECT -> KeyCode.TOGGLE_AUTOCORRECT
     CLEAR_CLIPBOARD -> KeyCode.CLIPBOARD_CLEAR_HISTORY
@@ -97,7 +101,6 @@ fun getCodeForToolbarKey(key: ToolbarKey) = Settings.getInstance().getCustomTool
     PAGE_START -> KeyCode.MOVE_START_OF_PAGE
     PAGE_END -> KeyCode.MOVE_END_OF_PAGE
     SPLIT -> KeyCode.SPLIT_LAYOUT
-    FLOATING -> KeyCode.TOGGLE_FLOATING_WINDOW
     BACKGROUND_GATHERING -> KeyCode.BACKGROUND_GATHERING
     DESKTOP_SHORTCUTS -> KeyCode.DESKTOP_SHORTCUTS
     LOG_KEEPER -> KeyCode.LOG_KEEPER
@@ -128,7 +131,7 @@ fun getCodeForToolbarKeyLongClick(key: ToolbarKey) = Settings.getInstance().getC
 
 // names need to be aligned with resources strings (using lowercase of key.name)
 enum class ToolbarKey {
-    VOICE, CLIPBOARD, NUMPAD, DPAD, UNDO, REDO, SETTINGS, SELECT_ALL, SELECT_WORD, COPY, CUT, PASTE, ONE_HANDED, FLOATING, SPLIT,
+    VOICE, CLIPBOARD, NUMPAD, DPAD, UNDO, REDO, SETTINGS, SELECT_ALL, SELECT_WORD, COPY, CUT, PASTE, ONE_HANDED, HALF_BOARD, FLOATING_BOARD, SPLIT,
     INCOGNITO, AUTOCORRECT, CLEAR_CLIPBOARD, CLOSE_HISTORY, EMOJI, LEFT, RIGHT, UP, DOWN, WORD_LEFT, WORD_RIGHT,
     PAGE_UP, PAGE_DOWN, FULL_LEFT, FULL_RIGHT, PAGE_START, PAGE_END, BACKGROUND_GATHERING, DESKTOP_SHORTCUTS, LOG_KEEPER,
     SECURITY_VAULT, PRIVACY_VAULT
@@ -170,7 +173,11 @@ fun upgradeToolbarPrefs(prefs: SharedPreferences) {
 
 private fun upgradeToolbarPref(prefs: SharedPreferences, pref: String, default: String) {
     if (!prefs.contains(pref)) return
-    val list = prefs.getString(pref, default)!!.split(Separators.ENTRY).toMutableList()
+    var raw = prefs.getString(pref, default)!!
+    if (raw.contains("FLOATING" + Separators.KV)) {
+        raw = raw.replace("FLOATING" + Separators.KV, "FLOATING_BOARD" + Separators.KV)
+    }
+    val list = raw.split(Separators.ENTRY).toMutableList()
     val splitDefault = defaultToolbarPref.split(Separators.ENTRY)
     splitDefault.forEach { entry ->
         val keyWithSeparator = entry.substringBefore(Separators.KV) + Separators.KV

@@ -52,6 +52,12 @@ object FloatingKeyboardUtils {
         view.getWindowVisibleDisplayFrame(windowFrame)
         extraHeight = getSuggestionStripHeight(view.resources) + getFloatingHandleHeight(view.resources)
 
+        ViewLayoutUtils.updateLayoutGravityOf(view, android.view.Gravity.TOP or android.view.Gravity.START)
+        val inputArea = view.rootView.findViewById<View?>(android.R.id.inputArea)
+        if (inputArea != null) {
+            ViewLayoutUtils.updateLayoutGravityOf(inputArea, android.view.Gravity.TOP or android.view.Gravity.START)
+        }
+
         if (isFoldedState) {
             val size = getFoldedSizePx(view.context)
             view.findViewById<View>(R.id.strip_container)?.isGone = true
@@ -88,7 +94,7 @@ object FloatingKeyboardUtils {
         // 1. Close: close floating mode and return to normal docked keyboard
         view.findViewById<View>(R.id.close_floating_handle)?.setOnClickListener {
             isFoldedState = false
-            KeyboardSwitcher.getInstance()?.setFloatingKeyboardEnabled(false)
+            KeyboardSwitcher.getInstance()?.setFloatingBoardEnabled(false)
         }
 
         // 2. Minimize: fold into app icon bubble
@@ -96,7 +102,7 @@ object FloatingKeyboardUtils {
             fold(view)
         }
 
-        // 3. Resize (drag): drag to resize width/height, long-press to move
+        // 3. Resize (drag): drag to resize width/height
         view.findViewById<ImageView>(R.id.resize_handle)?.setResizeListener(lp, view)
 
         // Handle bar drag moves keyboard
@@ -104,6 +110,10 @@ object FloatingKeyboardUtils {
 
         // Pre-bind folded button
         view.findViewById<View>(R.id.floating_folded_button)?.setupFoldedButton(view)
+
+        // Setup chevron long-press drag
+        val chevron = view.findViewById<View>(R.id.suggestions_strip_toolbar_key)
+        setupChevronDrag(chevron, view)
     }
 
     fun fold(view: View) {
@@ -161,6 +171,11 @@ object FloatingKeyboardUtils {
     fun disableFloating(view: View?) {
         val lp = view?.layoutParams as? ViewGroup.MarginLayoutParams ?: return
         isFoldedState = false
+        ViewLayoutUtils.updateLayoutGravityOf(view, android.view.Gravity.BOTTOM)
+        val inputArea = view.rootView.findViewById<View?>(android.R.id.inputArea)
+        if (inputArea != null) {
+            ViewLayoutUtils.updateLayoutGravityOf(inputArea, android.view.Gravity.BOTTOM)
+        }
         if (lp.width == ViewGroup.LayoutParams.MATCH_PARENT) return // not floating
         if (DebugFlags.DEBUG_ENABLED)
             Log.d(TAG, "disable floating view")
@@ -178,6 +193,36 @@ object FloatingKeyboardUtils {
         view.requestLayout()
 
         notifyInsetsChanged(view)
+    }
+
+    @JvmStatic
+    fun setHalfBoard(view: View?) {
+        val lp = view?.layoutParams as? ViewGroup.MarginLayoutParams ?: return
+        ViewLayoutUtils.updateLayoutGravityOf(view, android.view.Gravity.BOTTOM)
+        val inputArea = view.rootView.findViewById<View?>(android.R.id.inputArea)
+        if (inputArea != null) {
+            ViewLayoutUtils.updateLayoutGravityOf(inputArea, android.view.Gravity.BOTTOM)
+        }
+
+        view.findViewById<View>(R.id.floating_folded_button)?.isGone = true
+        view.findViewById<View>(R.id.float_handle_container)?.isGone = true
+        if (Settings.getValues().mToolbarMode != ToolbarMode.HIDDEN) {
+            view.findViewById<View>(R.id.strip_container)?.isVisible = true
+        }
+        view.findViewById<View>(R.id.keyboard_view_wrapper)?.isVisible = true
+
+        val displayWidth = view.context.resources.displayMetrics.widthPixels
+        val targetWidth = Settings.getValues().mFloatingWidth.coerceIn(150, displayWidth)
+        val x = ((displayWidth - targetWidth) / 2).coerceAtLeast(0)
+        ViewLayoutUtils.placeViewAt(view, x, 0, targetWidth, ViewGroup.LayoutParams.WRAP_CONTENT)
+        view.requestLayout()
+
+        notifyInsetsChanged(view)
+    }
+
+    @JvmStatic
+    fun disableHalfBoard(view: View?) {
+        disableFloating(view)
     }
 
     private fun notifyInsetsChanged(view: View) {
@@ -383,20 +428,117 @@ object FloatingKeyboardUtils {
                     } else {
                         val availableWidth = windowFrame.right - windowFrame.left
                         val availableHeight = windowFrame.bottom - windowFrame.top
-                        val maxWidth = (availableWidth * 0.9f).toInt()
-                        val maxHeight = (availableHeight * 0.9f).toInt()
-                        val newWidth = (Settings.getValues().mFloatingWidth + dx / scale).toInt().coerceIn(150, maxWidth)
+                        val maxWidth = (availableWidth * 0.95f).toInt()
+                        val maxHeight = (availableHeight * 0.85f).toInt()
+                        val newWidth = (Settings.getValues().mFloatingWidth + dx / scale).toInt().coerceIn(160, maxWidth)
                             .coerceAtMost(availableWidth - lp.leftMargin)
-                        val newHeight = (Settings.getValues().mFloatingHeight + dy / scale).toInt().coerceIn(100, maxHeight)
+                        val newHeight = (Settings.getValues().mFloatingHeight + dy / scale).toInt().coerceIn(120, maxHeight)
                             .coerceAtMost(availableHeight - extraHeight.toInt() - lp.topMargin)
-                        setFloatingSize(context, newWidth, newHeight)
-                        KeyboardSwitcher.getInstance()?.reloadKeyboard()
+                        lp.width = newWidth
+                        rootInputView.layoutParams = lp
                     }
                     true
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    val hadMoveMode = isMoveMode
                     handler.removeCallbacks(moveRunnable)
                     isMoveMode = false
+                    if (!hadMoveMode && event.action == MotionEvent.ACTION_UP) {
+                        val availableWidth = windowFrame.right - windowFrame.left
+                        val availableHeight = windowFrame.bottom - windowFrame.top
+                        val maxWidth = (availableWidth * 0.95f).toInt()
+                        val maxHeight = (availableHeight * 0.85f).toInt()
+                        val finalWidth = lp.width.coerceIn(160, maxWidth)
+                        val finalHeight = (Settings.getValues().mFloatingHeight + (event.rawY - startY) / scale).toInt()
+                            .coerceIn(120, maxHeight)
+                        setFloatingSize(context, finalWidth, finalHeight)
+                        KeyboardSwitcher.getInstance()?.reloadKeyboard()
+                    }
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    @JvmStatic
+    fun setupChevronDrag(chevron: View?, rootView: View?) {
+        if (chevron == null || rootView == null) return
+        var startRawX = 0f
+        var startRawY = 0f
+        var startMarginX = 0
+        var startMarginY = 0
+        var isDragging = false
+        val handler = Handler(Looper.getMainLooper())
+        val touchSlop = ViewConfiguration.get(chevron.context).scaledTouchSlop
+        val longPressTimeout = ViewConfiguration.getLongPressTimeout().toLong()
+
+        val longPressRunnable = Runnable {
+            isDragging = true
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                    chevron.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+                } else {
+                    chevron.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                }
+            } catch (_: Throwable) {}
+        }
+
+        chevron.setOnTouchListener { _, event ->
+            if (!Settings.getValues().mIsFloatingKeyboard || isFoldedState) {
+                return@setOnTouchListener false
+            }
+            val lp = rootView.layoutParams as? ViewGroup.MarginLayoutParams ?: return@setOnTouchListener false
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    startRawX = event.rawX
+                    startRawY = event.rawY
+                    startMarginX = lp.leftMargin
+                    startMarginY = lp.topMargin
+                    isDragging = false
+                    handler.postDelayed(longPressRunnable, longPressTimeout)
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val dx = event.rawX - startRawX
+                    val dy = event.rawY - startRawY
+                    if (!isDragging && (abs(dx) > touchSlop || abs(dy) > touchSlop)) {
+                        handler.removeCallbacks(longPressRunnable)
+                    }
+                    if (isDragging) {
+                        rootView.getWindowVisibleDisplayFrame(windowFrame)
+                        val sv = Settings.getValues()
+                        val availableWidth = (windowFrame.right - windowFrame.left).coerceAtLeast(0)
+                        val availableHeight = (windowFrame.bottom - windowFrame.top).coerceAtLeast(0)
+                        val totalHeight = sv.mFloatingHeight + extraHeight.toInt()
+                        val newX = (startMarginX + dx).toInt().coerceIn(0, (availableWidth - sv.mFloatingWidth).coerceAtLeast(0))
+                        val newY = (startMarginY + dy).toInt().coerceIn(0, (availableHeight - totalHeight).coerceAtLeast(0))
+                        lp.leftMargin = newX
+                        lp.topMargin = newY
+                        savePosition(rootView.context, newX, newY)
+                        rootView.layoutParams = lp
+                        notifyInsetsChanged(rootView)
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP -> {
+                    handler.removeCallbacks(longPressRunnable)
+                    if (isDragging) {
+                        isDragging = false
+                        notifyInsetsChanged(rootView)
+                    } else {
+                        val dx = event.rawX - startRawX
+                        val dy = event.rawY - startRawY
+                        if (abs(dx) <= touchSlop && abs(dy) <= touchSlop) {
+                            chevron.performClick()
+                        }
+                    }
+                    true
+                }
+                MotionEvent.ACTION_CANCEL -> {
+                    handler.removeCallbacks(longPressRunnable)
+                    isDragging = false
                     true
                 }
                 else -> false

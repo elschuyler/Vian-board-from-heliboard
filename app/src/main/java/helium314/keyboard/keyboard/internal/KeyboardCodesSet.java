@@ -62,6 +62,8 @@ public final class KeyboardCodesSet {
         "key_desktop_shortcuts",
         "key_privacy_vault",
         "key_security_vault",
+        "key_half_board",
+        "key_floating_board",
     };
 
     private static final int[] DEFAULT = {
@@ -94,6 +96,8 @@ public final class KeyboardCodesSet {
         KeyCode.DESKTOP_SHORTCUTS,
         KeyCode.PRIVACY_VAULT,
         KeyCode.SECURITY_VAULT,
+        KeyCode.TOGGLE_HALF_BOARD,
+        KeyCode.TOGGLE_FLOATING_BOARD,
     };
 
     static {

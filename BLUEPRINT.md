@@ -1028,11 +1028,36 @@ Vianboard is a fully customizable, privacy-conscious offline Android keyboard ap
     - Preserved only pattern lock hash/salt configuration restoration from `vault.json` if selected.
   - **Component 2: Archive Inspection Sanitization (`ModularBackupEngine.kt`)**:
     - In `inspectArchive()`, bypassed legacy `vault_portable.enc` and `security_vault.db` files so they are no longer detected as credential restoration targets from `.zip`.
-  - **Component 3: Complete Decoupling on ZIP Export (`ModularBackupEngine.kt`)**:
-    - Removed `vault_portable.enc` serialization from `createBackup()`. `.zip` archives will never contain credential entries.
-  - **Component 4: Compilation & Security Verification**:
-    - Verified compilation cleanly via `compile_applet`. Zero errors.
-    - Performed silent security self-scan per Mandates 2 & 3: zero exposed credentials.
+- **2026-10-30**: Completed Phase 82 (True Floating Board & Half Board Decoupling, Full Screen Movable Window, 3-Button Bottom Bar, Minimization Bubble, Chevron Drag, and Toolbar / Comma Popups Integration):
+  - **Component 1: Mode Decoupling & Naming (Half Board & Floating Board)**:
+    - Retained the bottom-docked, width-resizable layout and renamed its identity to **Half Board** (`half_board`) with dedicated icon `ic_half_board.xml` and keycode `TOGGLE_HALF_BOARD (-109)`.
+    - Introduced **True Floating Board** (`floating_board`) with keycode `TOGGLE_FLOATING_BOARD (-10061)` for genuine free-floating positioning anywhere on the screen.
+    - Updated `SettingsValues.java` (`mIsHalfBoard`, `mIsFloatingKeyboard`) and `Settings.kt` (`isHalfBoardEnabled`, `setHalfBoardEnabled`, `isFloatingKeyboardEnabled`, `setFloatingKeyboardEnabled`).
+    - Made both modes mutually exclusive in `KeyboardSwitcher.java`.
+  - **Component 2: Free Floating Engine & Window Gravity (`FloatingKeyboardUtils.kt`, `Ktx.kt`)**:
+    - Dynamically applied `Gravity.TOP or Gravity.START` to `inputView` and parent `android.R.id.inputArea` when Floating Board is active, enabling full vertical/horizontal coordinates `(0, 0)` to `(maxX, maxY)`.
+    - Restores `Gravity.BOTTOM` and `MATCH_PARENT` layout on disable or when Half Board is active.
+  - **Component 3: Control Bar (3 Buttons in Order) & Minimization Bubble (`FloatingKeyboardUtils.kt`, `main_keyboard_frame.xml`)**:
+    - Button 1: **Close** (`close_floating_handle`) — exits floating mode, writes `false` to preferences so the next keyboard launch opens docked normal keyboard.
+    - Button 2: **Minimize** (`minimize_floating_handle`) — folds into 52dp circular sleeping/frozen bubble with app launcher icon (`@mipmap/ic_launcher`); single tap unfolds back at original pre-fold coordinates, long-press allows free-dragging across the screen.
+    - Button 3: **Resize** (`resize_handle`) — dynamic, fluid dragging to resize width and height with persistence on release.
+  - **Component 4: Suggestion Strip Chevron Drag-To-Move (`FloatingKeyboardUtils.kt`, `SuggestionStripView.kt`)**:
+    - Attached long-press gesture listener (`setupChevronDrag`) to suggestion strip chevron (`suggestions_strip_toolbar_key`).
+    - Long-press triggers haptic vibration and engages real-time window drag across the screen.
+    - Single tap cleanly expands/collapses the toolbar without movement conflict.
+    - Inactive when not in floating mode or when folded.
+  - **Component 5: Insets & Touch Pass-Through (`LatinIME.java`)**:
+    - Set `visibleTopY = displayMetrics.heightPixels` so background applications are not displaced.
+    - Set `touchableRegion` strictly to the floating keyboard bounds (or 52dp circle when minimized), enabling 100% touch pass-through to background applications.
+    - Dynamically sized `touchableRegion` to encompass all open modals (Clipboard, Emoji, Prompt notes, Desktop shortcuts, Voice, Vault).
+  - **Component 6: Toolbar & Comma Popup Expansion (`ToolbarUtils.kt`, `CommaPopupItem.kt`, `KeyboardIconsSet.kt`, `KeyboardCodesSet.java`)**:
+    - Added `HALF_BOARD` and `FLOATING_BOARD` to `ToolbarKey`, mapped to `ic_half_board` and `ic_drag_indicator`.
+    - Added `ID_HALF_BOARD` and `ID_FLOATING` to `CommaPopupsCatalog.ALL_ITEMS`.
+    - Migrated legacy `FLOATING` toolbar tokens safely to `FLOATING_BOARD` in `upgradeToolbarPrefs`.
+  - **Component 7: Compilation & Security Verification**:
+    - Clean build verified via `compile_applet`.
+    - Executed silent security scan per Mandates 2 & 3: zero exposed credentials found.
+
 
 
 

@@ -107,6 +107,7 @@ public final class Settings implements SharedPreferences.OnSharedPreferenceChang
     public static final String PREF_FLOATING_HEIGHT_PREFIX = "floating_height";
     public static final String PREF_FLOATING_WIDTH_PREFIX = "floating_width";
     public static final String PREF_FLOATING_ENABLED_PREFIX = "floating_enabled";
+    public static final String PREF_HALF_BOARD_ENABLED_PREFIX = "half_board_enabled_";
     public static final String PREF_FLOATING_POS_X_PREFIX = "floating_pos_x";
     public static final String PREF_FLOATING_POS_Y_PREFIX = "floating_pos_y";
     public static final String PREF_FONT_SCALE = "font_scale";
