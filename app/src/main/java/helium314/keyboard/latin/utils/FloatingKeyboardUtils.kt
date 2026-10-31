@@ -53,6 +53,9 @@ object FloatingKeyboardUtils {
         extraHeight = getSuggestionStripHeight(view.resources) + getFloatingHandleHeight(view.resources)
 
         ViewLayoutUtils.updateLayoutGravityOf(view, android.view.Gravity.TOP or android.view.Gravity.START)
+        view.findViewById<View>(R.id.main_keyboard_frame)?.let {
+            ViewLayoutUtils.updateLayoutGravityOf(it, android.view.Gravity.TOP or android.view.Gravity.START)
+        }
         val inputArea = view.rootView.findViewById<View?>(android.R.id.inputArea)
         if (inputArea != null) {
             ViewLayoutUtils.updateLayoutGravityOf(inputArea, android.view.Gravity.TOP or android.view.Gravity.START)
@@ -172,6 +175,9 @@ object FloatingKeyboardUtils {
         val lp = view?.layoutParams as? ViewGroup.MarginLayoutParams ?: return
         isFoldedState = false
         ViewLayoutUtils.updateLayoutGravityOf(view, android.view.Gravity.BOTTOM)
+        view.findViewById<View>(R.id.main_keyboard_frame)?.let {
+            ViewLayoutUtils.updateLayoutGravityOf(it, android.view.Gravity.BOTTOM)
+        }
         val inputArea = view.rootView.findViewById<View?>(android.R.id.inputArea)
         if (inputArea != null) {
             ViewLayoutUtils.updateLayoutGravityOf(inputArea, android.view.Gravity.BOTTOM)
@@ -199,6 +205,9 @@ object FloatingKeyboardUtils {
     fun setHalfBoard(view: View?) {
         val lp = view?.layoutParams as? ViewGroup.MarginLayoutParams ?: return
         ViewLayoutUtils.updateLayoutGravityOf(view, android.view.Gravity.BOTTOM)
+        view.findViewById<View>(R.id.main_keyboard_frame)?.let {
+            ViewLayoutUtils.updateLayoutGravityOf(it, android.view.Gravity.BOTTOM)
+        }
         val inputArea = view.rootView.findViewById<View?>(android.R.id.inputArea)
         if (inputArea != null) {
             ViewLayoutUtils.updateLayoutGravityOf(inputArea, android.view.Gravity.BOTTOM)
@@ -212,7 +221,7 @@ object FloatingKeyboardUtils {
         view.findViewById<View>(R.id.keyboard_view_wrapper)?.isVisible = true
 
         val displayWidth = view.context.resources.displayMetrics.widthPixels
-        val targetWidth = Settings.getValues().mFloatingWidth.coerceIn(150, displayWidth)
+        val targetWidth = (displayWidth * 0.55f).toInt().coerceIn(150, displayWidth)
         val x = ((displayWidth - targetWidth) / 2).coerceAtLeast(0)
         ViewLayoutUtils.placeViewAt(view, x, 0, targetWidth, ViewGroup.LayoutParams.WRAP_CONTENT)
         view.requestLayout()
@@ -222,7 +231,30 @@ object FloatingKeyboardUtils {
 
     @JvmStatic
     fun disableHalfBoard(view: View?) {
-        disableFloating(view)
+        val lp = view?.layoutParams as? ViewGroup.MarginLayoutParams ?: return
+        ViewLayoutUtils.updateLayoutGravityOf(view, android.view.Gravity.BOTTOM)
+        view.findViewById<View>(R.id.main_keyboard_frame)?.let {
+            ViewLayoutUtils.updateLayoutGravityOf(it, android.view.Gravity.BOTTOM)
+        }
+        val inputArea = view.rootView.findViewById<View?>(android.R.id.inputArea)
+        if (inputArea != null) {
+            ViewLayoutUtils.updateLayoutGravityOf(inputArea, android.view.Gravity.BOTTOM)
+        }
+        if (lp.width == ViewGroup.LayoutParams.MATCH_PARENT) return
+        lp.width = ViewGroup.LayoutParams.MATCH_PARENT
+        lp.height = ViewGroup.LayoutParams.MATCH_PARENT
+        lp.leftMargin = 0
+        lp.topMargin = 0
+
+        view.findViewById<View>(R.id.float_handle_container)?.isGone = true
+        view.findViewById<View>(R.id.floating_folded_button)?.isGone = true
+        if (Settings.getValues().mToolbarMode != ToolbarMode.HIDDEN) {
+            view.findViewById<View>(R.id.strip_container)?.isVisible = true
+        }
+        view.findViewById<View>(R.id.keyboard_view_wrapper)?.isVisible = true
+        view.requestLayout()
+
+        notifyInsetsChanged(view)
     }
 
     private fun notifyInsetsChanged(view: View) {

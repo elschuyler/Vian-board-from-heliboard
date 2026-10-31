@@ -159,11 +159,11 @@ object ModularBackupEngine {
                     // 1. Settings & Appearance
                     if (BackupModule.SETTINGS in selectedModules) {
                         val rawPrefs = context.prefs().all.toMutableMap()
-                        // If Security Vault is not selected, sanitize vault credentials from settings
-                        if (BackupModule.SECURITY_VAULT !in selectedModules) {
-                            rawPrefs.remove(PREF_PATTERN_SALT)
-                            rawPrefs.remove(PREF_PATTERN_HASH)
-                        }
+                        // Security Vault credentials and pattern locks are strictly excluded from .zip backups
+                        rawPrefs.remove(PREF_PATTERN_SALT)
+                        rawPrefs.remove(PREF_PATTERN_HASH)
+                        rawPrefs.remove("pref_vault_security_pattern_salt")
+                        rawPrefs.remove("pref_vault_security_pattern_hash")
                         val rawProtectedPrefs = context.protectedPrefs().all
 
                         // Write preferences in preferences/ folder and root for backward compatibility
@@ -336,33 +336,6 @@ object ModularBackupEngine {
                         stats["voice_replacements_count"] = replacements.size
                     }
 
-                    // 5. Security Vault
-                    if (BackupModule.SECURITY_VAULT in selectedModules) {
-                        val sp = context.prefs()
-                        val salt = sp.getString(PREF_PATTERN_SALT, null)
-                        val hash = sp.getString(PREF_PATTERN_HASH, null)
-                        val isSep = VaultSessionManager.isSeparatePatternsEnabled(context)
-                        val secSalt = sp.getString("pref_vault_security_pattern_salt", null)
-                        val secHash = sp.getString("pref_vault_security_pattern_hash", null)
-
-                        val vaultData = VaultBackupData(
-                            hasPattern = salt != null && hash != null,
-                            saltHex = salt,
-                            hashHex = hash,
-                            isSeparatePatterns = isSep,
-                            securitySaltHex = secSalt,
-                            securityHashHex = secHash
-                        )
-                        val vaultBytes = json.encodeToString(vaultData).toByteArray(Charsets.UTF_8)
-                        zip.putNextEntry(ZipEntry("security/vault.json"))
-                        zip.write(vaultBytes)
-                        zip.closeEntry()
-                        stats["vault_configured"] = if (vaultData.hasPattern) 1 else 0
-
-                        // Decoupled architecture: Security Vault database entries are completely excluded from .zip backups.
-                        // Standard KeePass (.kdbx) export must be used for portable credentials.
-                        LogCatcher.i(TAG, "Excluded Security Vault database entries from ZIP archive. KeePass (.kdbx) handles credential export.")
-                    }
 
 
                     // 5b. Privacy Vault (Private phrases and notes from VaultDao)
@@ -462,10 +435,8 @@ object ModularBackupEngine {
                             detectedModules.add(BackupModule.WORD_IMPROVEMENT)
                         } else if (name.contains("privacy_vault")) {
                             detectedModules.add(BackupModule.PRIVACY_VAULT)
-                        } else if (name.contains("vault.json")) {
-                            detectedModules.add(BackupModule.SECURITY_VAULT)
-                        } else if (name.contains("vault_portable.enc") || name.contains(SecurityVaultDatabase.DATABASE_NAME)) {
-                            LogCatcher.i(TAG, "Legacy database/entry container ($name) ignored from zip inspection. Credentials must be imported via .kdbx.")
+                        } else if (name.contains("vault.json") || name.contains("vault_portable.enc") || name.contains(SecurityVaultDatabase.DATABASE_NAME)) {
+                            LogCatcher.i(TAG, "Security Vault item ($name) ignored from zip inspection. Credentials must be imported via .kdbx.")
                         } else if (name == Database.NAME) {
                             hasLegacyDb = true
                             detectedModules.add(BackupModule.CLIPBOARD_PROMPTS)
@@ -552,7 +523,6 @@ object ModularBackupEngine {
             // In-memory or temporary caches
             var prefLines: List<String>? = null
             var protectedPrefLines: List<String>? = null
-            var vaultData: VaultBackupData? = null
             var clipboardJson: String? = null
             var promptsJson: String? = null
             var voiceReplJson: String? = null
@@ -575,14 +545,8 @@ object ModularBackupEngine {
                                     protectedPrefLines = String(zip.readBytes(), Charsets.UTF_8).split("\n")
                                 }
                             }
-                            name == "security/vault.json" -> {
-                                if (BackupModule.SECURITY_VAULT in selectedModules) {
-                                    val content = String(zip.readBytes(), Charsets.UTF_8)
-                                    vaultData = json.decodeFromString<VaultBackupData>(content)
-                                }
-                            }
-                            name == "security/vault_portable.enc" || name == "security/${SecurityVaultDatabase.DATABASE_NAME}" -> {
-                                LogCatcher.i(TAG, "Skipped legacy Security Vault database ($name) from .zip. Credentials must be imported separately via .kdbx file.")
+                            name == "security/vault.json" || name == "security/vault_portable.enc" || name == "security/${SecurityVaultDatabase.DATABASE_NAME}" -> {
+                                LogCatcher.i(TAG, "Skipped Security Vault item ($name) from .zip. Credentials and vault settings must be imported separately via .kdbx file.")
                             }
                             name == "database/clipboard.json" -> {
                                 if (BackupModule.CLIPBOARD_PROMPTS in selectedModules) {
@@ -646,52 +610,18 @@ object ModularBackupEngine {
                 prefs.edit { clear() }
                 readJsonLinesToSettings(prefLines!!, prefs)
 
-                // Preserve vault credentials if Security Vault was NOT selected
-                if (BackupModule.SECURITY_VAULT !in selectedModules) {
-                    prefs.edit {
-                        if (existingVaultSalt != null) putString(PREF_PATTERN_SALT, existingVaultSalt) else remove(PREF_PATTERN_SALT)
-                        if (existingVaultHash != null) putString(PREF_PATTERN_HASH, existingVaultHash) else remove(PREF_PATTERN_HASH)
-                    }
+                // Always preserve existing vault credentials when restoring settings from zip
+                prefs.edit {
+                    if (existingVaultSalt != null) putString(PREF_PATTERN_SALT, existingVaultSalt) else remove(PREF_PATTERN_SALT)
+                    if (existingVaultHash != null) putString(PREF_PATTERN_HASH, existingVaultHash) else remove(PREF_PATTERN_HASH)
                 }
                 restoredStats["settings"] = 1
-                LogCatcher.i(TAG, "Restored Settings & Appearance (vault preserved=${BackupModule.SECURITY_VAULT !in selectedModules})")
+                LogCatcher.i(TAG, "Restored Settings & Appearance (vault credentials preserved)")
             }
             if (BackupModule.SETTINGS in selectedModules && protectedPrefLines != null) {
                 val protectedPrefs = context.protectedPrefs()
                 protectedPrefs.edit { clear() }
                 readJsonLinesToSettings(protectedPrefLines!!, protectedPrefs)
-            }
-
-            // 2. Restore Security Vault (Pattern lock & settings only)
-            if (BackupModule.SECURITY_VAULT in selectedModules) {
-                if (vaultData != null) {
-                    context.prefs().edit {
-                        if (vaultData!!.hasPattern && vaultData!!.saltHex != null && vaultData!!.hashHex != null) {
-                            putString(PREF_PATTERN_SALT, vaultData!!.saltHex)
-                            putString(PREF_PATTERN_HASH, vaultData!!.hashHex)
-                        } else {
-                            remove(PREF_PATTERN_SALT)
-                            remove(PREF_PATTERN_HASH)
-                        }
-                    }
-                    restoredStats["security_vault"] = if (vaultData!!.hasPattern) 1 else 0
-                    LogCatcher.i(TAG, "Restored Security Vault pattern lock configuration from vault.json. Credential database entries from zip were skipped in favor of KeePass .kdbx.")
-                } else if (BackupModule.SETTINGS !in selectedModules) {
-                    // In case settings wasn't selected, check if prefLines contains vault keys
-                    if (prefLines != null) {
-                        val tempPrefs = context.getSharedPreferences("temp_restore_vault", Context.MODE_PRIVATE)
-                        readJsonLinesToSettings(prefLines!!, tempPrefs)
-                        val s = tempPrefs.getString(PREF_PATTERN_SALT, null)
-                        val h = tempPrefs.getString(PREF_PATTERN_HASH, null)
-                        context.prefs().edit {
-                            if (s != null && h != null) {
-                                putString(PREF_PATTERN_SALT, s)
-                                putString(PREF_PATTERN_HASH, h)
-                            }
-                        }
-                        tempPrefs.edit { clear() }
-                    }
-                }
             }
 
             // 3. Restore Clipboard & Prompts

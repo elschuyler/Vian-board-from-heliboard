@@ -6,6 +6,8 @@ import helium314.keyboard.latin.R
 
 /**
  * Modular data categories for granular backup and selective restoration.
+ * Note: Security Vault credentials and pattern locks are completely decoupled from .zip backups
+ * and are exclusively managed via KeePass (.kdbx).
  */
 enum class BackupModule(
     val key: String,
@@ -32,12 +34,6 @@ enum class BackupModule(
         key = "word_improvement",
         titleRes = R.string.backup_module_word_improvement,
         descriptionRes = R.string.backup_module_word_improvement_desc
-    ),
-    SECURITY_VAULT(
-        key = "security_vault",
-        titleRes = R.string.backup_module_security_vault,
-        descriptionRes = R.string.backup_module_security_vault_desc,
-        isSensitive = true
     ),
     PRIVACY_VAULT(
         key = "privacy_vault",

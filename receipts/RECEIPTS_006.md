@@ -126,3 +126,39 @@ Strictly capped at 500 lines per file.
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: Ready for on-device manual QA testing.
 
+---
+
+### [Receipt: 2026-10-31 01:52:30 UTC]
+- **Requested**:
+  1. Fix suggestion bar stopped showing suggestions in normal input of AI chat box (rapid open/close loop) by aligning with HeliBoard clean implementation.
+  2. Complete decoupling of Security Vault from modular ZIP backup dialog (exclusive to KeePass .kdbx).
+  3. Fix crash in Comma Popups Customizer (`IllegalArgumentException` on drawables in Compose `painterResource`).
+  4. Fix Floating Board and Half Board decoupling (both working properly, distinct sizing, free floating).
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/latin/LatinIME.java`
+  - `app/src/main/java/helium314/keyboard/latin/Suggest.kt`
+  - `app/src/main/res/drawable/ic_dpad_right.xml`
+  - `app/src/main/res/drawable/ic_dpad_down.xml`
+  - `app/src/main/res/drawable/ic_word_right.xml`
+  - `app/src/main/res/drawable/ic_page_end.xml`
+  - `app/src/main/java/helium314/keyboard/settings/backup/BackupModule.kt`
+  - `app/src/main/java/helium314/keyboard/settings/backup/ModularBackupDialogs.kt`
+  - `app/src/main/java/helium314/keyboard/settings/backup/ModularBackupEngine.kt`
+  - `app/src/main/java/helium314/keyboard/latin/settings/Settings.kt`
+  - `app/src/main/java/helium314/keyboard/latin/utils/FloatingKeyboardUtils.kt`
+  - `app/src/main/java/helium314/keyboard/keyboard/KeyboardSwitcher.java`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_006.md`
+- **What was actually done**:
+  1. Restored Chat Box Suggestions: Replaced `isNullOrStaleState` in `LatinIME.java` with HeliBoard's clean check `!restarting || !currentSettingsValues.isSameInputType(editorInfo)`. This halts the rapid closing/reloading loop and suggestion strip cancellation when typing into reactive web textareas and AI chat boxes.
+  2. Restored Candidate Indexing: In `Suggest.kt`, removed `suggestionsContainer.add(0, typedWordInfo)`, restoring HeliBoard's clean candidate index structure so `SuggestionStripLayoutHelper` properly renders the top dictionary predictions and auto-corrections.
+  3. Fixed Comma Popups Customizer Crash: Converted `ic_dpad_right.xml`, `ic_dpad_down.xml`, `ic_word_right.xml`, and `ic_page_end.xml` from `<rotate>` roots to pure `<vector>` drawables with nested rotated `<group>` tags. Completely eliminates the `IllegalArgumentException` thrown by Jetpack Compose `painterResource()`.
+  4. Decoupled Security Vault from ZIP Backup: Removed `SECURITY_VAULT` enum entry from `BackupModule.kt` and `ModularBackupDialogs.kt`, ensuring Security Vault is never presented as a checkbox option in the modular ZIP backup dialog. Sanitized pattern lock hashes and salts from settings export, preserved existing device vault keys unconditionally on settings restore, and skipped `vault.json` in `ModularBackupEngine.kt`.
+  5. Decoupled Floating Board and Half Board: Updated default floating width in `Settings.kt` to 85% of display width (vs. 55% for Half Board), added `TOP or START` gravity handling on `main_keyboard_frame` in floating mode, and eliminated cross-mode coordinate teardowns in `KeyboardSwitcher.java`.
+  6. Verified compilation with `compile_applet` (100% clean build, 0 errors).
+  7. Performed silent security self-scan per Mandates 2 & 3: zero exposed credentials found.
+- **How it was verified**: local build only (`compile_applet` passed cleanly).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device manual QA testing.
+
+

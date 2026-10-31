@@ -1182,7 +1182,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     @Override
     public void setFloatingBoardEnabled(boolean enabled) {
         if (enabled && Settings.getValues().mIsHalfBoard) {
-            setHalfBoardEnabled(false);
+            SettingsKt.setHalfBoardEnabled(mThemeContext, false);
         }
         if (enabled != Settings.getValues().mIsFloatingKeyboard) {
             // mIsFloatingKeyboard is always disabled when device is locked, and we shouldn't mess up the setting
@@ -1196,7 +1196,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     @Override
     public void setHalfBoardEnabled(boolean enabled) {
         if (enabled && Settings.getValues().mIsFloatingKeyboard) {
-            setFloatingBoardEnabled(false);
+            SettingsKt.setFloatingKeyboardEnabled(mThemeContext, false);
         }
         if (enabled != Settings.getValues().mIsHalfBoard) {
             SettingsKt.setHalfBoardEnabled(mThemeContext, enabled);

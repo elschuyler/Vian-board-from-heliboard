@@ -54,7 +54,7 @@ fun readFloatingHeight(context: Context): Int {
 fun readFloatingWidth(context: Context): Int {
     val screenWidth = context.resources.displayMetrics.widthPixels
     val key = Settings.PREF_FLOATING_WIDTH_PREFIX + screenWidth
-    return context.prefs().getInt(key, screenWidth / 2)
+    return context.prefs().getInt(key, (screenWidth * 0.85f).toInt())
 }
 
 fun setFloatingSize(context: Context, width: Int, height: Int) {

@@ -910,11 +910,8 @@ public class LatinIME extends InputMethodService implements
         // If we are starting input in a different text field from before, we'll have to reload
         // settings, so currentSettingsValues can't be final.
         SettingsValues currentSettingsValues = mSettings.getCurrent();
-        boolean inputTypeChanged = !currentSettingsValues.isSameInputType(editorInfo);
-        boolean isNullOrStaleState = currentSettingsValues.mInputAttributes == null
-                || currentSettingsValues.mInputAttributes.isTypeNull()
-                || !currentSettingsValues.mSuggestionsEnabled;
-        boolean isDifferentTextField = !restarting || inputTypeChanged || isNullOrStaleState;
+        final boolean isDifferentTextField = !restarting
+                || !currentSettingsValues.isSameInputType(editorInfo);
 
         // we want to reload the settings before calling updateKeyboardTheme, because updateKeyboardTheme reads SettingsValues.mToolbarMode
         if (isDifferentTextField || !currentSettingsValues.hasSameOrientation(getResources().getConfiguration())) {

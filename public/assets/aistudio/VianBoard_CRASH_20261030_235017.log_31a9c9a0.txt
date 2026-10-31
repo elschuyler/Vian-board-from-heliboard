@@ -1,0 +1,334 @@
+=== VIANBOARD FATAL CRASH REPORT ===
+Timestamp: 2026-10-30 23:50:17.353
+Thread: main (id=2)
+App Version: 4.1-beta1 (4100)
+Device: Redmi serenity, Android 15 (SDK 35)
+
+WHAT IS RUNNING (ACTIVE COMPONENTS):
+- [Input Service] LatinIME: Active (lastSeen=49437984)
+- [Diagnostic] LogCatcher: Active (lastSeen=49437732)
+- [Core] System: Initialized (lastSeen=49437732)
+
+FATAL EXCEPTION:
+java.lang.IllegalArgumentException: Only VectorDrawables and rasterized asset types are supported ex. PNG, JPG, WEBP
+	at androidx.compose.ui.res.PainterResources_androidKt.loadVectorResource(PainterResources.android.kt:95)
+	at androidx.compose.ui.res.PainterResources_androidKt.painterResource(PainterResources.android.kt:67)
+	at helium314.keyboard.settings.dialogs.CommaPopupsCustomizerKt$CommaPopupsCustomizer$3$1$1$2$1$1.invoke(CommaPopupsCustomizer.kt:129)
+	at helium314.keyboard.settings.dialogs.CommaPopupsCustomizerKt$CommaPopupsCustomizer$3$1$1$2$1$1.invoke(CommaPopupsCustomizer.kt:108)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:121)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:51)
+	at androidx.compose.material3.SurfaceKt$Surface$1.invoke(Surface.kt:130)
+	at androidx.compose.material3.SurfaceKt$Surface$1.invoke(Surface.kt:110)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:121)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:51)
+	at androidx.compose.runtime.CompositionLocalKt.CompositionLocalProvider(CompositionLocal.kt:370)
+	at androidx.compose.material3.SurfaceKt.Surface-T9BRK9s(Surface.kt:107)
+	at helium314.keyboard.settings.dialogs.CommaPopupsCustomizerKt$CommaPopupsCustomizer$3$1$1$2$1.invoke(CommaPopupsCustomizer.kt:103)
+	at helium314.keyboard.settings.dialogs.CommaPopupsCustomizerKt$CommaPopupsCustomizer$3$1$1$2$1.invoke(CommaPopupsCustomizer.kt:101)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:142)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:51)
+	at sh.calvin.reorderable.ReorderableLazyCollectionKt.ReorderableCollectionItem(ReorderableLazyCollection.kt:829)
+	at sh.calvin.reorderable.ReorderableLazyListKt.ReorderableItem(ReorderableLazyList.kt:321)
+	at helium314.keyboard.settings.dialogs.CommaPopupsCustomizerKt$CommaPopupsCustomizer$lambda$13$lambda$12$lambda$11$$inlined$items$default$4.invoke(LazyDsl.kt:184)
+	at helium314.keyboard.settings.dialogs.CommaPopupsCustomizerKt$CommaPopupsCustomizer$lambda$13$lambda$12$lambda$11$$inlined$items$default$4.invoke(LazyDsl.kt:178)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:142)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:51)
+	at androidx.compose.foundation.lazy.LazyListItemProviderImpl$Item$1.invoke(LazyListItemProvider.kt:80)
+	at androidx.compose.foundation.lazy.LazyListItemProviderImpl$Item$1.invoke(LazyListItemProvider.kt:78)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:121)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:51)
+	at androidx.compose.runtime.CompositionLocalKt.CompositionLocalProvider(CompositionLocal.kt:390)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutPinnableItemKt.LazyLayoutPinnableItem(LazyLayoutPinnableItem.kt:56)
+	at androidx.compose.foundation.lazy.LazyListItemProviderImpl.Item(LazyListItemProvider.kt:78)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutItemContentFactoryKt$SkippableItem$1.invoke(LazyLayoutItemContentFactory.kt:127)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutItemContentFactoryKt$SkippableItem$1.invoke(LazyLayoutItemContentFactory.kt:126)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:121)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:51)
+	at androidx.compose.runtime.CompositionLocalKt.CompositionLocalProvider(CompositionLocal.kt:370)
+	at androidx.compose.runtime.saveable.SaveableStateHolderImpl.SaveableStateProvider(SaveableStateHolder.kt:82)
+	at androidx.compose.foundation.lazy.layout.LazySaveableStateHolder.SaveableStateProvider(LazySaveableStateHolder.kt:76)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutItemContentFactoryKt.SkippableItem-JVlU9Rs(LazyLayoutItemContentFactory.kt:126)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutItemContentFactoryKt.access$SkippableItem-JVlU9Rs(LazyLayoutItemContentFactory.kt:1)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutItemContentFactory$CachedItemContent$createContentLambda$1.invoke(LazyLayoutItemContentFactory.kt:95)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutItemContentFactory$CachedItemContent$createContentLambda$1.invoke(LazyLayoutItemContentFactory.kt:85)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:121)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:51)
+	at androidx.compose.runtime.internal.Expect_jvmKt.invokeComposable(Expect.jvm.kt:24)
+	at androidx.compose.runtime.ComposerImpl.doCompose-aFTiNEg(Composer.kt:3837)
+	at androidx.compose.runtime.ComposerImpl.composeContent--ZbOJvo$runtime(Composer.kt:3741)
+	at androidx.compose.runtime.CompositionImpl.composeContent(Composition.kt:832)
+	at androidx.compose.runtime.Recomposer.composeInitial$runtime(Recomposer.kt:1233)
+	at androidx.compose.runtime.ComposerImpl$CompositionContextImpl.composeInitial$runtime(Composer.kt:4180)
+	at androidx.compose.runtime.ComposerImpl$CompositionContextImpl.composeInitial$runtime(Composer.kt:4180)
+	at androidx.compose.runtime.CompositionImpl.composeInitial(Composition.kt:672)
+	at androidx.compose.runtime.CompositionImpl.composeInitialWithReuse(Composition.kt:699)
+	at androidx.compose.runtime.CompositionImpl.setContentWithReuse(Composition.kt:647)
+	at androidx.compose.ui.layout.LayoutNodeSubcompositionsState.subcompose(SubcomposeLayout.kt:696)
+	at androidx.compose.ui.layout.LayoutNodeSubcompositionsState.subcompose(SubcomposeLayout.kt:641)
+	at androidx.compose.ui.layout.LayoutNodeSubcompositionsState.subcompose(SubcomposeLayout.kt:607)
+	at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$Scope.subcompose(SubcomposeLayout.kt:1231)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutMeasureScopeImpl.compose(LazyLayoutMeasureScope.kt:94)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutMeasuredItemProvider.getPlaceables-3p2s80s(LazyLayoutMeasuredItem.kt:60)
+	at androidx.compose.foundation.lazy.LazyListMeasuredItemProvider.getAndMeasure-0kLqBqw(LazyListMeasuredItemProvider.kt:53)
+	at androidx.compose.foundation.lazy.LazyListMeasuredItemProvider.getAndMeasure-0kLqBqw$default(LazyListMeasuredItemProvider.kt:47)
+	at androidx.compose.foundation.lazy.LazyListMeasureKt.measureLazyList-LCrQqZ4(LazyListMeasure.kt:224)
+	at androidx.compose.foundation.lazy.LazyListKt$rememberLazyListMeasurePolicy$1$1.measure-0kLqBqw(LazyList.kt:354)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutKt$LazyLayout$2.invoke$lambda$8$lambda$7(LazyLayout.kt:141)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutKt$LazyLayout$2$$ExternalSyntheticLambda2.invoke(D8$$SyntheticClass:0)
+	at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$createMeasurePolicy$1.measure-3p2s80s(SubcomposeLayout.kt:914)
+	at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:128)
+	at androidx.compose.ui.graphics.SimpleGraphicsLayerModifier.measure-3p2s80s(GraphicsLayerModifier.kt:794)
+	at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutBeyondBoundsModifierNode.measure-3p2s80s(LazyLayoutBeyondBoundsModifierLocal.kt:118)
+	at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+	at androidx.compose.foundation.layout.SizeNode.measure-3p2s80s(Size.kt:865)
+	at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+	at androidx.compose.ui.node.MeasurePassDelegate$performMeasureBlock$1.invoke(MeasurePassDelegate.kt:173)
+	at androidx.compose.ui.node.MeasurePassDelegate$performMeasureBlock$1.invoke(MeasurePassDelegate.kt:172)
+	at androidx.compose.runtime.snapshots.Snapshot$Companion.observe(Snapshot.kt:2495)
+	at androidx.compose.runtime.snapshots.SnapshotStateObserver$ObservedScopeMap.observe(SnapshotStateObserver.kt:464)
+	at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:248)
+	at androidx.compose.ui.node.OwnerSnapshotObserver.observeReads$ui_release(OwnerSnapshotObserver.kt:124)
+	at androidx.compose.ui.node.OwnerSnapshotObserver.observeMeasureSnapshotReads$ui_release(OwnerSnapshotObserver.kt:107)
+	at androidx.compose.ui.node.MeasurePassDelegate.performMeasure-BRTryo0$ui_release(MeasurePassDelegate.kt:426)
+	at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:477)
+	at androidx.compose.ui.node.LayoutNode.remeasure-_Sx5XlM$ui_release(LayoutNode.kt:1283)
+	at androidx.compose.ui.node.MeasureAndLayoutDelegate.doRemeasure-sdFAvZA(MeasureAndLayoutDelegate.kt:378)
+	at androidx.compose.ui.node.MeasureAndLayoutDelegate.measureAndLayout-0kLqBqw(MeasureAndLayoutDelegate.kt:490)
+	at androidx.compose.ui.platform.AndroidComposeView.measureAndLayout-0kLqBqw(AndroidComposeView.android.kt:1570)
+	at androidx.compose.ui.node.LayoutNode.forceRemeasure(LayoutNode.kt:1345)
+	at androidx.compose.foundation.lazy.LazyListState.onScroll$foundation_release(LazyListState.kt:524)
+	at androidx.compose.foundation.lazy.LazyListState.scrollableState$lambda$0(LazyListState.kt:279)
+	at androidx.compose.foundation.lazy.LazyListState$$ExternalSyntheticLambda2.invoke(D8$$SyntheticClass:0)
+	at androidx.compose.foundation.gestures.DefaultScrollableState$scrollScope$1.scrollBy(ScrollableState.kt:181)
+	at androidx.compose.foundation.gestures.ScrollingLogic.performScroll-3eAAhYA(Scrollable.kt:723)
+	at androidx.compose.foundation.gestures.ScrollingLogic.performScrollForOverscroll$lambda$1(Scrollable.kt:709)
+	at androidx.compose.foundation.gestures.ScrollingLogic$$ExternalSyntheticLambda0.invoke(D8$$SyntheticClass:0)
+	at androidx.compose.foundation.AndroidEdgeEffectOverscrollEffect.applyToScroll-Rhakbz0(AndroidOverscroll.android.kt:618)
+	at androidx.compose.foundation.gestures.ScrollingLogic$nestedScrollScope$1.scrollByWithOverscroll-OzD1aCk(Scrollable.kt:701)
+	at androidx.compose.foundation.gestures.ScrollableNode$drag$2$1.invokeSuspend$lambda$0(Scrollable.kt:341)
+	at androidx.compose.foundation.gestures.ScrollableNode$drag$2$1$$ExternalSyntheticLambda0.invoke(D8$$SyntheticClass:0)
+	at androidx.compose.foundation.gestures.DragGestureNode$startListeningForEvents$1$1.invokeSuspend(Draggable.kt:442)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+	at androidx.compose.ui.platform.AndroidUiDispatcher.performTrampolineDispatch(AndroidUiDispatcher.android.kt:79)
+	at androidx.compose.ui.platform.AndroidUiDispatcher.access$performTrampolineDispatch(AndroidUiDispatcher.android.kt:41)
+	at androidx.compose.ui.platform.AndroidUiDispatcher$dispatchCallback$1.doFrame(AndroidUiDispatcher.android.kt:68)
+	at android.view.Choreographer$CallbackRecord.run(Choreographer.java:1865)
+	at android.view.Choreographer$CallbackRecord.run(Choreographer.java:1876)
+	at android.view.Choreographer.doCallbacks(Choreographer.java:1287)
+	at android.view.Choreographer.doAnimationLoad(Choreographer.java:1144)
+	at android.view.Choreographer.doFrame(Choreographer.java:1109)
+	at android.view.Choreographer$FrameDisplayEventReceiver.run(Choreographer.java:1693)
+	at android.os.Handler.handleCallback(Handler.java:959)
+	at android.os.Handler.dispatchMessage(Handler.java:100)
+	at android.os.Looper.loopOnce(Looper.java:246)
+	at android.os.Looper.loop(Looper.java:334)
+	at android.app.ActivityThread.main(ActivityThread.java:8895)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:706)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:916)
+	Suppressed: kotlinx.coroutines.internal.DiagnosticCoroutineContextException: [androidx.compose.ui.platform.MotionDurationScaleImpl@72840a8, androidx.compose.runtime.BroadcastFrameClock@9c6e7c1, StandaloneCoroutine{Cancelling}@493ab66, AndroidUiDispatcher@7fd3ea7]
+
+
+
+RECENT SYSTEM LOGS:
+2026-10-30 23:49:51.851 [D] KeyboardParser: adding key 3, 0
+2026-10-30 23:49:51.851 [D] KeyboardParser: adding key 4, 0
+2026-10-30 23:49:51.852 [D] KeyboardParser: adding key 5, 0
+2026-10-30 23:49:51.852 [D] KeyboardParser: adding key 6, 0
+2026-10-30 23:49:51.853 [D] KeyboardParser: adding key 7, 0
+2026-10-30 23:49:51.853 [D] KeyboardParser: adding key 8, 0
+2026-10-30 23:49:51.854 [D] KeyboardParser: adding key 9, 0
+2026-10-30 23:49:51.854 [D] KeyboardParser: adding key 0, 0
+2026-10-30 23:49:51.855 [D] KeyboardParser: adding key q, 0
+2026-10-30 23:49:51.855 [D] KeyboardParser: adding key w, 0
+2026-10-30 23:49:51.855 [D] KeyboardParser: adding key e, 0
+2026-10-30 23:49:51.856 [D] KeyboardParser: adding key r, 0
+2026-10-30 23:49:51.856 [D] KeyboardParser: adding key t, 0
+2026-10-30 23:49:51.856 [D] KeyboardParser: adding key y, 0
+2026-10-30 23:49:51.857 [D] KeyboardParser: adding key u, 0
+2026-10-30 23:49:51.857 [D] KeyboardParser: adding key i, 0
+2026-10-30 23:49:51.858 [D] KeyboardParser: adding key o, 0
+2026-10-30 23:49:51.858 [D] KeyboardParser: adding key p, 0
+2026-10-30 23:49:51.859 [D] KeyboardParser: adding key a, 0
+2026-10-30 23:49:51.859 [D] KeyboardParser: adding key s, 0
+2026-10-30 23:49:51.860 [D] KeyboardParser: adding key d, 0
+2026-10-30 23:49:51.860 [D] KeyboardParser: adding key f, 0
+2026-10-30 23:49:51.860 [D] KeyboardParser: adding key g, 0
+2026-10-30 23:49:51.861 [D] KeyboardParser: adding key h, 0
+2026-10-30 23:49:51.861 [D] KeyboardParser: adding key j, 0
+2026-10-30 23:49:51.861 [D] KeyboardParser: adding key k, 0
+2026-10-30 23:49:51.862 [D] KeyboardParser: adding key l, 0
+2026-10-30 23:49:51.863 [D] KeyboardParser: adding key z, 0
+2026-10-30 23:49:51.864 [D] KeyboardParser: adding key x, 0
+2026-10-30 23:49:51.864 [D] KeyboardParser: adding key c, 0
+2026-10-30 23:49:51.864 [D] KeyboardParser: adding key v, 0
+2026-10-30 23:49:51.865 [D] KeyboardParser: adding key b, 0
+2026-10-30 23:49:51.865 [D] KeyboardParser: adding key n, 0
+2026-10-30 23:49:51.865 [D] KeyboardParser: adding key m, 0
+2026-10-30 23:49:51.870 [D] Keyboard.Builder: setting size and position for 1, 49: x 0, w 72
+2026-10-30 23:49:51.870 [D] Keyboard.Builder: setting size and position for 2, 50: x 72, w 72
+2026-10-30 23:49:51.870 [D] Keyboard.Builder: setting size and position for 3, 51: x 144, w 72
+2026-10-30 23:49:51.870 [D] Keyboard.Builder: setting size and position for 4, 52: x 216, w 72
+2026-10-30 23:49:51.870 [D] Keyboard.Builder: setting size and position for 5, 53: x 288, w 72
+2026-10-30 23:49:51.870 [D] Keyboard.Builder: setting size and position for 6, 54: x 360, w 72
+2026-10-30 23:49:51.871 [D] Keyboard.Builder: setting size and position for 7, 55: x 432, w 72
+2026-10-30 23:49:51.871 [D] Keyboard.Builder: setting size and position for 8, 56: x 504, w 72
+2026-10-30 23:49:51.871 [D] Keyboard.Builder: setting size and position for 9, 57: x 576, w 72
+2026-10-30 23:49:51.871 [D] Keyboard.Builder: setting size and position for 0, 48: x 648, w 72
+2026-10-30 23:49:51.871 [D] Keyboard.Builder: setting size and position for q, 113: x 0, w 72
+2026-10-30 23:49:51.871 [D] Keyboard.Builder: setting size and position for w, 119: x 72, w 72
+2026-10-30 23:49:51.871 [D] Keyboard.Builder: setting size and position for e, 101: x 144, w 72
+2026-10-30 23:49:51.871 [D] Keyboard.Builder: setting size and position for r, 114: x 216, w 72
+2026-10-30 23:49:51.871 [D] Keyboard.Builder: setting size and position for t, 116: x 288, w 72
+2026-10-30 23:49:51.871 [D] Keyboard.Builder: setting size and position for y, 121: x 360, w 72
+2026-10-30 23:49:51.871 [D] Keyboard.Builder: setting size and position for u, 117: x 432, w 72
+2026-10-30 23:49:51.871 [D] Keyboard.Builder: setting size and position for i, 105: x 504, w 72
+2026-10-30 23:49:51.871 [D] Keyboard.Builder: setting size and position for o, 111: x 576, w 72
+2026-10-30 23:49:51.871 [D] Keyboard.Builder: setting size and position for p, 112: x 648, w 72
+2026-10-30 23:49:51.871 [D] Keyboard.Builder: setting size and position for null, -10008: x 0, w 35
+2026-10-30 23:49:51.871 [D] Keyboard.Builder: setting size and position for a, 97: x 35, w 72
+2026-10-30 23:49:51.872 [D] Keyboard.Builder: setting size and position for s, 115: x 107, w 72
+2026-10-30 23:49:51.872 [D] Keyboard.Builder: setting size and position for d, 100: x 179, w 72
+2026-10-30 23:49:51.872 [D] Keyboard.Builder: setting size and position for f, 102: x 251, w 72
+2026-10-30 23:49:51.872 [D] Keyboard.Builder: setting size and position for g, 103: x 323, w 72
+2026-10-30 23:49:51.872 [D] Keyboard.Builder: setting size and position for h, 104: x 395, w 72
+2026-10-30 23:49:51.872 [D] Keyboard.Builder: setting size and position for j, 106: x 467, w 72
+2026-10-30 23:49:51.872 [D] Keyboard.Builder: setting size and position for k, 107: x 540, w 72
+2026-10-30 23:49:51.872 [D] Keyboard.Builder: setting size and position for l, 108: x 612, w 72
+2026-10-30 23:49:51.872 [D] Keyboard.Builder: setting size and position for null, -10008: x 684, w 35
+2026-10-30 23:49:51.872 [D] Keyboard.Builder: setting size and position for shift_key, -11: x 0, w 108
+2026-10-30 23:49:51.872 [D] Keyboard.Builder: setting size and position for z, 122: x 108, w 72
+2026-10-30 23:49:51.872 [D] Keyboard.Builder: setting size and position for x, 120: x 180, w 72
+2026-10-30 23:49:51.872 [D] Keyboard.Builder: setting size and position for c, 99: x 252, w 72
+2026-10-30 23:49:51.872 [D] Keyboard.Builder: setting size and position for v, 118: x 324, w 72
+2026-10-30 23:49:51.872 [D] Keyboard.Builder: setting size and position for b, 98: x 396, w 72
+2026-10-30 23:49:51.872 [D] Keyboard.Builder: setting size and position for n, 110: x 468, w 72
+2026-10-30 23:49:51.872 [D] Keyboard.Builder: setting size and position for m, 109: x 540, w 72
+2026-10-30 23:49:51.872 [D] Keyboard.Builder: setting size and position for delete_key, -7: x 612, w 108
+2026-10-30 23:49:51.873 [D] Keyboard.Builder: setting size and position for ?123, -10001: x 0, w 108
+2026-10-30 23:49:51.873 [D] Keyboard.Builder: setting size and position for ,, 44: x 108, w 72
+2026-10-30 23:49:51.873 [D] Keyboard.Builder: setting size and position for space_key, 32: x 180, w 360
+2026-10-30 23:49:51.873 [D] Keyboard.Builder: setting size and position for ., 46: x 540, w 72
+2026-10-30 23:49:51.873 [D] Keyboard.Builder: setting size and position for done_key, 10: x 612, w 108
+2026-10-30 23:50:17.327 [F] CrashReport: HeliBoard uncaught exception on thread main: Only VectorDrawables and rasterized asset types are supported ex. PNG, JPG, WEBP
+java.lang.IllegalArgumentException: Only VectorDrawables and rasterized asset types are supported ex. PNG, JPG, WEBP
+	at androidx.compose.ui.res.PainterResources_androidKt.loadVectorResource(PainterResources.android.kt:95)
+	at androidx.compose.ui.res.PainterResources_androidKt.painterResource(PainterResources.android.kt:67)
+	at helium314.keyboard.settings.dialogs.CommaPopupsCustomizerKt$CommaPopupsCustomizer$3$1$1$2$1$1.invoke(CommaPopupsCustomizer.kt:129)
+	at helium314.keyboard.settings.dialogs.CommaPopupsCustomizerKt$CommaPopupsCustomizer$3$1$1$2$1$1.invoke(CommaPopupsCustomizer.kt:108)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:121)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:51)
+	at androidx.compose.material3.SurfaceKt$Surface$1.invoke(Surface.kt:130)
+	at androidx.compose.material3.SurfaceKt$Surface$1.invoke(Surface.kt:110)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:121)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:51)
+	at androidx.compose.runtime.CompositionLocalKt.CompositionLocalProvider(CompositionLocal.kt:370)
+	at androidx.compose.material3.SurfaceKt.Surface-T9BRK9s(Surface.kt:107)
+	at helium314.keyboard.settings.dialogs.CommaPopupsCustomizerKt$CommaPopupsCustomizer$3$1$1$2$1.invoke(CommaPopupsCustomizer.kt:103)
+	at helium314.keyboard.settings.dialogs.CommaPopupsCustomizerKt$CommaPopupsCustomizer$3$1$1$2$1.invoke(CommaPopupsCustomizer.kt:101)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:142)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:51)
+	at sh.calvin.reorderable.ReorderableLazyCollectionKt.ReorderableCollectionItem(ReorderableLazyCollection.kt:829)
+	at sh.calvin.reorderable.ReorderableLazyListKt.ReorderableItem(ReorderableLazyList.kt:321)
+	at helium314.keyboard.settings.dialogs.CommaPopupsCustomizerKt$CommaPopupsCustomizer$lambda$13$lambda$12$lambda$11$$inlined$items$default$4.invoke(LazyDsl.kt:184)
+	at helium314.keyboard.settings.dialogs.CommaPopupsCustomizerKt$CommaPopupsCustomizer$lambda$13$lambda$12$lambda$11$$inlined$items$default$4.invoke(LazyDsl.kt:178)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:142)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:51)
+	at androidx.compose.foundation.lazy.LazyListItemProviderImpl$Item$1.invoke(LazyListItemProvider.kt:80)
+	at androidx.compose.foundation.lazy.LazyListItemProviderImpl$Item$1.invoke(LazyListItemProvider.kt:78)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:121)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:51)
+	at androidx.compose.runtime.CompositionLocalKt.CompositionLocalProvider(CompositionLocal.kt:390)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutPinnableItemKt.LazyLayoutPinnableItem(LazyLayoutPinnableItem.kt:56)
+	at androidx.compose.foundation.lazy.LazyListItemProviderImpl.Item(LazyListItemProvider.kt:78)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutItemContentFactoryKt$SkippableItem$1.invoke(LazyLayoutItemContentFactory.kt:127)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutItemContentFactoryKt$SkippableItem$1.invoke(LazyLayoutItemContentFactory.kt:126)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:121)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:51)
+	at androidx.compose.runtime.CompositionLocalKt.CompositionLocalProvider(CompositionLocal.kt:370)
+	at androidx.compose.runtime.saveable.SaveableStateHolderImpl.SaveableStateProvider(SaveableStateHolder.kt:82)
+	at androidx.compose.foundation.lazy.layout.LazySaveableStateHolder.SaveableStateProvider(LazySaveableStateHolder.kt:76)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutItemContentFactoryKt.SkippableItem-JVlU9Rs(LazyLayoutItemContentFactory.kt:126)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutItemContentFactoryKt.access$SkippableItem-JVlU9Rs(LazyLayoutItemContentFactory.kt:1)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutItemContentFactory$CachedItemContent$createContentLambda$1.invoke(LazyLayoutItemContentFactory.kt:95)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutItemContentFactory$CachedItemContent$createContentLambda$1.invoke(LazyLayoutItemContentFactory.kt:85)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:121)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.kt:51)
+	at androidx.compose.runtime.internal.Expect_jvmKt.invokeComposable(Expect.jvm.kt:24)
+	at androidx.compose.runtime.ComposerImpl.doCompose-aFTiNEg(Composer.kt:3837)
+	at androidx.compose.runtime.ComposerImpl.composeContent--ZbOJvo$runtime(Composer.kt:3741)
+	at androidx.compose.runtime.CompositionImpl.composeContent(Composition.kt:832)
+	at androidx.compose.runtime.Recomposer.composeInitial$runtime(Recomposer.kt:1233)
+	at androidx.compose.runtime.ComposerImpl$CompositionContextImpl.composeInitial$runtime(Composer.kt:4180)
+	at androidx.compose.runtime.ComposerImpl$CompositionContextImpl.composeInitial$runtime(Composer.kt:4180)
+	at androidx.compose.runtime.CompositionImpl.composeInitial(Composition.kt:672)
+	at androidx.compose.runtime.CompositionImpl.composeInitialWithReuse(Composition.kt:699)
+	at androidx.compose.runtime.CompositionImpl.setContentWithReuse(Composition.kt:647)
+	at androidx.compose.ui.layout.LayoutNodeSubcompositionsState.subcompose(SubcomposeLayout.kt:696)
+	at androidx.compose.ui.layout.LayoutNodeSubcompositionsState.subcompose(SubcomposeLayout.kt:641)
+	at androidx.compose.ui.layout.LayoutNodeSubcompositionsState.subcompose(SubcomposeLayout.kt:607)
+	at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$Scope.subcompose(SubcomposeLayout.kt:1231)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutMeasureScopeImpl.compose(LazyLayoutMeasureScope.kt:94)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutMeasuredItemProvider.getPlaceables-3p2s80s(LazyLayoutMeasuredItem.kt:60)
+	at androidx.compose.foundation.lazy.LazyListMeasuredItemProvider.getAndMeasure-0kLqBqw(LazyListMeasuredItemProvider.kt:53)
+	at androidx.compose.foundation.lazy.LazyListMeasuredItemProvider.getAndMeasure-0kLqBqw$default(LazyListMeasuredItemProvider.kt:47)
+	at androidx.compose.foundation.lazy.LazyListMeasureKt.measureLazyList-LCrQqZ4(LazyListMeasure.kt:224)
+	at androidx.compose.foundation.lazy.LazyListKt$rememberLazyListMeasurePolicy$1$1.measure-0kLqBqw(LazyList.kt:354)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutKt$LazyLayout$2.invoke$lambda$8$lambda$7(LazyLayout.kt:141)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutKt$LazyLayout$2$$ExternalSyntheticLambda2.invoke(D8$$SyntheticClass:0)
+	at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$createMeasurePolicy$1.measure-3p2s80s(SubcomposeLayout.kt:914)
+	at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:128)
+	at androidx.compose.ui.graphics.SimpleGraphicsLayerModifier.measure-3p2s80s(GraphicsLayerModifier.kt:794)
+	at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutBeyondBoundsModifierNode.measure-3p2s80s(LazyLayoutBeyondBoundsModifierLocal.kt:118)
+	at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+	at androidx.compose.foundation.layout.SizeNode.measure-3p2s80s(Size.kt:865)
+	at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:190)
+	at androidx.compose.ui.node.MeasurePassDelegate$performMeasureBlock$1.invoke(MeasurePassDelegate.kt:173)
+	at androidx.compose.ui.node.MeasurePassDelegate$performMeasureBlock$1.invoke(MeasurePassDelegate.kt:172)
+	at androidx.compose.runtime.snapshots.Snapshot$Companion.observe(Snapshot.kt:2495)
+	at androidx.compose.runtime.snapshots.SnapshotStateObserver$ObservedScopeMap.observe(SnapshotStateObserver.kt:464)
+	at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:248)
+	at androidx.compose.ui.node.OwnerSnapshotObserver.observeReads$ui_release(OwnerSnapshotObserver.kt:124)
+	at androidx.compose.ui.node.OwnerSnapshotObserver.observeMeasureSnapshotReads$ui_release(OwnerSnapshotObserver.kt:107)
+	at androidx.compose.ui.node.MeasurePassDelegate.performMeasure-BRTryo0$ui_release(MeasurePassDelegate.kt:426)
+	at androidx.compose.ui.node.MeasurePassDelegate.remeasure-BRTryo0(MeasurePassDelegate.kt:477)
+	at androidx.compose.ui.node.LayoutNode.remeasure-_Sx5XlM$ui_release(LayoutNode.kt:1283)
+	at androidx.compose.ui.node.MeasureAndLayoutDelegate.doRemeasure-sdFAvZA(MeasureAndLayoutDelegate.kt:378)
+	at androidx.compose.ui.node.MeasureAndLayoutDelegate.measureAndLayout-0kLqBqw(MeasureAndLayoutDelegate.kt:490)
+	at androidx.compose.ui.platform.AndroidComposeView.measureAndLayout-0kLqBqw(AndroidComposeView.android.kt:1570)
+	at androidx.compose.ui.node.LayoutNode.forceRemeasure(LayoutNode.kt:1345)
+	at androidx.compose.foundation.lazy.LazyListState.onScroll$foundation_release(LazyListState.kt:524)
+	at androidx.compose.foundation.lazy.LazyListState.scrollableState$lambda$0(LazyListState.kt:279)
+	at androidx.compose.foundation.lazy.LazyListState$$ExternalSyntheticLambda2.invoke(D8$$SyntheticClass:0)
+	at androidx.compose.foundation.gestures.DefaultScrollableState$scrollScope$1.scrollBy(ScrollableState.kt:181)
+	at androidx.compose.foundation.gestures.ScrollingLogic.performScroll-3eAAhYA(Scrollable.kt:723)
+	at androidx.compose.foundation.gestures.ScrollingLogic.performScrollForOverscroll$lambda$1(Scrollable.kt:709)
+	at androidx.compose.foundation.gestures.ScrollingLogic$$ExternalSyntheticLambda0.invoke(D8$$SyntheticClass:0)
+	at androidx.compose.foundation.AndroidEdgeEffectOverscrollEffect.applyToScroll-Rhakbz0(AndroidOverscroll.android.kt:618)
+	at androidx.compose.foundation.gestures.ScrollingLogic$nestedScrollScope$1.scrollByWithOverscroll-OzD1aCk(Scrollable.kt:701)
+	at androidx.compose.foundation.gestures.ScrollableNode$drag$2$1.invokeSuspend$lambda$0(Scrollable.kt:341)
+	at androidx.compose.foundation.gestures.ScrollableNode$drag$2$1$$ExternalSyntheticLambda0.invoke(D8$$SyntheticClass:0)
+	at androidx.compose.foundation.gestures.DragGestureNode$startListeningForEvents$1$1.invokeSuspend(Draggable.kt:442)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+	at androidx.compose.ui.platform.AndroidUiDispatcher.performTrampolineDispatch(AndroidUiDispatcher.android.kt:79)
+	at androidx.compose.ui.platform.AndroidUiDispatcher.access$performTrampolineDispatch(AndroidUiDispatcher.android.kt:41)
+	at androidx.compose.ui.platform.AndroidUiDispatcher$dispatchCallback$1.doFrame(AndroidUiDispatcher.android.kt:68)
+	at android.view.Choreographer$CallbackRecord.run(Choreographer.java:1865)
+	at android.view.Choreographer$CallbackRecord.run(Choreographer.java:1876)
+	at android.view.Choreographer.doCallbacks(Choreographer.java:1287)
+	at android.view.Choreographer.doAnimationLoad(Choreographer.java:1144)
+	at android.view.Choreographer.doFrame(Choreographer.java:1109)
+	at android.view.Choreographer$FrameDisplayEventReceiver.run(Choreographer.java:1693)
+	at android.os.Handler.handleCallback(Handler.java:959)
+	at android.os.Handler.dispatchMessage(Handler.java:100)
+	at android.os.Looper.loopOnce(Looper.java:246)
+	at android.os.Looper.loop(Looper.java:334)
+	at android.app.ActivityThread.main(ActivityThread.java:8895)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:706)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:916)
+	Suppressed: kotlinx.coroutines.internal.DiagnosticCoroutineContextException: [androidx.compose.ui.platform.MotionDurationScaleImpl@72840a8, androidx.compose.runtime.BroadcastFrameClock@9c6e7c1, StandaloneCoroutine{Cancelling}@493ab66, AndroidUiDispatcher@7fd3ea7]

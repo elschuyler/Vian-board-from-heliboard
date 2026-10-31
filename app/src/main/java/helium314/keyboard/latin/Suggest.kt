@@ -138,14 +138,10 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         val typedWordInfo = SuggestedWordInfo(typedWordString, "", SuggestedWordInfo.MAX_SCORE,
             SuggestedWordInfo.KIND_TYPED, typedWordFirstOccurrenceWordInfo?.mSourceDict,
             SuggestedWordInfo.NOT_AN_INDEX, SuggestedWordInfo.NOT_A_CONFIDENCE)
-        if (typedWordString.isNotEmpty()) {
-            suggestionsContainer.add(0, typedWordInfo)
-        }
-
-        // Apply demotion to suggestionsContainer (preserving typedWordInfo at index 0 and relative order of non-demoted candidates)
-        if (DemotionManager.hasDemotions() && suggestionsContainer.size > 2) {
+        // Apply demotion to suggestionsContainer (preserving relative order of non-demoted candidates)
+        if (DemotionManager.hasDemotions() && suggestionsContainer.size > 1) {
             val demotedList = mutableListOf<SuggestedWordInfo>()
-            var i = 1
+            var i = 0
             while (i < suggestionsContainer.size) {
                 val candidate = suggestionsContainer[i]
                 if (DemotionManager.isDemoted(candidate.mWord)) {

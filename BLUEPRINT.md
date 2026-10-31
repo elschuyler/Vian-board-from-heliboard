@@ -1058,6 +1058,25 @@ Vianboard is a fully customizable, privacy-conscious offline Android keyboard ap
     - Clean build verified via `compile_applet`.
     - Executed silent security scan per Mandates 2 & 3: zero exposed credentials found.
 
+- **2026-10-31**: Completed Phase 83 (Restoration of Suggestions in Chat Boxes, Comma Popups Customizer Vector Crash Immunity, Complete Decoupling of Security Vault from ZIP Backup, and Floating / Half Board Layout Independence):
+  - **Component 1: Web & Chat Box Suggestion Restoration (`LatinIME.java`, `Suggest.kt`)**:
+    - Realigned `isDifferentTextField` in `LatinIME.java` with HeliBoard: `!restarting || !currentSettingsValues.isSameInputType(editorInfo)`. Removed stale suggestion state checks that caused text fields in AI chat boxes, web textareas, and Discord to repeatedly trigger keyboard reloading, closing, and suggestion strip cancellation on every keystroke.
+    - Aligned candidate container indexing in `Suggest.kt` with HeliBoard: removed prepending of `typedWordInfo` at index 0 in `suggestionsContainer`, preventing `SuggestionStripLayoutHelper` from discarding valid top candidates and restoring normal dictionary predictions and auto-corrections.
+  - **Component 2: Comma Popups Customizer Vector Crash Immunity (`ic_dpad_right.xml`, `ic_dpad_down.xml`, `ic_word_right.xml`, `ic_page_end.xml`)**:
+    - Converted four directional navigation drawables from `<rotate>` roots to pure `<vector>` drawables with rotated `<group>` tags.
+    - Completely resolved the fatal `java.lang.IllegalArgumentException: Only VectorDrawables and rasterized asset types are supported` crash when loading `CommaPopupsCustomizer.kt`.
+  - **Component 3: Total Decoupling of Security Vault from ZIP Backup (`BackupModule.kt`, `ModularBackupDialogs.kt`, `ModularBackupEngine.kt`)**:
+    - Removed `SECURITY_VAULT` from `BackupModule` enum and modular export/restore dialog checklists so Security Vault is never presented as a checkbox option inside ZIP backups.
+    - Sanitized all vault pattern hashes and salts from settings export, and preserved existing on-device vault credentials unconditionally on restore.
+    - Excluded `vault.json` from ZIP generation; credentials and vault locks are strictly and exclusively managed via standard KeePass (`.kdbx`).
+  - **Component 4: Floating Board & Half Board Layout Independence (`Settings.kt`, `FloatingKeyboardUtils.kt`, `KeyboardSwitcher.java`)**:
+    - Set default floating board width to 85% of display width in `Settings.kt`, distinguishing it visually and functionally from Half Board (55% width).
+    - Added layout gravity updates for `R.id.main_keyboard_frame` to `Gravity.TOP or Gravity.START` in floating mode and `Gravity.BOTTOM` in docked and half-board modes.
+    - Prevented cross-mode teardown in `KeyboardSwitcher.java` so switching between Floating Board and Half Board seamlessly transitions without layout flickering or coordinate corruption.
+  - **Component 5: Compilation & Security Verification**:
+    - Build verified via `compile_applet` (100% success with 0 errors).
+    - Performed silent security self-scan per Mandates 2 & 3: zero exposed credentials found.
+
 
 
 
