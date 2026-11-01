@@ -347,10 +347,30 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         }
     }
 
+    private fun shouldAddToUserHistory(word: String): Boolean {
+        if (word.length <= 1) return false
+        for (c in word) {
+            if (c.isDigit() || c.isISOControl() || c == '@' || c == '/' ||
+                c == '\\' || c == ':' || c == ';' || c == '#' || c == '$' || c == '%' ||
+                c == '^' || c == '&' || c == '*' || c == '+' || c == '=' || c == '<' ||
+                c == '>' || c == '~' || c == '|' || c == '`' || c == '¥' || c == '§' ||
+                c == '\uFFFD'
+            ) {
+                return false
+            }
+        }
+        if (word.length >= 3 && word.all { it == word[0] }) {
+            return false
+        }
+        return true
+    }
+
     private fun addWordToUserHistory(
         dictionaryGroup: DictionaryGroup, ngramContext: NgramContext, word: String, wasAutoCapitalized: Boolean,
         timeStampInSeconds: Int, blockPotentiallyOffensive: Boolean
     ) {
+        if (!shouldAddToUserHistory(word))
+            return
         val userHistoryDictionary = dictionaryGroup.getSubDict(Dictionary.TYPE_USER_HISTORY) ?: return
 
         val mainFreq = dictionaryGroup.getDict(Dictionary.TYPE_MAIN)?.getFrequency(word) ?: Dictionary.NOT_A_PROBABILITY

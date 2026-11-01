@@ -62,14 +62,30 @@ object LogCatcher {
         "MoreSuggestionsView",
         "SuggestionStripView",
         "KeyboardLayoutSet",
+        "KeyboardParser",
+        "Keyboard.Builder",
+        "Keyboard",
+        "Key",
+        "KeyDetector",
+        "BogusMoveEventDetector",
+        "GestureConsumer",
+        "KeyboardCodesSet",
         "TypoEngine"
     )
 
-    private fun isHighFrequencyTypingLog(level: Char, tag: String): Boolean {
+    private fun isHighFrequencyTypingLog(level: Char, tag: String, message: String): Boolean {
+        if (message.contains("adding key ", ignoreCase = true) ||
+            message.contains("setting size and position for ", ignoreCase = true) ||
+            message.contains("onCodeInput", ignoreCase = true) ||
+            message.contains("onPressKey", ignoreCase = true) ||
+            message.contains("onReleaseKey", ignoreCase = true)
+        ) {
+            return true
+        }
         for (t in HIGH_FREQUENCY_TYPING_TAGS) {
-            if (tag.startsWith(t)) {
+            if (tag.startsWith(t, ignoreCase = true)) {
                 if (level == 'D' || level == 'V') return true
-                if (level == 'I' && (helium314.keyboard.latin.settings.Settings.getValues()?.mLiteMode == true || !BuildConfig.DEBUG)) return true
+                if (level == 'I') return true
             }
         }
         return false
@@ -166,8 +182,8 @@ object LogCatcher {
         if (!isEnabled) return
 
         val safeTag = tag ?: "General"
-        if (isHighFrequencyTypingLog(level, safeTag)) {
-            // Filter high-frequency typing debug noise so typing is 100% latency-free
+        if (isHighFrequencyTypingLog(level, safeTag, message)) {
+            // Filter high-frequency typing debug noise and key events so typing is 100% latency-free and zero keystrokes/PII are recorded
             return
         }
 

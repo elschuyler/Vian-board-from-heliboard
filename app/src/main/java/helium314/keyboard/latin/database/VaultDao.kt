@@ -51,18 +51,23 @@ class VaultDao private constructor(private val db: Database) {
                     val rawPhrase = cursor.getString(2) ?: ""
                     val rawNotes = cursor.getString(3) ?: ""
                     val decryptedPhrase = if (rawPhrase.startsWith(ENCRYPTED_PREFIX)) {
-                        VaultCryptoManager.decryptBase64ToString(rawPhrase.removePrefix(ENCRYPTED_PREFIX)) ?: rawPhrase
+                        VaultCryptoManager.decryptBase64ToString(rawPhrase.removePrefix(ENCRYPTED_PREFIX))
                     } else rawPhrase
                     val decryptedNotes = if (rawNotes.startsWith(ENCRYPTED_PREFIX)) {
-                        VaultCryptoManager.decryptBase64ToString(rawNotes.removePrefix(ENCRYPTED_PREFIX)) ?: rawNotes
+                        VaultCryptoManager.decryptBase64ToString(rawNotes.removePrefix(ENCRYPTED_PREFIX))
                     } else rawNotes
+
+                    if (decryptedPhrase == null || isCorruptedOrGibberish(decryptedPhrase)) {
+                        LogCatcher.w("VaultDao", "Skipping un-decryptable or corrupted vault entry id=${cursor.getLong(0)}")
+                        continue
+                    }
 
                     target.add(
                         VaultEntry(
                             id = cursor.getLong(0),
                             shortcut = cursor.getString(1) ?: "",
                             phrase = decryptedPhrase,
-                            notes = decryptedNotes,
+                            notes = decryptedNotes ?: "",
                             timestamp = cursor.getLong(4)
                         )
                     )
@@ -141,6 +146,7 @@ class VaultDao private constructor(private val db: Database) {
 
         // 1. Exact shortcut (if shortcut set)
         for (entry in cache) {
+            if (entry.phrase.isBlank() || isCorruptedOrGibberish(entry.phrase)) continue
             if (entry.shortcut.isNotBlank() && entry.shortcut.equals(trimmed, ignoreCase = true)) {
                 results.add(entry)
                 seenIds.add(entry.id)
@@ -149,15 +155,17 @@ class VaultDao private constructor(private val db: Database) {
 
         // 2. Shortcut prefix (if shortcut set)
         for (entry in cache) {
+            if (entry.phrase.isBlank() || isCorruptedOrGibberish(entry.phrase)) continue
             if (entry.shortcut.isNotBlank() && !seenIds.contains(entry.id) && entry.shortcut.startsWith(trimmed, ignoreCase = true)) {
                 results.add(entry)
                 seenIds.add(entry.id)
             }
         }
 
-        // 3. Phrase & notes token match (only for query length >= 3, allocation-free)
-        if (trimmed.length >= 3) {
+        // 3. Phrase & notes token match (only for query length >= 4, allocation-free)
+        if (trimmed.length >= 4) {
             for (entry in cache) {
+                if (entry.phrase.isBlank() || isCorruptedOrGibberish(entry.phrase)) continue
                 if (!seenIds.contains(entry.id)) {
                     val p = entry.phrase
                     if (p.startsWith(trimmed, ignoreCase = true) || containsDelimitedTokenStartingWith(p, trimmed)) {
@@ -286,13 +294,26 @@ class VaultDao private constructor(private val db: Database) {
             db.execSQL(CREATE_SHORTCUT_INDEX)
         }
 
+        fun isCorruptedOrGibberish(text: String): Boolean {
+            if (text.isEmpty()) return false
+            var controlOrCorruptCount = 0
+            for (c in text) {
+                if (c.isISOControl() && c != '\n' && c != '\r' && c != '\t') return true
+                if (c == '\uFFFD') return true
+                if (c.category == CharCategory.UNASSIGNED || c.category == CharCategory.PRIVATE_USE) {
+                    controlOrCorruptCount++
+                }
+            }
+            return controlOrCorruptCount > 2
+        }
+
         /**
          * Obscures/masks a sensitive phrase for suggestion strip display to prevent shoulder-surfing.
          * Example: "user@domain.com" -> "🔒 us****om", "secret" -> "🔒 s**t"
          */
         fun maskPhrase(phrase: String): String {
             val trimmed = phrase.trim()
-            if (trimmed.isEmpty()) return "🔒 ****"
+            if (trimmed.isEmpty() || isCorruptedOrGibberish(trimmed)) return "🔒 ****"
             return when {
                 trimmed.length > 6 -> "🔒 ${trimmed.take(2)}****${trimmed.takeLast(2)}"
                 trimmed.length in 3..6 -> "🔒 ${trimmed.take(1)}**${trimmed.takeLast(1)}"

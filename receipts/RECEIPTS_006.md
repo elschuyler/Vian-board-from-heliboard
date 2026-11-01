@@ -161,4 +161,30 @@ Strictly capped at 500 lines per file.
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: Ready for on-device manual QA testing.
 
+---
+
+### [Receipt: 2026-11-01 03:55:00 UTC]
+- **Requested**:
+  1. Phase 1 (Suggestion Engine & Gibberish Fix): Restore canonical HeliBoard candidate indexing in `Suggest.kt`, sanitize `VaultDao.kt` to drop raw ciphertext fallback and corrupted entries, and port HeliBoard 4.3 unwanted history word filtering to prevent garbage strings and symbols from being recorded into `UserHistoryDictionary`.
+  2. Phase 2 (Log Catcher Sanitization): Remove individual keyboard tap logging, key building, and layout dimension logs from `LogCatcher` (Mandate 17).
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/latin/utils/LogCatcher.kt`
+  - `app/src/main/java/helium314/keyboard/latin/database/VaultDao.kt`
+  - `app/src/main/java/helium314/keyboard/latin/personalization/UserHistoryDictionary.java`
+  - `app/src/main/java/helium314/keyboard/latin/DictionaryFacilitatorImpl.kt`
+  - `app/src/main/java/helium314/keyboard/latin/Suggest.kt`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_006.md`
+- **What was actually done**:
+  1. In `LogCatcher.kt`: Expanded `HIGH_FREQUENCY_TYPING_TAGS` to include `KeyboardParser`, `Keyboard.Builder`, `Keyboard`, `Key`, `KeyDetector`, `BogusMoveEventDetector`, `GestureConsumer`, and `KeyboardCodesSet`. Updated `isHighFrequencyTypingLog` to drop all logs matching key construction (`adding key`, `setting size and position for`), key input (`onCodeInput`, `onPressKey`, `onReleaseKey`), and debug/info typing tags. Completely eliminated key tap flooding from memory ring buffer and persistent disk logs in accordance with Mandate 17.
+  2. In `VaultDao.kt`: Excised fallback to `rawPhrase` upon decryption failure in `loadFromDb`. Added `isCorruptedOrGibberish` validation detecting unprintable control characters, replacement chars (`\uFFFD`), and unassigned/private use unicode. Discarded corrupted entries from memory cache and guarded `findSuggestions` so gibberish ciphertext can never be displayed in pills or committed to text inputs.
+  3. In `UserHistoryDictionary.java` & `DictionaryFacilitatorImpl.kt`: Implemented dual-layer defensive filtering ported from HeliBoard 4.3 ("reduce unwanted addition of words to typed history"). Blocked words with length <= 1, numbers/digits, URLs/email symbols (`@`, `/`, `\`, `:`, `;`), currency/math symbols (`#`, `$`, `%`, `^`, `&`, `*`, `+`, `=`, `<`, `>`, `~`, `|`, `¥`, `§`), control characters, and uniform repeated character sequences from being added to the user history dictionary.
+  4. In `Suggest.kt`: Aligned candidate list structure with HeliBoard's layout engine contract. During active composing (`!resultsArePredictions`), placed the typed word candidate strictly at index 0 (`INDEX_OF_TYPED_WORD`), ensuring index 1 (`INDEX_OF_AUTO_CORRECTION`) contains the top recommendation. This allows `SuggestionStripLayoutHelper` to cleanly omit or center index 0 without discarding top predictions.
+  5. Verified compilation cleanly using `compile_applet`.
+  6. Conducted silent security scan per Mandates 2 & 3: zero exposed credentials found.
+- **How it was verified**: local build only (`compile_applet` passed cleanly).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for user on-device verification.
+
+
 

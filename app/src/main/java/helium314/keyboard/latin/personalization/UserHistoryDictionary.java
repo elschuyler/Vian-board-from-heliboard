@@ -61,8 +61,18 @@ public class UserHistoryDictionary extends ExpandableBinaryDictionary {
     public static void addToDictionary(final ExpandableBinaryDictionary userHistoryDictionary,
             @NonNull final NgramContext ngramContext, final String word, final boolean isValid,
             final int timestamp) {
-        if (word.length() > BinaryDictionary.DICTIONARY_MAX_WORD_LENGTH) {
+        if (word == null || word.length() <= 1 || word.length() > BinaryDictionary.DICTIONARY_MAX_WORD_LENGTH) {
             return;
+        }
+        for (int i = 0; i < word.length(); i++) {
+            final char c = word.charAt(i);
+            if (Character.isDigit(c) || Character.isISOControl(c) || c == '@' || c == '/' ||
+                c == '\\' || c == ':' || c == ';' || c == '#' || c == '$' || c == '%' ||
+                c == '^' || c == '&' || c == '*' || c == '+' || c == '=' || c == '<' ||
+                c == '>' || c == '~' || c == '|' || c == '`' || c == '¥' || c == '§' ||
+                c == '\uFFFD') {
+                return;
+            }
         }
         userHistoryDictionary.updateEntriesForWord(ngramContext, word,
                 isValid, 1 /* count */, timestamp);

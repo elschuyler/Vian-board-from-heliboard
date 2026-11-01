@@ -1073,9 +1073,24 @@ Vianboard is a fully customizable, privacy-conscious offline Android keyboard ap
     - Set default floating board width to 85% of display width in `Settings.kt`, distinguishing it visually and functionally from Half Board (55% width).
     - Added layout gravity updates for `R.id.main_keyboard_frame` to `Gravity.TOP or Gravity.START` in floating mode and `Gravity.BOTTOM` in docked and half-board modes.
     - Prevented cross-mode teardown in `KeyboardSwitcher.java` so switching between Floating Board and Half Board seamlessly transitions without layout flickering or coordinate corruption.
+  - **2026-11-01**: Completed Phase 84 (Canonical HeliBoard Candidate Indexing, Vault Ciphertext & Gibberish Sanitization, HeliBoard 4.3 Unwanted History Word Filtering, and Log Catcher Key-Tap Sanitization):
+  - **Component 1: Canonical Candidate Indexing (`Suggest.kt`)**:
+    - Placed typed word candidate strictly at index 0 (`INDEX_OF_TYPED_WORD`) during active composing (`!resultsArePredictions`).
+    - Aligned indexing with `SuggestionStripLayoutHelper` contract so `omitTypedWord` cleanly hides index 0, correctly centers index 1 (`INDEX_OF_AUTO_CORRECTION`), and surrounds with remaining predictions instead of discarding the top dictionary candidate.
+    - Preserved direct 0-based prediction indexing for next-word predictions when not composing (`resultsArePredictions == true`).
+  - **Component 2: Vault Ciphertext & Corrupted Entry Sanitization (`VaultDao.kt`)**:
+    - Excised raw ciphertext fallback (`?: rawPhrase`) from `loadFromDb` so un-decryptable strings following key changes or SQLite corruption never enter the active in-memory cache.
+    - Added `isCorruptedOrGibberish` check filtering unprintable control characters, replacement chars, and corrupt unicode, and guarded `findSuggestions` so garbled entries are never displayed in suggestion strip pills or committed to text inputs.
+  - **Component 3: HeliBoard 4.3 Unwanted History Word Filtering (`DictionaryFacilitatorImpl.kt`, `UserHistoryDictionary.java`)**:
+    - Ported HeliBoard 4.3 history dictionary improvements: added `shouldAddToUserHistory` validation in `DictionaryFacilitatorImpl.kt` and defensive input checks in `UserHistoryDictionary.addToDictionary`.
+    - Blocked words with length <= 1, numbers/digits, symbols (`@`, `/`, `\`, `:`, `;`, `#`, `$`, `%`, `^`, `&`, `*`, `+`, `=`, `<`, `>`, `~`, `|`, `¥`, `§`), control characters, and repeated character sequences from being recorded into `UserHistoryDictionary`.
+  - **Component 4: Log Catcher Keystroke & Layout Noise Sanitization (`LogCatcher.kt`)**:
+    - Expanded `HIGH_FREQUENCY_TYPING_TAGS` to include `KeyboardParser`, `Keyboard.Builder`, `Keyboard`, `Key`, `KeyDetector`, `BogusMoveEventDetector`, `GestureConsumer`, and `KeyboardCodesSet`.
+    - Dropped all debug/info logs matching key parsing, key dimensions (`adding key`, `setting size and position for`), and pointer touch events (`onCodeInput`, `onPressKey`, `onReleaseKey`), guaranteeing zero individual keystrokes or layout measurements pollute the persistent log per Mandate 17.
   - **Component 5: Compilation & Security Verification**:
-    - Build verified via `compile_applet` (100% success with 0 errors).
-    - Performed silent security self-scan per Mandates 2 & 3: zero exposed credentials found.
+    - Proactively compiled via `compile_applet`.
+    - Executed silent security scan per Mandates 2 & 3: zero exposed credentials found.
+
 
 
 

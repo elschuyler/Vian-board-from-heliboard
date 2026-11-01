@@ -190,26 +190,25 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
 
         useDefaultEmojiSkinTone(suggestionsList)
 
-        // If there is an incoming autocorrection, make sure typed word is shown, so user is able to override it.
-        // Otherwise, if the relevant setting is enabled, show the typed word in the middle.
+        // Ensure canonical HeliBoard candidate indexing:
+        // During active composing (!resultsArePredictions), index 0 (INDEX_OF_TYPED_WORD) MUST be the typed word candidate,
+        // so index 1 (INDEX_OF_AUTO_CORRECTION) is the top recommendation.
+        // SuggestionStripLayoutHelper can then cleanly omit or center index 0 and render candidate predictions accurately.
         val typedWordWasCapitalized = capitalizedTypedWord != typedWordString
         val correctToCapitalizedWord = typedWordWasCapitalized && isCorrectionEnabled && Settings.getValues().mAutoCorrectCapitalizedSuggestion
             && !wordComposer.isCursorFrontOrMiddleOfComposingWord && typedWordString.drop(1).none { it.isUpperCase() }
-        val indexOfTypedWord = 1 + if (hasAutoCorrection) SuggestedWords.INDEX_OF_AUTO_CORRECTION else SuggestedWords.INDEX_OF_TYPED_WORD
-        if (
-            (hasAutoCorrection
-                || (Settings.getValues().mCenterSuggestionTextToEnter && !wordComposer.isResumed)
-                || typedWordWasCapitalized
-            ) && suggestionsList.size >= indexOfTypedWord && capitalizedTypedWord.isNotEmpty()) {
-            if (typedWordFirstOccurrenceWordInfo != null) {
-                addDebugInfo(typedWordFirstOccurrenceWordInfo, capitalizedTypedWord)
-                suggestionsList.add(indexOfTypedWord, typedWordFirstOccurrenceWordInfo)
+
+        if (!resultsArePredictions) {
+            val typedWordCandidate = if (typedWordFirstOccurrenceWordInfo != null) {
+                if (SuggestionStripView.DEBUG_SUGGESTIONS) {
+                    addDebugInfo(typedWordFirstOccurrenceWordInfo, capitalizedTypedWord)
+                }
+                typedWordFirstOccurrenceWordInfo
             } else {
-                suggestionsList.add(indexOfTypedWord,
-                    SuggestedWordInfo(capitalizedTypedWord, "", 0, SuggestedWordInfo.KIND_TYPED,
-                        Dictionary.DICTIONARY_USER_TYPED, SuggestedWordInfo.NOT_AN_INDEX, SuggestedWordInfo.NOT_A_CONFIDENCE)
-                )
+                SuggestedWordInfo(capitalizedTypedWord, "", 0, SuggestedWordInfo.KIND_TYPED,
+                    Dictionary.DICTIONARY_USER_TYPED, SuggestedWordInfo.NOT_AN_INDEX, SuggestedWordInfo.NOT_A_CONFIDENCE)
             }
+            suggestionsList.add(SuggestedWords.INDEX_OF_TYPED_WORD, typedWordCandidate)
         }
         val isTypedWordValid = firstOccurrenceOfTypedWordInSuggestions > -1 || (!resultsArePredictions && !allowsToBeAutoCorrected)
         return SuggestedWords(suggestionsList, suggestionResults.mRawSuggestions, typedWordInfo,
