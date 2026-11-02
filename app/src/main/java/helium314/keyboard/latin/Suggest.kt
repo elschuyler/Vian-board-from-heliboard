@@ -211,6 +211,7 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
             suggestionsList.add(SuggestedWords.INDEX_OF_TYPED_WORD, typedWordCandidate)
         }
         val isTypedWordValid = firstOccurrenceOfTypedWordInSuggestions > -1 || (!resultsArePredictions && !allowsToBeAutoCorrected)
+        Log.i("Suggest", "getSuggestedWords: resultsArePredictions=$resultsArePredictions, candidates=${suggestionsList.size}, hasAutoCorrection=${hasAutoCorrection || correctToCapitalizedWord}, isTypedWordValid=$isTypedWordValid")
         return SuggestedWords(suggestionsList, suggestionResults.mRawSuggestions, typedWordInfo,
             isTypedWordValid, hasAutoCorrection || correctToCapitalizedWord, false, inputStyle, sequenceNumber)
     }

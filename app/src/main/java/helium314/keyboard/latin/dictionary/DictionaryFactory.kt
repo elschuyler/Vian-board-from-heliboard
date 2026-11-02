@@ -104,16 +104,16 @@ object DictionaryFactory {
             return readOnlyBinaryDictionary
         }
         readOnlyBinaryDictionary.close()
-        if (helium314.keyboard.latin.utils.JniUtils.isNativeLoaded()) {
-            killDictionary(file)
-        } else {
-            Log.w("DictionaryFactory", "Native library not loaded; keeping dictionary file ${file.name}")
-        }
+        Log.w("DictionaryFactory", "Binary dictionary validation failed for ${file.name} (locale=$locale). Preserving file on disk for subsequent reload attempts.")
         return null
     }
 
     private fun killDictionary(file: File) {
-        Log.e("DictionaryFactory", "could not load dictionary ${file.parentFile?.name}/${file.name}, deleting")
-        file.delete()
+        if (file.length() == 0L) {
+            Log.e("DictionaryFactory", "Empty dictionary file detected ${file.parentFile?.name}/${file.name}, deleting")
+            file.delete()
+        } else {
+            Log.w("DictionaryFactory", "Corrupt header for ${file.parentFile?.name}/${file.name}, keeping file on disk")
+        }
     }
 }

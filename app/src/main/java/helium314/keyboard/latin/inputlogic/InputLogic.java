@@ -2756,6 +2756,10 @@ public final class InputLogic {
         return mWordComposer.size();
     }
 
+    public boolean isComposingWord() {
+        return mWordComposer.isComposingWord();
+    }
+
     private void paste(String packageName) {
         sendDownUpKeyEventWithMetaState(KeyEvent.KEYCODE_V, KeyEvent.META_CTRL_ON);
         // looks like there are more apps that don't care about KeyEvent.KEYCODE_PASTE but work with CTRL+V

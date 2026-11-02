@@ -184,7 +184,32 @@ Strictly capped at 500 lines per file.
   6. Conducted silent security scan per Mandates 2 & 3: zero exposed credentials found.
 - **How it was verified**: local build only (`compile_applet` passed cleanly).
 - **Deviation from requested**: None.
-- **Known issue or follow-up needed**: Ready for user on-device verification.
+- **Known issue or follow-up needed**: Ready for user on-device verification.---
 
-
+### [Receipt: 2026-11-02 10:18:00 UTC]
+- **Requested**:
+  1. Implement Phase 85: Suggestion Engine Heavy Load Hardening, Diagnostic Unmasking in Log Catcher, and Anti-Deadlock Latch Protection.
+  2. Temporary diagnostic unmasking in Log Keeper for all suggestion bar, dictionary lifecycle, and prediction engine operations.
+  3. Ensure no loss of suggestions during heavy phone use and prevent dictionary self-destruction.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/latin/utils/LogCatcher.kt`
+  - `app/src/main/java/helium314/keyboard/latin/dictionary/DictionaryFactory.kt`
+  - `app/src/main/java/helium314/keyboard/latin/DictionaryFacilitatorImpl.kt`
+  - `app/src/main/java/helium314/keyboard/latin/inputlogic/InputLogic.java`
+  - `app/src/main/java/helium314/keyboard/latin/LatinIME.java`
+  - `app/src/main/java/helium314/keyboard/latin/suggestions/SuggestionStripView.kt`
+  - `app/src/main/java/helium314/keyboard/latin/Suggest.kt`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_006.md`
+- **What was actually done**:
+  1. In `LogCatcher.kt`: Unmasked informational and warning logs for `"Suggest"`, `"DictionaryFacilitator"`, `"DictionaryFactory"`, and `"SuggestionStripView"`. Allowed informational lifecycle logs for `"LatinIME"` and `"InputLogic"`, while preserving strict suppression of individual keystroke construction, raw key coordinates, and touch event noise per Mandate 17.
+  2. In `DictionaryFactory.kt`: Eliminated `killDictionary(file)` on transient native validation or allocation failures. Preserved cached dictionary files on disk across memory spikes so subsequent reload attempts can succeed rather than deleting the dictionary file.
+  3. In `DictionaryFacilitatorImpl.kt`: Protected all secondary dictionary coroutine launches with `try / finally { waitForOtherDicts?.countDown() }` and replaced unbounded `waitForOtherDicts?.await()` with a bounded 250ms timeout (`await(250, TimeUnit.MILLISECONDS)`). Added `finally { latchForWaitingLoadingMainDictionary.countDown() }` in `asyncReloadUninitializedMainDictionaries` to avoid worker thread deadlocks.
+  4. In `InputLogic.java` & `LatinIME.java`: Added `isComposingWord()` accessor to `InputLogic.java`. In `updateSuggestionStrip()`, ensured toolbar automatically yields (`setToolbarVisibility(false)`) whenever dictionary suggestions or composing words are active (`!noSuggestionsFromDictionaries`), preventing toolbar keys from trapping the suggestion strip.
+  5. In `Suggest.kt` & `SuggestionStripView.kt`: Added non-PII query and strip telemetry logs (`count`, `composing`, `stripVisible`, `toolbarVisible`, `candidatesCount`).
+  6. Verified compilation cleanly using `compile_applet` (100% clean build, 0 errors).
+  7. Conducted silent security self-scan per Mandates 2 & 3: zero exposed credentials found.
+- **How it was verified**: local build only (`compile_applet` passed cleanly).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device manual QA testing under heavy phone use conditions.
 

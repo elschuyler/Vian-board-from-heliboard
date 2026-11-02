@@ -52,15 +52,10 @@ object LogCatcher {
 
     private val HIGH_FREQUENCY_TYPING_TAGS = arrayOf(
         "PointerTracker",
-        "InputLogic",
-        "LatinIME",
-        "Suggest",
-        "DictionaryFacilitator",
         "MainKeyboardView",
         "WordComposer",
         "RichInputConnection",
         "MoreSuggestionsView",
-        "SuggestionStripView",
         "KeyboardLayoutSet",
         "KeyboardParser",
         "Keyboard.Builder",
@@ -87,6 +82,9 @@ object LogCatcher {
                 if (level == 'D' || level == 'V') return true
                 if (level == 'I') return true
             }
+        }
+        if (tag.startsWith("InputLogic", ignoreCase = true) || tag.startsWith("LatinIME", ignoreCase = true)) {
+            if (level == 'D' || level == 'V') return true
         }
         return false
     }

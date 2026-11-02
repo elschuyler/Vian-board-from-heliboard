@@ -59,6 +59,7 @@ import helium314.keyboard.latin.utils.removeFirst
 import helium314.keyboard.latin.utils.removePinnedKey
 import helium314.keyboard.latin.utils.setToolbarButtonsActivatedStateOnPrefChange
 import helium314.keyboard.latin.utils.updateToolbarButtonsActivatedState
+import helium314.keyboard.latin.utils.Log
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.abs
 import kotlin.math.min
@@ -258,6 +259,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         )
         isExternalSuggestionVisible = false
         updateKeys()
+        Log.i(TAG, "setSuggestions: count=${suggestions.size()}, stripVisible=${suggestionsStrip.isVisible}, toolbarVisible=${toolbarContainer.isVisible}")
     }
 
     fun setExternalSuggestionView(view: View?, addCloseButton: Boolean) {

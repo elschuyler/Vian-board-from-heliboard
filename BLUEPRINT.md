@@ -1090,6 +1090,24 @@ Vianboard is a fully customizable, privacy-conscious offline Android keyboard ap
   - **Component 5: Compilation & Security Verification**:
     - Proactively compiled via `compile_applet`.
     - Executed silent security scan per Mandates 2 & 3: zero exposed credentials found.
+  - **2026-11-02**: Completed Phase 85 (Suggestion Engine Heavy Load Hardening, Diagnostic Unmasking in Log Catcher, and Anti-Deadlock Latch Protection):
+  - **Component 1: Log Catcher Diagnostic Unmasking (`LogCatcher.kt`)**:
+    - Unmasked informational and warning logs from `Suggest`, `DictionaryFacilitator`, `DictionaryFactory`, and `SuggestionStripView`.
+    - Allowed lifecycle, reload, candidate counts, and strip visibility telemetry to enter Log Keeper while preserving strict suppression of individual keystrokes, key dimensions, touch events, and PII per Mandate 17.
+  - **Component 2: Dictionary File Preservation on Low Memory (`DictionaryFactory.kt`)**:
+    - Eliminated `killDictionary(file)` on transient native validation or allocation failures.
+    - Preserved binary dictionary cache on disk across memory spikes, allowing subsequent reload attempts rather than permanently deleting the dictionary file.
+  - **Component 3: Thread Starvation & Latch Timeout Protection (`DictionaryFacilitatorImpl.kt`)**:
+    - Wrapped secondary dictionary coroutine launches in `try / finally { waitForOtherDicts?.countDown() }` to guarantee latch decrement even on unexpected exceptions.
+    - Replaced unbounded `waitForOtherDicts?.await()` with a bounded 250ms timeout (`await(250, TimeUnit.MILLISECONDS)`), preventing `InputLogicHandler` background worker thread from deadlocking during high CPU load.
+    - Added `finally { latchForWaitingLoadingMainDictionary.countDown() }` in `asyncReloadUninitializedMainDictionaries` to avoid hanging threads on unhandled errors.
+  - **Component 4: Deterministic Suggestion Strip Visibility & Telemetry (`LatinIME.java`, `InputLogic.java`, `SuggestionStripView.kt`, `Suggest.kt`)**:
+    - Added `isComposingWord()` accessor to `InputLogic.java`.
+    - Updated `updateSuggestionStrip()` in `LatinIME.java` so that whenever dictionary candidates or composing words are active (`!noSuggestionsFromDictionaries`), the toolbar automatically yields (`setToolbarVisibility(false)`), preventing toolbar keys from masking suggestions.
+    - Added non-PII query and strip telemetry logs (`count`, `composing`, `stripVisible`, `toolbarVisible`, `candidatesCount`).
+  - **Component 5: Compilation & Verification**:
+    - Verified compilation cleanly via `compile_applet` (100% success).
+    - Executed silent security scan per Mandates 2 & 3: zero exposed credentials found.
 
 
 

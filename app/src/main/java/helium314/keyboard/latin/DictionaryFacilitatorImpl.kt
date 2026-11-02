@@ -174,7 +174,9 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
             }
         }
 
-        listener?.onUpdateMainDictionaryAvailability(hasAtLeastOneInitializedMainDictionary())
+        val hasInitMain = hasAtLeastOneInitializedMainDictionary()
+        Log.i(TAG, "resetDictionaries finished: groups=${newDictionaryGroups.size}, hasInitMain=$hasInitMain")
+        listener?.onUpdateMainDictionaryAvailability(hasInitMain)
 
         // Clean up old dictionaries.
         existingDictsToCleanup.forEach { (locale, dictTypes) ->
@@ -268,9 +270,10 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
                 }
 
                 listener?.onUpdateMainDictionaryAvailability(hasAtLeastOneInitializedMainDictionary())
-                latchForWaitingLoadingMainDictionary.countDown()
             } catch (e: Throwable) {
                 Log.e(TAG, "could not initialize main dictionaries for $locales", e)
+            } finally {
+                latchForWaitingLoadingMainDictionary.countDown()
             }
         }
     }
@@ -527,9 +530,14 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         val suggestionsArray = Array<List<SuggestedWordInfo>?>(dictionaryGroups.size) { null }
         for (i in 1..dictionaryGroups.lastIndex) {
             scope.launch {
-                suggestionsArray[i] = getSuggestions(composedData, ngramContext, settingsValuesForSuggestion, sessionId,
-                    proximityInfoHandle, weightOfLangModelVsSpatialModel, dictionaryGroups[i])
-                waitForOtherDicts?.countDown()
+                try {
+                    suggestionsArray[i] = getSuggestions(composedData, ngramContext, settingsValuesForSuggestion, sessionId,
+                        proximityInfoHandle, weightOfLangModelVsSpatialModel, dictionaryGroups[i])
+                } catch (t: Throwable) {
+                    Log.w(TAG, "Error fetching suggestions for group $i", t)
+                } finally {
+                    waitForOtherDicts?.countDown()
+                }
             }
         }
         suggestionsArray[0] = getSuggestions(composedData, ngramContext, settingsValuesForSuggestion, sessionId,
@@ -538,7 +546,11 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         val suggestionResults = SuggestionResults(
             maxSuggestions, ngramContext.isBeginningOfSentenceContext, false
         )
-        waitForOtherDicts?.await()
+        try {
+            waitForOtherDicts?.await(250, TimeUnit.MILLISECONDS)
+        } catch (e: InterruptedException) {
+            Log.w(TAG, "Interrupted waiting for secondary dictionary suggestions", e)
+        }
 
         suggestionsArray.forEach {
             if (it == null) return@forEach
