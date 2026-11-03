@@ -213,3 +213,25 @@ Strictly capped at 500 lines per file.
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: Ready for on-device manual QA testing under heavy phone use conditions.
 
+---
+
+### [Receipt: 2026-11-03 08:48:00 UTC]
+- **Requested**:
+  1. Implement Option A: Resolve GitHub Actions APK pipeline failure (`job-logs_ebc6a5dc.txt`).
+  2. Pin NDK 25.2.9519653 in GitHub Actions workflow so runner pre-installed NDK 27 is never accidentally selected.
+  3. Align `Application.mk` with `APP_PLATFORM := android-24` and `APP_CPPFLAGS := -std=c++14 -Wno-error=format-security`.
+  4. Add non-fatal step continuation on LatinIME `ndk-build` to prevent runner NDK toolchain changes from blocking APK packaging.
+- **Exact files touched**:
+  - `app/src/main/jni/Application.mk`
+  - `.github/workflows/build-apk.yml`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_006.md`
+- **What was actually done**:
+  1. In `app/src/main/jni/Application.mk`: Configured `APP_PLATFORM := android-24` and `APP_CPPFLAGS := -std=c++14 -Wno-error=format-security` for native C++ compilation.
+  2. In `.github/workflows/build-apk.yml`: Updated Step 42 and Step 55 NDK resolution to prioritize `$ANDROID_HOME/ndk/25.2.9519653` installed by SDK manager in Step 30, preventing fallback to runner NDK 27. Added `|| echo "LatinIME JNI build skipped or non-fatal; continuing to Whisper and Gradle build"` to ensure `./gradlew assembleDebug` is always reached.
+  3. Verified build with `compile_applet` (100% clean build, 0 errors).
+  4. Executed silent security self-scan per Mandates 2 & 3: zero exposed credentials found.
+- **How it was verified**: local build only (`compile_applet` passed cleanly).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Push to GitHub to trigger automated GitHub Actions build and download the generated debug APK artifact.
+
