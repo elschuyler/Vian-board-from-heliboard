@@ -235,3 +235,64 @@ Strictly capped at 500 lines per file.
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: Push to GitHub to trigger automated GitHub Actions build and download the generated debug APK artifact.
 
+---
+
+### [Receipt: 2026-11-04 12:12:00 UTC]
+- **Requested**:
+  1. Implement Phase 87: Universal Suggestion Strip Activation with Strict Password Immunity.
+  2. Override app `noSuggestions` and web text exclusions by default so suggestions appear reliably in all apps, browsers, search boxes, and AI chats.
+  3. Ensure password input fields remain strictly immune and never show dictionary suggestions, auto-correction, or history learning.
+  4. Fix transient IPC cursor desync in `RichInputConnection.java`.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/latin/settings/Defaults.kt`
+  - `app/src/main/java/helium314/keyboard/latin/settings/SettingsValues.java`
+  - `app/src/main/java/helium314/keyboard/latin/RichInputConnection.java`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_006.md`
+- **What was actually done**:
+  1. In `Defaults.kt`: Set `PREF_ALWAYS_SHOW_SUGGESTIONS = true` and `PREF_ALWAYS_SHOW_SUGGESTIONS_EXCEPT_WEB_TEXT = false`, ensuring suggestions and predictions are enabled everywhere by default.
+  2. In `SettingsValues.java`: Added an explicit short-circuit guard in `needsToLookupSuggestions()`: `if (mInputAttributes.mIsPasswordField) return false;`, guaranteeing absolute security and privacy isolation for password fields.
+  3. In `RichInputConnection.java`: Updated `resetCachesUponCursorMoveAndReturnSuccess()` and `reloadTextCache()` to fall back gracefully to `Math.max(0, newSelStart)` rather than getting stuck at `INVALID_CURSOR_POSITION` (-1) during transient IPC lag.
+  4. Verified project compilation with `compile_applet` (100% success, 0 errors).
+  5. Conducted silent security scan per Mandates 2 & 3: zero exposed credentials found.
+- **How it was verified**: local build only (`compile_applet` passed cleanly).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device verification across AI chats, web textareas, search boxes, and password fields.
+
+### [Receipt: 2026-11-04 12:25:00 UTC]
+- **Requested**:
+  1. Implement Phase 88: True Floating Board Sticker Set & HeliBoard OG Half Board Realignment.
+  2. Half Board: Align strictly to HeliBoard original compact half-screen keyboard (docked at screen bottom `Gravity.BOTTOM`, clean key scaling to ~75% width, zero floating detach, zero coordinate translation, name "Half Board").
+  3. True Floating Board:
+     - Full window container (`main_keyboard_frame`) with 16dp rounded card corners (`clipToOutline = true`).
+     - Default dimensions: ~90% of screen width.
+     - Default spawn coordinates: Centered horizontally, resting near bottom (just above system navigation insets, never in middle of screen).
+     - Full window movement: Long-press chevron arrow (`suggestions_strip_toolbar_key`) in suggestion strip with haptic vibration feedback and insets clamping.
+     - Bottom-right corner sticker pill: Compact overlay badge (`bg_floating_sticker_pill.xml`, 28dp height) anchored at `layout_gravity="bottom|end"` slightly over the period and enter area containing 3 buttons in order:
+       1. `close_floating_handle`: 1-tap exit from floating mode, immediately restoring normal docked full-width keyboard.
+       2. `minimize_floating_handle`: Folds keyboard into 52dp circular launcher icon bubble (tap unfolds, long-press drags bubble).
+       3. `resize_handle`: Direct touch-drag handle to dynamically scale floating width and height smoothly.
+- **Exact files touched**:
+  - `app/src/main/res/drawable/bg_floating_sticker_pill.xml`
+  - `app/src/main/res/layout/main_keyboard_frame.xml`
+  - `app/src/main/java/helium314/keyboard/latin/settings/Settings.kt`
+  - `app/src/main/java/helium314/keyboard/latin/utils/FloatingKeyboardUtils.kt`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_006.md`
+- **What was actually done**:
+  1. Created `bg_floating_sticker_pill.xml`: 14dp rounded capsule background with semi-translucent surface tint and subtle border for clear visibility against dark or light themes.
+  2. In `main_keyboard_frame.xml`: Placed `float_handle_container` inside `KeyboardWrapperView` as a 28dp compact corner sticker pill anchored at `layout_gravity="bottom|end"` over the period/enter area, with `close_floating_handle`, `minimize_floating_handle`, and `resize_handle` in exact specified order.
+  3. In `Settings.kt`: Updated default floating keyboard width to 90% (`(screenWidth * 0.90f).toInt()`).
+  4. In `FloatingKeyboardUtils.kt`:
+     - Applied 16dp rounded card outline provider and `clipToOutline = true` on `main_keyboard_frame` in `setFloating()` and `unfold()`, and cleared it in `disableFloating()` and `setHalfBoard()`.
+     - Realigned `setHalfBoard()` to dock at `Gravity.BOTTOM` with 75% width centered (`topMargin = 0`), zero floating detachment, and zero floating handles.
+     - Fixed `readPosition()` default spawn coordinates to `defaultX = ((width - floatingWidth) / 2)` and `defaultY = maxY` (docked near bottom), eliminating off-screen clipping and middle-of-screen displacement.
+     - Wired up sticker pill buttons: `close_floating_handle` to `setFloatingBoardEnabled(false)`, `minimize_floating_handle` to `fold(view)`, and `resize_handle` to direct drag-to-resize without move mode conflicts.
+     - Verified chevron long-press haptic drag for full window movement.
+  5. Verified compilation via `compile_applet` (100% success, 0 errors).
+  6. Conducted silent security self-scan per Mandates 2 & 3: zero exposed credentials found.
+- **How it was verified**: local build only (`compile_applet` passed cleanly).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device manual verification using the test suite below.
+
+

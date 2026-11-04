@@ -50,11 +50,18 @@ object FloatingKeyboardUtils {
     fun setFloating(view: View?) {
         val lp = view?.layoutParams as? ViewGroup.MarginLayoutParams ?: return
         view.getWindowVisibleDisplayFrame(windowFrame)
-        extraHeight = getSuggestionStripHeight(view.resources) + getFloatingHandleHeight(view.resources)
+        extraHeight = getSuggestionStripHeight(view.resources).toFloat()
 
         ViewLayoutUtils.updateLayoutGravityOf(view, android.view.Gravity.TOP or android.view.Gravity.START)
         view.findViewById<View>(R.id.main_keyboard_frame)?.let {
             ViewLayoutUtils.updateLayoutGravityOf(it, android.view.Gravity.TOP or android.view.Gravity.START)
+            val radiusPx = 16f * view.resources.displayMetrics.density
+            it.outlineProvider = object : android.view.ViewOutlineProvider() {
+                override fun getOutline(v: View, outline: android.graphics.Outline) {
+                    outline.setRoundRect(0, 0, v.width, v.height, radiusPx)
+                }
+            }
+            it.clipToOutline = true
         }
         val inputArea = view.rootView.findViewById<View?>(android.R.id.inputArea)
         if (inputArea != null) {
@@ -108,9 +115,6 @@ object FloatingKeyboardUtils {
         // 3. Resize (drag): drag to resize width/height
         view.findViewById<ImageView>(R.id.resize_handle)?.setResizeListener(lp, view)
 
-        // Handle bar drag moves keyboard
-        view.findViewById<View>(R.id.float_handle_container)?.setDragListener(view)
-
         // Pre-bind folded button
         view.findViewById<View>(R.id.floating_folded_button)?.setupFoldedButton(view)
 
@@ -148,7 +152,7 @@ object FloatingKeyboardUtils {
         isFoldedState = false
 
         view.getWindowVisibleDisplayFrame(windowFrame)
-        extraHeight = getSuggestionStripHeight(view.resources) + getFloatingHandleHeight(view.resources)
+        extraHeight = getSuggestionStripHeight(view.resources).toFloat()
         val maxX = (windowFrame.right - windowFrame.left - Settings.getValues().mFloatingWidth).coerceAtLeast(0)
         val maxY = (windowFrame.bottom - windowFrame.top - extraHeight.toInt() - Settings.getValues().mFloatingHeight).coerceAtLeast(0)
 
@@ -162,6 +166,16 @@ object FloatingKeyboardUtils {
         }
         view.findViewById<View>(R.id.keyboard_view_wrapper)?.isVisible = true
         view.findViewById<View>(R.id.float_handle_container)?.isVisible = true
+
+        view.findViewById<View>(R.id.main_keyboard_frame)?.let {
+            val radiusPx = 16f * view.resources.displayMetrics.density
+            it.outlineProvider = object : android.view.ViewOutlineProvider() {
+                override fun getOutline(v: View, outline: android.graphics.Outline) {
+                    outline.setRoundRect(0, 0, v.width, v.height, radiusPx)
+                }
+            }
+            it.clipToOutline = true
+        }
 
         ViewLayoutUtils.placeViewAt(view, targetX, targetY, Settings.getValues().mFloatingWidth, ViewGroup.LayoutParams.WRAP_CONTENT)
         savePosition(view.context, targetX, targetY)
@@ -177,6 +191,8 @@ object FloatingKeyboardUtils {
         ViewLayoutUtils.updateLayoutGravityOf(view, android.view.Gravity.BOTTOM)
         view.findViewById<View>(R.id.main_keyboard_frame)?.let {
             ViewLayoutUtils.updateLayoutGravityOf(it, android.view.Gravity.BOTTOM)
+            it.outlineProvider = null
+            it.clipToOutline = false
         }
         val inputArea = view.rootView.findViewById<View?>(android.R.id.inputArea)
         if (inputArea != null) {
@@ -207,6 +223,8 @@ object FloatingKeyboardUtils {
         ViewLayoutUtils.updateLayoutGravityOf(view, android.view.Gravity.BOTTOM)
         view.findViewById<View>(R.id.main_keyboard_frame)?.let {
             ViewLayoutUtils.updateLayoutGravityOf(it, android.view.Gravity.BOTTOM)
+            it.outlineProvider = null
+            it.clipToOutline = false
         }
         val inputArea = view.rootView.findViewById<View?>(android.R.id.inputArea)
         if (inputArea != null) {
@@ -221,7 +239,7 @@ object FloatingKeyboardUtils {
         view.findViewById<View>(R.id.keyboard_view_wrapper)?.isVisible = true
 
         val displayWidth = view.context.resources.displayMetrics.widthPixels
-        val targetWidth = (displayWidth * 0.55f).toInt().coerceIn(150, displayWidth)
+        val targetWidth = (displayWidth * 0.75f).toInt().coerceIn(150, displayWidth)
         val x = ((displayWidth - targetWidth) / 2).coerceAtLeast(0)
         ViewLayoutUtils.placeViewAt(view, x, 0, targetWidth, ViewGroup.LayoutParams.WRAP_CONTENT)
         view.requestLayout()
@@ -235,6 +253,8 @@ object FloatingKeyboardUtils {
         ViewLayoutUtils.updateLayoutGravityOf(view, android.view.Gravity.BOTTOM)
         view.findViewById<View>(R.id.main_keyboard_frame)?.let {
             ViewLayoutUtils.updateLayoutGravityOf(it, android.view.Gravity.BOTTOM)
+            it.outlineProvider = null
+            it.clipToOutline = false
         }
         val inputArea = view.rootView.findViewById<View?>(android.R.id.inputArea)
         if (inputArea != null) {
@@ -265,17 +285,19 @@ object FloatingKeyboardUtils {
     }
 
     @JvmStatic
-    fun getFloatingHandleHeight(resources: Resources) = resources.getDimension(R.dimen.config_floating_handle_height)
+    fun getFloatingHandleHeight(resources: Resources) = 0f
 
     @JvmStatic
     fun readPosition(context: Context, maxX: Int, maxY: Int): Pair<Int, Int> {
         val maxX = maxX.coerceAtLeast(0)
         val maxY = maxY.coerceAtLeast(0)
         val width = context.resources.displayMetrics.widthPixels
-        val x = context.prefs().getInt(Settings.PREF_FLOATING_POS_X_PREFIX + width, width / 2)
-        val y = context.prefs().getInt(Settings.PREF_FLOATING_POS_Y_PREFIX + width, context.resources.displayMetrics.heightPixels / 2)
+        val defaultX = ((width - Settings.getValues().mFloatingWidth) / 2).coerceIn(0, maxX)
+        val defaultY = maxY.coerceAtLeast(0)
+        val x = context.prefs().getInt(Settings.PREF_FLOATING_POS_X_PREFIX + width, defaultX)
+        val y = context.prefs().getInt(Settings.PREF_FLOATING_POS_Y_PREFIX + width, defaultY)
         if (x > maxX || y > maxY)
-            savePosition(context, maxX, maxY)
+            savePosition(context, x.coerceIn(0, maxX), y.coerceIn(0, maxY))
         return x.coerceIn(0, maxX) to y.coerceIn(0, maxY)
     }
 
@@ -413,33 +435,13 @@ object FloatingKeyboardUtils {
     private fun View.setResizeListener(lp: ViewGroup.MarginLayoutParams, rootInputView: View) {
         var startX = 0f
         var startY = 0f
-        var isMoveMode = false
-        var positionX = lp.leftMargin.toFloat()
-        var positionY = lp.topMargin.toFloat()
-        val handler = Handler(Looper.getMainLooper())
-        val longPressTimeout = ViewConfiguration.getLongPressTimeout().toLong()
         val scale = 3 / context.resources.displayMetrics.density
-
-        val moveRunnable = Runnable {
-            isMoveMode = true
-            try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-                    performHapticFeedback(HapticFeedbackConstants.LONG_PRESS, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
-                } else {
-                    performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                }
-            } catch (_: Throwable) {}
-        }
 
         setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     startX = event.rawX
                     startY = event.rawY
-                    positionX = lp.leftMargin.toFloat()
-                    positionY = lp.topMargin.toFloat()
-                    isMoveMode = false
-                    handler.postDelayed(moveRunnable, longPressTimeout)
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
@@ -447,38 +449,23 @@ object FloatingKeyboardUtils {
                     val dy = event.rawY - startY
                     startX = event.rawX
                     startY = event.rawY
-                    if (isMoveMode) {
-                        val sv = Settings.getValues()
-                        val availableWidth = windowFrame.right - windowFrame.left
-                        val availableHeight = windowFrame.bottom - windowFrame.top
-                        positionX = (positionX + dx).coerceIn(0f, (availableWidth - sv.mFloatingWidth).toFloat().coerceAtLeast(0f))
-                        positionY = (positionY + dy).coerceIn(0f, (availableHeight - extraHeight - sv.mFloatingHeight).coerceAtLeast(0f))
-                        lp.leftMargin = positionX.toInt()
-                        lp.topMargin = positionY.toInt()
-                        savePosition(context, lp.leftMargin, lp.topMargin)
-                        rootInputView.layoutParams = lp
-                    } else {
-                        val availableWidth = windowFrame.right - windowFrame.left
-                        val availableHeight = windowFrame.bottom - windowFrame.top
-                        val maxWidth = (availableWidth * 0.95f).toInt()
-                        val maxHeight = (availableHeight * 0.85f).toInt()
-                        val newWidth = (Settings.getValues().mFloatingWidth + dx / scale).toInt().coerceIn(160, maxWidth)
-                            .coerceAtMost(availableWidth - lp.leftMargin)
-                        val newHeight = (Settings.getValues().mFloatingHeight + dy / scale).toInt().coerceIn(120, maxHeight)
-                            .coerceAtMost(availableHeight - extraHeight.toInt() - lp.topMargin)
-                        lp.width = newWidth
-                        rootInputView.layoutParams = lp
-                    }
+                    val availableWidth = windowFrame.right - windowFrame.left
+                    val availableHeight = windowFrame.bottom - windowFrame.top
+                    val maxWidth = (availableWidth * 0.98f).toInt()
+                    val maxHeight = (availableHeight * 0.85f).toInt()
+                    val newWidth = (Settings.getValues().mFloatingWidth + dx / scale).toInt().coerceIn(160, maxWidth)
+                        .coerceAtMost(availableWidth - lp.leftMargin)
+                    val newHeight = (Settings.getValues().mFloatingHeight + dy / scale).toInt().coerceIn(120, maxHeight)
+                        .coerceAtMost(availableHeight - extraHeight.toInt() - lp.topMargin)
+                    lp.width = newWidth
+                    rootInputView.layoutParams = lp
                     true
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    val hadMoveMode = isMoveMode
-                    handler.removeCallbacks(moveRunnable)
-                    isMoveMode = false
-                    if (!hadMoveMode && event.action == MotionEvent.ACTION_UP) {
+                    if (event.action == MotionEvent.ACTION_UP) {
                         val availableWidth = windowFrame.right - windowFrame.left
                         val availableHeight = windowFrame.bottom - windowFrame.top
-                        val maxWidth = (availableWidth * 0.95f).toInt()
+                        val maxWidth = (availableWidth * 0.98f).toInt()
                         val maxHeight = (availableHeight * 0.85f).toInt()
                         val finalWidth = lp.width.coerceIn(160, maxWidth)
                         val finalHeight = (Settings.getValues().mFloatingHeight + (event.rawY - startY) / scale).toInt()

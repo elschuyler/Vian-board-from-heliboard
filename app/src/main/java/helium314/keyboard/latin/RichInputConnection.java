@@ -271,7 +271,10 @@ public final class RichInputConnection implements PrivateCommandPerformer {
         final boolean didReloadTextSuccessfully = reloadTextCache();
         if (!didReloadTextSuccessfully) {
             Log.d(TAG, "Will try to retrieve text later.");
-            // selection is set to INVALID_CURSOR_POSITION if reloadTextCache return false
+            if (newSelStart >= 0) {
+                mExpectedSelStart = newSelStart;
+                mExpectedSelEnd = newSelEnd;
+            }
             return false;
         }
         if (mExpectedSelStart != newSelStart || mExpectedSelEnd != newSelEnd) {
@@ -309,10 +312,12 @@ public final class RichInputConnection implements PrivateCommandPerformer {
                 0 /* flags */);
         if (null == textBeforeCursor) {
             // For some reason the app thinks we are not connected to it. This looks like a
-            // framework bug... Fall back to ground state and return false.
-            mExpectedSelStart = INVALID_CURSOR_POSITION;
-            mExpectedSelEnd = INVALID_CURSOR_POSITION;
-            Log.e(TAG, "Unable to connect to the editor to retrieve text.");
+            // framework bug... Preserve last known position or fall back to 0 instead of -1 so suggestions are not blocked.
+            if (mExpectedSelStart < 0) {
+                mExpectedSelStart = 0;
+                mExpectedSelEnd = 0;
+            }
+            Log.w(TAG, "Laggy editor connection: fell back to cursor position " + mExpectedSelStart);
             return false;
         }
         mCommittedTextBeforeComposingText.append(textBeforeCursor);

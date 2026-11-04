@@ -343,6 +343,9 @@ public class SettingsValues {
     }
 
     public boolean needsToLookupSuggestions() {
+        if (mInputAttributes.mIsPasswordField) {
+            return false;
+        }
         return (mInputAttributes.mShouldShowSuggestions || mOverrideShowingSuggestions)
                 && (mAutoCorrectEnabled || mSuggestionsEnabled);
     }

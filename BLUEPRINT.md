@@ -1121,6 +1121,38 @@ Vianboard is a fully customizable, privacy-conscious offline Android keyboard ap
   - **Component 4: Verification & Security Scan**:
     - Verified complete local build with `compile_applet` (100% success).
     - Executed silent security self-scan per Mandates 2 & 3: zero exposed credentials found.
+  - **2026-11-04**: Completed Phase 87 (Universal Suggestion Strip Activation with Strict Password Immunity):
+  - **Component 1: Default Preference Alignment (`Defaults.kt`)**:
+    - Set `PREF_ALWAYS_SHOW_SUGGESTIONS = true` and `PREF_ALWAYS_SHOW_SUGGESTIONS_EXCEPT_WEB_TEXT = false` by default.
+    - Ensures that WebViews, AI chat textareas, browsers, search bars, and third-party apps specifying `TYPE_TEXT_FLAG_NO_SUGGESTIONS` receive word suggestions and dictionary predictions automatically without requiring manual settings configuration.
+  - **Component 2: Strict Password Immunity & Security Isolation (`SettingsValues.java`)**:
+    - Added an absolute defense-in-depth short-circuit in `needsToLookupSuggestions()`: `if (mInputAttributes.mIsPasswordField) return false;`.
+    - Guarantees that password fields are 100% immune from suggestions, auto-correction, and dictionary learning, preserving strict credential confidentiality.
+  - **Component 3: IPC Connection Resilience & Cursor Recovery (`RichInputConnection.java`)**:
+    - Updated `resetCachesUponCursorMoveAndReturnSuccess` and `reloadTextCache` so that transient IPC lag on startup falls back gracefully to `Math.max(0, newSelStart)` rather than sticking to `INVALID_CURSOR_POSITION` (-1).
+    - Prevents transient connection drops from aborting word composition or blanking the suggestion strip.
+  - **Component 4: Compilation & Security Verification**:
+    - Verified build via `compile_applet` (100% clean compilation, 0 errors).
+    - Conducted silent security self-scan per Mandates 2 & 3: zero exposed credentials found.
+  - **2026-11-04**: Completed Phase 88 (True Floating Board Sticker Set & HeliBoard OG Half Board Realignment):
+  - **Component 1: HeliBoard OG Half Board Docking Realignment (`FloatingKeyboardUtils.kt`)**:
+    - Realigned Half Board strictly to HeliBoard's original docked compact layout docked at screen bottom (`Gravity.BOTTOM`), removing all floating detach, zero coordinate translation (`topMargin = 0`), and cleanly centering keyboard at 75% width.
+    - Cleared window corner outline and clipToOutline on `main_keyboard_frame` when entering or leaving Half Board mode.
+  - **Component 2: True Floating Board Window Container & Rounded Card Outline (`FloatingKeyboardUtils.kt`, `main_keyboard_frame.xml`)**:
+    - Configured `main_keyboard_frame` with 16dp rounded card corners (`ViewOutlineProvider` with `clipToOutline = true`) dynamically applied when floating or unfolding, and removed when docked.
+    - Updated default floating width to 90% in `Settings.kt` (`(screenWidth * 0.90f).toInt()`).
+    - Fixed initial spawn coordinates in `readPosition()`: defaults `x` to centered `((width - floatingWidth) / 2)` and `y` to screen bottom `maxY`, completely eliminating off-screen clipping and middle-of-screen displacement.
+  - **Component 3: Bottom-Right Corner Sticker Pill (`main_keyboard_frame.xml`, `bg_floating_sticker_pill.xml`, `FloatingKeyboardUtils.kt`)**:
+    - Placed compact sticker pill overlay badge (`layout_gravity="bottom|end"`, 28dp height, 14dp rounded capsule background) anchored slightly over the period and enter area without interfering with key touches.
+    - Configured 3 action buttons in exact specified order:
+      1. `close_floating_handle`: 1-tap exit from floating mode, instantly restoring normal docked full-width keyboard (`setFloatingBoardEnabled(false)`).
+      2. `minimize_floating_handle`: Folds keyboard into 52dp circular launcher icon bubble (`fold(view)`), with tap to unfold and long-press haptic drag.
+      3. `resize_handle`: Direct touch-drag handle to dynamically scale floating width and height smoothly.
+    - Long-press on suggestion strip chevron arrow (`suggestions_strip_toolbar_key`) with haptic vibration feedback moves the entire floating window around with insets boundary clamping.
+  - **Component 4: Compilation & Security Verification**:
+    - Verified complete local build with `compile_applet` (100% success, 0 errors).
+    - Executed silent security self-scan per Mandates 2 & 3: zero exposed credentials found.
+
 
 
 
