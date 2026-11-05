@@ -295,4 +295,50 @@ Strictly capped at 500 lines per file.
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: Ready for on-device manual verification using the test suite below.
 
+### [Receipt: 2026-11-05 00:54:00 UTC]
+- **Requested**:
+  1. Fix floating board taps passing through to underlying applications.
+  2. Fix half board opening floating board.
+  3. Ensure user never gets trapped/stuck in floating mode.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/latin/LatinIME.java`
+  - `app/src/main/java/helium314/keyboard/keyboard/KeyboardSwitcher.java`
+  - `app/src/main/java/helium314/keyboard/latin/utils/FloatingKeyboardUtils.kt`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_006.md`
+- **What was actually done**:
+  1. In `LatinIME.java`: Rewrote `touchableRegion` calculation in `onComputeInsets()` to query `main_keyboard_frame.getLocationInWindow(loc)`. Replaced artificial screen-height coordinate offsets with real window-relative bounds (`[loc[0], loc[1], loc[0] + width, loc[1] + height]`), eliminating touch pass-through. Added an unconditional safety fallback to full window bounds if views are unmeasured during transitions.
+  2. In `KeyboardSwitcher.java`: Added atomic `Settings.getInstance().loadSettings(...)` and `KtxKt.updateSoftInputWindowLayoutParameters(...)` immediately inside both `setFloatingBoardEnabled()` and `setHalfBoardEnabled()`. Prevents stale in-memory cached flags from overriding Half Board with Floating Board.
+  3. In `FloatingKeyboardUtils.kt`: Bound `KeyboardSwitcher.getInstance()?.reloadKeyboard()` directly inside `close_floating_handle` click listener so 1-tap exit immediately docks the full-width keyboard.
+  4. Verified project compilation with `compile_applet` (100% success, 0 errors).
+  5. Conducted silent security self-scan per Mandates 2 & 3: zero exposed credentials found.
+- **How it was verified**: local build only (`compile_applet` passed cleanly).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device verification.
 
+### [Receipt: 2026-11-05 07:01:00 UTC]
+- **Requested**:
+  1. Half board and floating board must not be modes of same-same. Half board is HeliBoard's original compact floating board docked at screen bottom.
+  2. Floating board is an on-demand temporary Modal Container (like Emoji modal).
+  3. Shrink normal board and round corners with 3 buttons row in bottom right corner as sticker.
+  4. When user closes or leaves input, app automatically closes floating board modal and normal keyboard is back.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/keyboard/KeyboardSwitcher.java`
+  - `app/src/main/java/helium314/keyboard/latin/LatinIME.java`
+  - `app/src/main/java/helium314/keyboard/latin/InputView.java`
+  - `app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardState.kt`
+  - `app/src/main/java/helium314/keyboard/latin/utils/FloatingKeyboardUtils.kt`
+  - `app/src/main/java/helium314/keyboard/latin/utils/ToolbarUtils.kt`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_006.md`
+- **What was actually done**:
+  1. Converted Floating Board from a persistent SharedPreferences configuration to a purely in-memory session modal container (`mIsFloatingModalActive` in `KeyboardSwitcher.java`), exactly analogous to Emoji/Clipboard modals.
+  2. Implemented `closeFloatingModal()` in `KeyboardSwitcher.java` that resets `mIsFloatingModalActive = false`, restores `MATCH_PARENT` bounds and `Gravity.BOTTOM` without rounded card outlines, and calls `reloadKeyboard()`.
+  3. Hooked automatic modal dismissal into `LatinIME.java` lifecycle methods (`cleanupInternalStateForFinishInput()`, `onWindowHidden()`, and `deallocateMemory()`). Whenever input finishes, the keyboard is hidden, or the app is closed, floating mode terminates immediately so the next session always opens as standard full docked keyboard.
+  4. Updated `LatinIME.onComputeInsets()` to check `mKeyboardSwitcher.isFloatingModalActive()` dynamically for floating touchable region calculation.
+  5. Updated `InputView.java`, `KeyboardState.kt`, `ToolbarUtils.kt`, and `FloatingKeyboardUtils.kt` to use the session modal state rather than persistent SharedPreferences.
+  6. Verified compilation with `compile_applet` (100% success, 0 errors).
+  7. Conducted silent security self-scan per Mandates 2 & 3: zero exposed credentials found.
+- **How it was verified**: local build only (`compile_applet` passed cleanly).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device verification.

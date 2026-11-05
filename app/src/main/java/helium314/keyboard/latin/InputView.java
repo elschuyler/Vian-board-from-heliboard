@@ -113,7 +113,7 @@ public final class InputView extends FrameLayout {
         requestApplyInsets();
 
         // need to update the floating keyboard position after applying insets
-        if (Settings.getValues().mIsFloatingKeyboard)
+        if (helium314.keyboard.keyboard.KeyboardSwitcher.getInstance() != null && helium314.keyboard.keyboard.KeyboardSwitcher.getInstance().isFloatingModalActive())
             FloatingKeyboardUtils.setFloating(this);
         else if (Settings.getValues().mIsHalfBoard)
             FloatingKeyboardUtils.setHalfBoard(this);

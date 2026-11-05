@@ -113,6 +113,40 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     private boolean mThemeNeedsReload;
     private boolean mPendingVoiceLaunch = false;
     private boolean mPendingPromptLaunch = false;
+    private boolean mIsFloatingModalActive = false;
+
+    public boolean isFloatingModalActive() {
+        return mIsFloatingModalActive;
+    }
+
+    public void setFloatingModalActive(boolean active) {
+        mIsFloatingModalActive = active;
+        if (mCurrentInputView != null) {
+            KtxKt.updateSoftInputWindowLayoutParameters(mLatinIME, mCurrentInputView);
+            if (active) {
+                FloatingKeyboardUtils.setFloating(mCurrentInputView);
+            } else {
+                FloatingKeyboardUtils.disableFloating(mCurrentInputView);
+            }
+        }
+        setBackgroundGatheringIndicatorPosition();
+    }
+
+    public void toggleFloatingModal() {
+        setFloatingModalActive(!mIsFloatingModalActive);
+    }
+
+    public void closeFloatingModal() {
+        if (mIsFloatingModalActive) {
+            mIsFloatingModalActive = false;
+            if (mCurrentInputView != null) {
+                FloatingKeyboardUtils.disableFloating(mCurrentInputView);
+                KtxKt.updateSoftInputWindowLayoutParameters(mLatinIME, mCurrentInputView);
+            }
+            setBackgroundGatheringIndicatorPosition();
+            reloadKeyboard();
+        }
+    }
 
     public void setPendingVoiceLaunch(boolean pending) {
         mPendingVoiceLaunch = pending;
@@ -1182,25 +1216,19 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     @Override
     public void setFloatingBoardEnabled(boolean enabled) {
         if (enabled && Settings.getValues().mIsHalfBoard) {
-            SettingsKt.setHalfBoardEnabled(mThemeContext, false);
+            setHalfBoardEnabled(false);
         }
-        if (enabled != Settings.getValues().mIsFloatingKeyboard) {
-            // mIsFloatingKeyboard is always disabled when device is locked, and we shouldn't mess up the setting
-            SettingsKt.setFloatingKeyboardEnabled(mThemeContext, enabled);
-        }
-        if (enabled) FloatingKeyboardUtils.setFloating(mCurrentInputView);
-        else FloatingKeyboardUtils.disableFloating(mCurrentInputView);
-        setBackgroundGatheringIndicatorPosition();
+        setFloatingModalActive(enabled);
     }
 
     @Override
     public void setHalfBoardEnabled(boolean enabled) {
-        if (enabled && Settings.getValues().mIsFloatingKeyboard) {
-            SettingsKt.setFloatingKeyboardEnabled(mThemeContext, false);
+        if (enabled && mIsFloatingModalActive) {
+            setFloatingModalActive(false);
         }
-        if (enabled != Settings.getValues().mIsHalfBoard) {
-            SettingsKt.setHalfBoardEnabled(mThemeContext, enabled);
-        }
+        SettingsKt.setHalfBoardEnabled(mThemeContext, enabled);
+        Settings.getInstance().loadSettings(mThemeContext, Settings.getValues().mLocale, Settings.getValues().mInputAttributes);
+        KtxKt.updateSoftInputWindowLayoutParameters(mLatinIME, mCurrentInputView);
         if (enabled) FloatingKeyboardUtils.setHalfBoard(mCurrentInputView);
         else FloatingKeyboardUtils.disableHalfBoard(mCurrentInputView);
         setBackgroundGatheringIndicatorPosition();
@@ -1458,6 +1486,9 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     public FrameLayout getStripContainer() { return mStripContainer; }
 
     public void deallocateMemory() {
+        if (mIsFloatingModalActive) {
+            closeFloatingModal();
+        }
         if (mKeyboardView != null) {
             mKeyboardView.cancelAllOngoingEvents();
             mKeyboardView.deallocateMemory();

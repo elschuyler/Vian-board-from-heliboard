@@ -116,7 +116,7 @@ class KeyboardState(private val switchActions: SwitchActions) {
             switchActions.requestUpdatingShiftState(autoCapsFlags, recapitalizeMode)
         }
         switchActions.setOneHandedModeEnabled(onHandedModeEnabled)
-        switchActions.setFloatingKeyboardEnabled(Settings.getValues().mIsFloatingKeyboard)
+        switchActions.setFloatingKeyboardEnabled(KeyboardSwitcher.getInstance().isFloatingModalActive)
     }
 
     fun onSaveKeyboardState() {
@@ -501,7 +501,7 @@ class KeyboardState(private val switchActions: SwitchActions) {
                 KeyboardSwitcher.getInstance().reloadKeyboard()
             }
             KeyCode.TOGGLE_FLOATING_BOARD -> {
-                switchActions.setFloatingBoardEnabled(!Settings.getValues().mIsFloatingKeyboard)
+                switchActions.setFloatingBoardEnabled(!KeyboardSwitcher.getInstance().isFloatingModalActive)
                 KeyboardSwitcher.getInstance().reloadKeyboard()
             }
         }

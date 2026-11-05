@@ -1152,6 +1152,35 @@ Vianboard is a fully customizable, privacy-conscious offline Android keyboard ap
   - **Component 4: Compilation & Security Verification**:
     - Verified complete local build with `compile_applet` (100% success, 0 errors).
     - Executed silent security self-scan per Mandates 2 & 3: zero exposed credentials found.
+  - **2026-11-05**: Completed Phase 89 (Touchable Region Coordinate Space Alignment & Atomic Mode Setting Synchronization):
+  - **Component 1: Touchable Region Window Alignment & Pass-Through Elimination (`LatinIME.java`)**:
+    - Fixed root cause of touches passing through floating keyboard to underlying background applications: `touchableRegion` was previously receiving screen coordinates (e.g. Y=1600) instead of coordinates relative to the IME window.
+    - Switched `touchableRegion` in `onComputeInsets()` to query `main_keyboard_frame.getLocationInWindow(loc)`, setting `touchLeft = loc[0], touchTop = loc[1], touchRight = loc[0] + width, touchBottom = loc[1] + height`.
+    - Added an unconditional safety fallback: if view hierarchy is unmeasured or unshown during transitions, fallback to full window bounds, guaranteeing the user can never be locked out or trapped.
+  - **Component 2: Atomic In-Memory Settings Synchronization (`KeyboardSwitcher.java`)**:
+    - Resolved bug where activating Half Board opened Floating Board: `setFloatingBoardEnabled()` and `setHalfBoardEnabled()` now invoke `Settings.getInstance().loadSettings(...)` and `KtxKt.updateSoftInputWindowLayoutParameters(...)` immediately upon preference update.
+    - Guarantees in-memory `SettingsValues.mIsFloatingKeyboard` and `mIsHalfBoard` are 100% atomic and refreshed before subsequent view layout handlers or keyboard reloads.
+  - **Component 3: Instant Close & Dock Restoration (`FloatingKeyboardUtils.kt`)**:
+    - Added `KeyboardSwitcher.getInstance()?.reloadKeyboard()` directly to `close_floating_handle` click listener, guaranteeing 1-tap exit restores the full docked keyboard immediately.
+  - **Component 4: Compilation & Security Verification**:
+    - Verified complete local build with `compile_applet` (100% success, 0 errors).
+    - Conducted silent security self-scan per Mandates 2 & 3: zero exposed credentials found.
+  - **2026-11-05**: Completed Phase 90 (Floating Board Modal Container Architecture & Zero-Persistence Auto-Dismissal):
+    - **Component 1: Modal Container In-Memory Lifecycle (`KeyboardSwitcher.java`)**:
+      - Converted Floating Board from a persistent SharedPreferences configuration to a purely in-memory session modal container (`mIsFloatingModalActive`), exactly analogous to the Emoji modal container.
+      - Added `isFloatingModalActive()`, `setFloatingModalActive(boolean)`, `toggleFloatingModal()`, and `closeFloatingModal()`.
+      - Exiting floating mode immediately resets `mIsFloatingModalActive = false`, removes floating margins/corner outlines, restores `MATCH_PARENT` docked window layout, and reloads standard docked keyboard.
+    - **Component 2: Automatic Dismissal & Input Session Reset (`LatinIME.java`)**:
+      - Hooked `closeFloatingModal()` into `onFinishInputViewInternal()` (`cleanupInternalStateForFinishInput()`), `onWindowHidden()`, and `deallocateMemory()`.
+      - When the user closes the keyboard, leaves the text input field, switches apps, or hides the keyboard, the floating modal container closes immediately. The next input session always launches as the standard docked keyboard.
+    - **Component 3: Dynamic Inset & State Synchronization (`LatinIME.java`, `InputView.java`, `KeyboardState.kt`, `ToolbarUtils.kt`)**:
+      - `LatinIME.onComputeInsets()` dynamically verifies `mKeyboardSwitcher.isFloatingModalActive()` before calculating floating touchable regions.
+      - `InputView.onNextLayout()` positions the floating container only when `isFloatingModalActive()` is true.
+      - `ToolbarUtils.kt` activates the `FLOATING_BOARD` icon highlight strictly when `isFloatingModalActive()` is true.
+      - `close_floating_handle` sticker button calls `closeFloatingModal()` directly for immediate 1-tap dock restoration.
+    - **Component 4: Compilation & Security Verification**:
+      - Verified clean build via `compile_applet` (100% success, 0 errors).
+      - Executed silent security scan per Mandates 2 & 3: zero exposed credentials found.
 
 
 

@@ -11,6 +11,7 @@ import android.widget.ImageView
 import androidx.core.content.edit
 import androidx.core.view.forEach
 import helium314.keyboard.event.HapticEvent
+import helium314.keyboard.keyboard.KeyboardSwitcher
 import helium314.keyboard.keyboard.internal.KeyboardIconsSet
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
 import helium314.keyboard.latin.AudioAndHapticFeedbackManager
@@ -60,7 +61,7 @@ private fun setToolbarButtonActivatedState(button: ImageButton) {
         ONE_HANDED -> Settings.getValues().mOneHandedModeEnabled
         SPLIT -> Settings.getValues().mIsSplitKeyboardEnabled
         HALF_BOARD -> Settings.getValues().mIsHalfBoard
-        FLOATING_BOARD -> Settings.getValues().mIsFloatingKeyboard
+        FLOATING_BOARD -> KeyboardSwitcher.getInstance()?.isFloatingModalActive == true
         AUTOCORRECT -> Settings.getValues().mAutoCorrectionEnabledPerUserSettings
         BACKGROUND_GATHERING -> useBackgroundGathering
         else -> true

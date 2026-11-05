@@ -104,7 +104,7 @@ object FloatingKeyboardUtils {
         // 1. Close: close floating mode and return to normal docked keyboard
         view.findViewById<View>(R.id.close_floating_handle)?.setOnClickListener {
             isFoldedState = false
-            KeyboardSwitcher.getInstance()?.setFloatingBoardEnabled(false)
+            KeyboardSwitcher.getInstance()?.closeFloatingModal()
         }
 
         // 2. Minimize: fold into app icon bubble

@@ -1070,7 +1070,7 @@ public class LatinIME extends InputMethodService implements
     public void onWindowShown() {
         super.onWindowShown();
         if (isInputViewShown()) {
-            if (mInputView != null && Settings.getValues().mIsFloatingKeyboard)
+            if (mInputView != null && mKeyboardSwitcher != null && mKeyboardSwitcher.isFloatingModalActive())
                 FloatingKeyboardUtils.setFloating(mInputView);
             else if (mInputView != null && Settings.getValues().mIsHalfBoard)
                 FloatingKeyboardUtils.setHalfBoard(mInputView);
@@ -1083,6 +1083,9 @@ public class LatinIME extends InputMethodService implements
     public void onWindowHidden() {
         super.onWindowHidden();
         Log.i(TAG, "onWindowHidden");
+        if (mKeyboardSwitcher != null && mKeyboardSwitcher.isFloatingModalActive()) {
+            mKeyboardSwitcher.closeFloatingModal();
+        }
         TempIncognitoManager.onKeyboardClosed();
         VaultSessionManager.INSTANCE.lockVaults();
         if (!mKeyboardSwitcher.isPendingVoiceLaunch() && mKeyboardSwitcher.isShowingVoiceInput()) {
@@ -1119,6 +1122,9 @@ public class LatinIME extends InputMethodService implements
     }
 
     private void cleanupInternalStateForFinishInput() {
+        if (mKeyboardSwitcher != null && mKeyboardSwitcher.isFloatingModalActive()) {
+            mKeyboardSwitcher.closeFloatingModal();
+        }
         TempIncognitoManager.onKeyboardClosed();
         // Remove pending messages related to update suggestions
         mHandler.cancelUpdateSuggestionStrip();
@@ -1289,7 +1295,8 @@ public class LatinIME extends InputMethodService implements
         }
         final int stripHeight = mKeyboardSwitcher.isShowingStripContainer() ? mKeyboardSwitcher.getStripContainer().getHeight() : 0;
         int visibleTopY = inputHeight - visibleKeyboardView.getHeight() - stripHeight;
-        if (Settings.getValues().mIsFloatingKeyboard)
+        final boolean isFloatingModal = mKeyboardSwitcher != null && mKeyboardSwitcher.isFloatingModalActive();
+        if (isFloatingModal)
             visibleTopY = getResources().getDisplayMetrics().heightPixels;
 
         if (hasSuggestionStripView()) {
@@ -1297,27 +1304,50 @@ public class LatinIME extends InputMethodService implements
         }
 
         // Need to set expanded touchable region if a keyboard view is shown or if floating keyboard is folded
-        if (visibleKeyboardView.isShown() || (mSettings.getCurrent().mIsFloatingKeyboard && FloatingKeyboardUtils.isFolded())) {
+        if (visibleKeyboardView.isShown() || (isFloatingModal && FloatingKeyboardUtils.isFolded())) {
             int touchLeft = 0;
             int touchTop = mKeyboardSwitcher.isShowingPopupKeysPanel() ? 0 : visibleTopY;
             int touchRight = visibleKeyboardView.getWidth();
             int touchBottom = inputHeight + EXTENDED_TOUCHABLE_REGION_HEIGHT; // Extend touchable region below the keyboard.
-            if (mSettings.getCurrent().mIsFloatingKeyboard) {
+            if (isFloatingModal) {
+                final int[] loc = new int[2];
                 if (FloatingKeyboardUtils.isFolded()) {
-                    var xy = FloatingKeyboardUtils.getFoldedPosition(this);
-                    int size = FloatingKeyboardUtils.getFoldedSizePx(this);
-                    touchLeft = xy.component1();
-                    touchTop = xy.component2();
-                    touchRight = touchLeft + size;
-                    touchBottom = touchTop + size;
+                    final View bubble = mInputView != null ? mInputView.findViewById(R.id.floating_folded_button) : null;
+                    if (bubble != null && bubble.isShown() && bubble.getWidth() > 0 && bubble.getHeight() > 0) {
+                        bubble.getLocationInWindow(loc);
+                        touchLeft = loc[0];
+                        touchTop = loc[1];
+                        touchRight = loc[0] + bubble.getWidth();
+                        touchBottom = loc[1] + bubble.getHeight();
+                    } else {
+                        final var xy = FloatingKeyboardUtils.getFoldedPosition(this);
+                        final int size = FloatingKeyboardUtils.getFoldedSizePx(this);
+                        touchLeft = xy.component1();
+                        touchTop = xy.component2();
+                        touchRight = touchLeft + size;
+                        touchBottom = touchTop + size;
+                    }
                 } else {
-                    var xy = FloatingKeyboardUtils.readPosition(this, Integer.MAX_VALUE, Integer.MAX_VALUE);
-                    touchLeft = xy.component1();
-                    touchTop = xy.component2();
-                    final int activeHeight = Math.max(mSettings.getCurrent().mFloatingHeight, visibleKeyboardView.getHeight());
-                    final int activeWidth = Math.max(mSettings.getCurrent().mFloatingWidth, visibleKeyboardView.getWidth());
-                    touchRight = touchLeft + activeWidth;
-                    touchBottom = touchTop + activeHeight + stripHeight + (int)FloatingKeyboardUtils.getFloatingHandleHeight(getResources());
+                    final View mainFrame = mInputView != null ? mInputView.findViewById(R.id.main_keyboard_frame) : null;
+                    if (mainFrame != null && mainFrame.isShown() && mainFrame.getWidth() > 0 && mainFrame.getHeight() > 0) {
+                        mainFrame.getLocationInWindow(loc);
+                        touchLeft = loc[0];
+                        touchTop = loc[1];
+                        touchRight = loc[0] + mainFrame.getWidth();
+                        touchBottom = loc[1] + mainFrame.getHeight();
+                    } else if (mInputView != null && mInputView.isShown() && mInputView.getWidth() > 0 && mInputView.getHeight() > 0) {
+                        mInputView.getLocationInWindow(loc);
+                        touchLeft = loc[0];
+                        touchTop = loc[1];
+                        touchRight = loc[0] + mInputView.getWidth();
+                        touchBottom = loc[1] + mInputView.getHeight();
+                    } else {
+                        // Safety fallback to guarantee user can always interact and never get locked out
+                        touchLeft = 0;
+                        touchTop = 0;
+                        touchRight = getResources().getDisplayMetrics().widthPixels;
+                        touchBottom = inputHeight + EXTENDED_TOUCHABLE_REGION_HEIGHT;
+                    }
                 }
             }
             outInsets.touchableInsets = InputMethodService.Insets.TOUCHABLE_INSETS_REGION;
