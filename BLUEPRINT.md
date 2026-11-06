@@ -1192,6 +1192,19 @@ Vianboard is a fully customizable, privacy-conscious offline Android keyboard ap
     - **Component 3: Compilation & Security Verification**:
       - Verified project compilation with `compile_applet` (100% success, 0 errors).
       - Conducted silent security self-scan per Mandates 2 & 3: zero exposed credentials found.
+  - **2026-11-06**: Completed Phase 92 (Keycode De-Collision, Chevron Drag Fix & Proportional Height Scaling):
+    - **Component 1: Keycode De-Collision & One-Handed Mutual Exclusion (`KeyCode.kt`, `KeyboardSwitcher.java`)**:
+      - Separated `TOGGLE_HALF_BOARD` from Floris `TOGGLE_FLOATING_WINDOW` (`-109`) to unique keycode `-10062` and registered it in `checkAndConvertCode()`, preventing keycode collision.
+      - Added explicit `setOneHandedModeEnabled(false, false)` when `setHalfBoardEnabled(true)` is activated, preventing one-handed mode side buttons from appearing on Half Board.
+    - **Component 2: Chevron Drag In-Memory Modal Guard Fix (`FloatingKeyboardUtils.kt`)**:
+      - Fixed long-press chevron drag guard to check `KeyboardSwitcher.getInstance()?.isFloatingModalActive == true || Settings.getValues().mIsFloatingKeyboard`.
+      - Restored haptic feedback on long press and enabled smooth repositioning of the floating window across the screen with 72dp bottom clearance.
+    - **Component 3: Proportional Full Height & Width Scaling (`ResourceUtils.java`, `FloatingKeyboardUtils.kt`)**:
+      - Updated `ResourceUtils.getKeyboardHeight()` and `getKeyboardWidth()` to read `isFloatingModalActive` dynamically so that key geometries calculate true scaled heights when floating.
+      - Updated `setResizeListener()` to resize both `lp.width` and `lp.height` during motion events, reloading the layout on release so that every key row shrinks proportionally without clipping or hiding keys.
+    - **Component 4: Compilation & Security Verification**:
+      - Verified project compilation with `compile_applet` (100% success, 0 errors).
+      - Conducted silent security self-scan per Mandates 2 & 3: zero exposed credentials found.
 
 
 

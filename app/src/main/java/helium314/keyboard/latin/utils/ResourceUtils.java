@@ -32,8 +32,11 @@ public final class ResourceUtils {
     }
 
     public static int getKeyboardWidth(final Context ctx, final SettingsValues settingsValues) {
+        final boolean isFloating = settingsValues.mIsFloatingKeyboard
+                || (helium314.keyboard.keyboard.KeyboardSwitcher.getInstance() != null
+                    && helium314.keyboard.keyboard.KeyboardSwitcher.getInstance().isFloatingModalActive());
         // Floating keyboard width takes priority
-        if (settingsValues.mIsFloatingKeyboard) {
+        if (isFloating) {
             return settingsValues.mFloatingWidth;
         }
         int defaultKeyboardWidth = getDefaultKeyboardWidth(ctx);
@@ -72,7 +75,10 @@ public final class ResourceUtils {
     }
 
     public static int getKeyboardHeight(Resources res, SettingsValues settingsValues) {
-        if (settingsValues.mIsFloatingKeyboard) {
+        final boolean isFloating = settingsValues.mIsFloatingKeyboard
+                || (helium314.keyboard.keyboard.KeyboardSwitcher.getInstance() != null
+                    && helium314.keyboard.keyboard.KeyboardSwitcher.getInstance().isFloatingModalActive());
+        if (isFloating) {
             return settingsValues.mFloatingHeight;
         }
         int defaultKeyboardHeight = getDefaultKeyboardHeight(res, settingsValues.mShowsNumberRow);

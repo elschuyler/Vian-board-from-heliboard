@@ -367,3 +367,27 @@ Strictly capped at 500 lines per file.
 - **How it was verified**: local build only (`compile_applet` passed cleanly).
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: Ready for on-device verification.
+
+### [Receipt: 2026-11-06 11:44:00 UTC]
+- **Requested**:
+  1. Fix Half board giving one-handed mode instead of OG HeliBoard compact floating board.
+  2. Fix floating board chevron arrow (>) long-press not dragging the window around.
+  3. Fix resize handle only resizing horizontally and hiding parts rather than reducing full keyboard height.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/keyboard/internal/keyboard_parser/floris/KeyCode.kt`
+  - `app/src/main/java/helium314/keyboard/keyboard/KeyboardSwitcher.java`
+  - `app/src/main/java/helium314/keyboard/latin/utils/FloatingKeyboardUtils.kt`
+  - `app/src/main/java/helium314/keyboard/latin/utils/ResourceUtils.java`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_006.md`
+- **What was actually done**:
+  1. In `KeyCode.kt`: Separated `TOGGLE_HALF_BOARD` from `-109` to a unique keycode `-10062` and registered it in `checkAndConvertCode()`, eliminating keycode collision with Floris `TOGGLE_FLOATING_WINDOW`.
+  2. In `KeyboardSwitcher.java`: Added explicit `setOneHandedModeEnabled(false, false)` inside `setHalfBoardEnabled(true)` so one-handed mode side buttons never show up when Half Board is active.
+  3. In `FloatingKeyboardUtils.kt`: Fixed long-press chevron drag touch listener guard to check `KeyboardSwitcher.getInstance()?.isFloatingModalActive == true || Settings.getValues().mIsFloatingKeyboard`. Enabled haptic vibration on long press and full window dragging across the screen.
+  4. In `ResourceUtils.java`: Added `isFloatingModalActive` check to both `getKeyboardWidth()` and `getKeyboardHeight()`, ensuring the key layout engine computes true scaled dimensions when floating.
+  5. In `FloatingKeyboardUtils.kt`: Updated `setResizeListener()` to resize both `lp.width` and `lp.height` during `ACTION_MOVE`, re-measure the keyboard layout on release, and scale key heights proportionally without hiding keys.
+  6. Verified compilation via `compile_applet` (100% success, 0 errors).
+  7. Conducted silent security self-scan per Mandates 2 & 3: zero exposed credentials found.
+- **How it was verified**: local build only (`compile_applet` passed cleanly).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device verification.

@@ -1226,6 +1226,9 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         if (enabled && mIsFloatingModalActive) {
             setFloatingModalActive(false);
         }
+        if (enabled && Settings.getValues().mOneHandedModeEnabled) {
+            setOneHandedModeEnabled(false, false);
+        }
         SettingsKt.setHalfBoardEnabled(mThemeContext, enabled);
         Settings.getInstance().loadSettings(mThemeContext, Settings.getValues().mLocale, Settings.getValues().mInputAttributes);
         KtxKt.updateSoftInputWindowLayoutParameters(mLatinIME, mCurrentInputView);
