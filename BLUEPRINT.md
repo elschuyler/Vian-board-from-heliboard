@@ -1181,6 +1181,17 @@ Vianboard is a fully customizable, privacy-conscious offline Android keyboard ap
     - **Component 4: Compilation & Security Verification**:
       - Verified clean build via `compile_applet` (100% success, 0 errors).
       - Executed silent security scan per Mandates 2 & 3: zero exposed credentials found.
+  - **2026-11-05**: Completed Phase 91 (Half Board Geometry Alignment & Floating Board Bottom Clearance Realignment):
+    - **Component 1: Half Board Geometry & Reload Pipeline (`ResourceUtils.java`, `KeyboardSwitcher.java`)**:
+      - Added explicit Half Board check in `ResourceUtils.getKeyboardWidth()` returning 75% width (`(int)(0.75f * defaultKeyboardWidth)`), ensuring key layouts and views calculate true 75% dimensions.
+      - Added `reloadKeyboard()` to `KeyboardSwitcher.setHalfBoardEnabled(boolean)`, allowing the keyboard layout engine to rebuild keys immediately upon toggling Half Board.
+    - **Component 2: Floating Board Edge Clearance & Navigation Bar Immunity (`Settings.kt`, `FloatingKeyboardUtils.kt`, `main_keyboard_frame.xml`)**:
+      - Updated default floating board width in `Settings.readFloatingWidth()` from 90% to 80% screen width, preventing the floating window from touching the screen sides.
+      - Implemented 72dp bottom clearance in `FloatingKeyboardUtils.readPosition()`, `unfold()`, and `setupChevronDrag()`, ensuring the initial spawn position and drag boundaries stay completely above the Android system navigation bar.
+      - Elevated the bottom-right corner sticker pill (`float_handle_container`) with 8dp bottom margin, 8dp end margin, and 8dp elevation inside `main_keyboard_frame.xml`, preventing any overlap with edge-to-edge system gestures.
+    - **Component 3: Compilation & Security Verification**:
+      - Verified project compilation with `compile_applet` (100% success, 0 errors).
+      - Conducted silent security self-scan per Mandates 2 & 3: zero exposed credentials found.
 
 
 

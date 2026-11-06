@@ -1232,6 +1232,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         if (enabled) FloatingKeyboardUtils.setHalfBoard(mCurrentInputView);
         else FloatingKeyboardUtils.disableHalfBoard(mCurrentInputView);
         setBackgroundGatheringIndicatorPosition();
+        reloadKeyboard();
     }
 
     public void toggleSplitKeyboardMode() {

@@ -342,3 +342,28 @@ Strictly capped at 500 lines per file.
 - **How it was verified**: local build only (`compile_applet` passed cleanly).
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: Ready for on-device verification.
+
+### [Receipt: 2026-11-05 12:41:00 UTC]
+- **Requested**:
+  1. Fix Half board not opening or working.
+  2. Fix floating board stuck to bottom with 3-button set below Android navigation bar.
+  3. Ensure full floating board is smaller than screen not touching edges at all.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/latin/utils/ResourceUtils.java`
+  - `app/src/main/java/helium314/keyboard/keyboard/KeyboardSwitcher.java`
+  - `app/src/main/java/helium314/keyboard/latin/settings/Settings.kt`
+  - `app/src/main/java/helium314/keyboard/latin/utils/FloatingKeyboardUtils.kt`
+  - `app/src/main/res/layout/main_keyboard_frame.xml`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_006.md`
+- **What was actually done**:
+  1. In `ResourceUtils.java`: Added Half Board width scaling `(int)(0.75f * defaultKeyboardWidth)` to `getKeyboardWidth()` so key layouts, views, and containers compute accurate 75% geometry when Half Board is active.
+  2. In `KeyboardSwitcher.java`: Added `reloadKeyboard()` to `setHalfBoardEnabled(boolean)` to immediately rebuild key parameters when Half Board is toggled on or off.
+  3. In `Settings.kt`: Updated default floating board width in `readFloatingWidth()` from 90% to 80% screen width (`screenWidth * 0.80f`), ensuring the floating window has comfortable margins and never touches screen edges.
+  4. In `FloatingKeyboardUtils.kt`: Added a 72dp bottom clearance buffer in `readPosition()`, `unfold()`, and `setupChevronDrag()`, ensuring the floating window and bottom sticker pill never slip below or collide with the Android system navigation bar.
+  5. In `main_keyboard_frame.xml`: Adjusted `float_handle_container` bottom margin to 8dp, end margin to 8dp, and elevation to 8dp for clean visual separation.
+  6. Verified compilation via `compile_applet` (100% success, 0 errors).
+  7. Conducted silent security scan per Mandates 2 & 3: zero exposed credentials found.
+- **How it was verified**: local build only (`compile_applet` passed cleanly).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device verification.

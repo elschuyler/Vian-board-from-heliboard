@@ -153,8 +153,10 @@ object FloatingKeyboardUtils {
 
         view.getWindowVisibleDisplayFrame(windowFrame)
         extraHeight = getSuggestionStripHeight(view.resources).toFloat()
+        val density = view.resources.displayMetrics.density
+        val bottomClearance = (72 * density).toInt()
         val maxX = (windowFrame.right - windowFrame.left - Settings.getValues().mFloatingWidth).coerceAtLeast(0)
-        val maxY = (windowFrame.bottom - windowFrame.top - extraHeight.toInt() - Settings.getValues().mFloatingHeight).coerceAtLeast(0)
+        val maxY = (windowFrame.bottom - windowFrame.top - extraHeight.toInt() - Settings.getValues().mFloatingHeight - bottomClearance).coerceAtLeast(0)
 
         val targetX = if (hasMovedWhileFolded) foldedX.coerceIn(0, maxX) else preFoldX.coerceIn(0, maxX)
         val targetY = if (hasMovedWhileFolded) foldedY.coerceIn(0, maxY) else preFoldY.coerceIn(0, maxY)
@@ -290,7 +292,10 @@ object FloatingKeyboardUtils {
     @JvmStatic
     fun readPosition(context: Context, maxX: Int, maxY: Int): Pair<Int, Int> {
         val maxX = maxX.coerceAtLeast(0)
-        val maxY = maxY.coerceAtLeast(0)
+        val density = context.resources.displayMetrics.density
+        // Safe bottom clearance so floating board and sticker pill never collide with Android navigation bar
+        val bottomClearance = (72 * density).toInt()
+        val maxY = (maxY - bottomClearance).coerceAtLeast(0)
         val width = context.resources.displayMetrics.widthPixels
         val defaultX = ((width - Settings.getValues().mFloatingWidth) / 2).coerceIn(0, maxX)
         val defaultY = maxY.coerceAtLeast(0)
@@ -528,8 +533,10 @@ object FloatingKeyboardUtils {
                     if (isDragging) {
                         rootView.getWindowVisibleDisplayFrame(windowFrame)
                         val sv = Settings.getValues()
+                        val density = rootView.context.resources.displayMetrics.density
+                        val bottomClearance = (72 * density).toInt()
                         val availableWidth = (windowFrame.right - windowFrame.left).coerceAtLeast(0)
-                        val availableHeight = (windowFrame.bottom - windowFrame.top).coerceAtLeast(0)
+                        val availableHeight = (windowFrame.bottom - windowFrame.top - bottomClearance).coerceAtLeast(0)
                         val totalHeight = sv.mFloatingHeight + extraHeight.toInt()
                         val newX = (startMarginX + dx).toInt().coerceIn(0, (availableWidth - sv.mFloatingWidth).coerceAtLeast(0))
                         val newY = (startMarginY + dy).toInt().coerceIn(0, (availableHeight - totalHeight).coerceAtLeast(0))
