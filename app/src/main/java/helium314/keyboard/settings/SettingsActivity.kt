@@ -150,10 +150,14 @@ open class SettingsActivity : ComponentActivity(), SharedPreferences.OnSharedPre
         }
 
         if (intent?.action == Intent.ACTION_VIEW) {
-            intent?.data?.let {
-                cachedDictionaryFile.delete()
-                FileUtils.copyContentUriToNewFile(it, this, cachedDictionaryFile)
-                dictUriFlow.value = it
+            intent?.data?.let { uri ->
+                try {
+                    cachedDictionaryFile.delete()
+                    FileUtils.copyContentUriToNewFile(uri, this, cachedDictionaryFile)
+                    dictUriFlow.value = uri
+                } catch (e: Exception) {
+                    android.util.Log.e("SettingsActivity", "Failed to copy dictionary content URI", e)
+                }
             }
             intent = null
         }

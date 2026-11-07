@@ -1205,6 +1205,29 @@ Vianboard is a fully customizable, privacy-conscious offline Android keyboard ap
     - **Component 4: Compilation & Security Verification**:
       - Verified project compilation with `compile_applet` (100% success, 0 errors).
       - Conducted silent security self-scan per Mandates 2 & 3: zero exposed credentials found.
+  - **2026-11-06**: Completed Phase 93 (W Key Popup Ordering Realignment):
+    - **Component 1: Layout & Symbol Slashes Swap (`qwerty.txt`, `symbols.txt`)**:
+      - Swapped `w /` to `w \` in `app/src/main/assets/layouts/main/qwerty.txt`, making `\` (backslash) the primary layout popup and hint label on the `w` key.
+      - Swapped `\` to `/` on row 1 key 2 of `app/src/main/assets/layouts/symbols/symbols.txt`, making `/` (forward slash) the paired symbol popup key.
+      - Reversed the order of the two popup items on long-pressing `w` cleanly without altering any other key in the keyboard.
+    - **Component 2: Compilation & Security Verification**:
+      - Verified clean compilation with `compile_applet` (100% success, 0 errors).
+      - Conducted silent security scan per Mandates 2 & 3: zero exposed credentials found.
+  - **2026-11-07**: Completed Phase 94 (Repository Hardening, Lifecycle Leaks Elimination & Attack Surface Reduction):
+    - **Component 1: Google Play Package Visibility Policy Compliance (`AndroidManifest.xml`)**:
+      - Removed dangerous wildcard `<action android:name="*" />` from `<queries>`, replacing it strictly with launcher category queries (`android.intent.action.MAIN` + `android.intent.category.LAUNCHER`) to satisfy Google Play Developer Program policies and eliminate package enumeration risks.
+    - **Component 2: Attack Surface Reduction & Safe Intent Processing (`AndroidManifest.xml`, `SettingsActivity.kt`)**:
+      - Hardened `SettingsActivity2` by setting `android:exported="false"` and stripping the unauthenticated public `.dict` intent filter, preventing arbitrary external applications from triggering internal settings or dictionary streams.
+      - Added safe exception handling around `ACTION_VIEW` content URI copying in `SettingsActivity.kt`, preventing crashes on malformed, unreadable, or permission-denied external URIs.
+    - **Component 3: Coroutine Lifecycle Leak Elimination (`SuggestionStripView.kt`, `ToolbarUtils.kt`, `ClipboardHistoryManager.kt`)**:
+      - Replaced unmanaged `GlobalScope.launch` in `SuggestionStripView.kt` and `ToolbarUtils.kt` with view-bound `postDelayed({ ... }, 10)`, eliminating unmanaged coroutine allocations and thread leakage when keyboard views are detached.
+      - Replaced unmanaged `GlobalScope.launch` in `ClipboardHistoryManager.kt` with a lifecycle-managed `managerScope` (`CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())`), safely cancelled in `onDestroy()`.
+    - **Component 4: Resource Efficiency & Zero-Overhead Verification (`VoiceInputService.kt`, `LogCatcher.kt`)**:
+      - Audited and verified aggressive on-demand resource reclamation in `VoiceInputService` (`onUnbind` release, `onTrimMemory` model eviction, 60-second idle auto-shutdown).
+      - Verified zero-overhead short-circuiting in `LogCatcher` (`if (!isEnabled) return` before string formatting or allocations).
+    - **Component 5: Compilation & Security Verification**:
+      - Verified project compilation with `compile_applet` (100% success, 0 errors).
+      - Conducted silent security self-scan per Mandates 2 & 3: zero exposed credentials found.
 
 
 

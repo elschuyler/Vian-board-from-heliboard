@@ -92,21 +92,7 @@ GPL-3.0-only
             android:windowSoftInputMode="adjustResize"
             android:excludeFromRecents="true"
             android:autoRemoveFromRecents="true"
-            android:exported="true">
-            <intent-filter>
-                <action
-                    android:name="android.intent.action.VIEW" />
-                <category
-                    android:name="android.intent.category.DEFAULT" />
-                <category
-                    android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:mimeType="application/octet-stream"
-                    android:scheme="content"
-                    android:host="*"
-                    android:pathPattern=".*\\.dict" />
-            </intent-filter>
-        </activity>
+            android:exported="false" />
 
         <activity
             android:name=".spellcheck.SpellCheckerSettingsActivity"
@@ -229,9 +215,6 @@ GPL-3.0-only
     </application>
 
     <queries>
-        <intent>
-            <action android:name="*" />
-        </intent>
         <intent>
             <action
                 android:name="android.intent.action.MAIN" />
