@@ -3,8 +3,9 @@
     android:height="108dp"
     android:viewportWidth="4320"
     android:viewportHeight="4320">
+  <!-- V Glyph: Rubik ExtraBold 750 geometry matching original HeliBoard H icon weight and rounded corners -->
   <path
-      android:pathData="M1288,1626 h72 q8,0 12,6 l68,180 l68,-180 q4,-6 12,-6 h72 q8,0 12,8 q4,8 0,16 l-126,346 q-6,14 -16,19 q-10,5 -20,0 q-10,-5 -16,-19 l-126,-346 q-4,-8 0,-16 q4,-8 12,-8 z"
+      android:pathData="m 1288,1626 h 98 q 6.5,0 11,4.5 q 4.5,4.5 7,11.5 l 86,228 l 86,-228 q 2.5,-7 7,-11.5 q 4.5,-4.5 11,-4.5 h 98 q 6,0 10,4 q 4,4 3,10 l -152,364 q -5,12 -16,18 q -11,6 -23,0 q -11,-6 -16,-18 l -152,-364 q -1,-6 3,-10 q 4,-4 10,-4 z"
       android:strokeWidth="302.362"
       android:fillColor="#ffffff"
       android:fillType="evenOdd"
@@ -65,8 +66,9 @@
       android:fillType="evenOdd"
       android:strokeColor="#00000000"
       android:strokeLineCap="round"/>
+  <!-- D Glyph: Rubik ExtraBold 750 geometry matching original HeliBoard B icon weight and rounded corners -->
   <path
-      android:pathData="m2732,2559.3q-5.9,0 -10.1,-3.7 q-3.7,-4.3 -3.7,-10.1 v-345.2 q0,-5.9 3.7,-9.7 q4.3,-4.3 10.1,-4.3 h125 c85,0 152,75 152,186.5 c0,111.5 -67,186.5 -152,186.5 h-125 z M2823.2,2262 h30 c55,0 95,45 95,110.5 c0,65.5 -40,110.5 -95,110.5 h-30 v-221 z"
+      android:pathData="m 2732,2559.3 q -5.9,0 -10.1,-3.7 q -3.7,-4.3 -3.7,-10.1 v -345.2 q 0,-5.9 3.7,-9.7 q 4.3,-4.3 10.1,-4.3 h 135 q 48,0 79,13 q 32,13 47,38 q 15,25 15,62 v 147 q 0,37 -15,62 q -15,25 -47,38 q -31,13 -79,13 z m 105,-82 h 30 q 32,0 48,-14 q 16,-14 16,-41 v -147 q 0,-27 -16,-41 q -16,-14 -48,-14 h -30 z"
       android:strokeWidth="302.362"
       android:fillColor="#ffffff"
       android:fillType="evenOdd"

@@ -1,6 +1,8 @@
 {
-  "name": "Vianboard",
-  "description": "A privacy-conscious, customizable offline keyboard for Android based on AOSP / OpenBoard.",
+  "name": "Remix Vianboard",
+  "description": "A streamlined task management tool and visual dashboard designed to organize projects and improve personal productivity.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

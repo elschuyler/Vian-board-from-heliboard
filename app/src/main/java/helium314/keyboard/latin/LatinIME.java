@@ -14,12 +14,16 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.inputmethodservice.InputMethodService;
 import android.media.AudioManager;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.widget.HorizontalScrollView;
+import java.util.Collections;
+import helium314.keyboard.latin.utils.DeviceProtectedUtils;
 import android.os.Debug;
 import android.os.Message;
 import android.os.Process;
@@ -1432,6 +1436,10 @@ public class LatinIME extends InputMethodService implements
         if (Settings.getValues().mSuggestionStripHiddenPerUserSettings) {
             return null;
         }
+        final SharedPreferences prefs = DeviceProtectedUtils.getSharedPreferences(this);
+        if (prefs.getBoolean("pref_self_contained_isolation", false)) {
+            return null;
+        }
 
         return InlineAutofillUtils.createInlineSuggestionRequest(mDisplayContext);
     }
@@ -1441,6 +1449,10 @@ public class LatinIME extends InputMethodService implements
     public boolean onInlineSuggestionsResponse(InlineSuggestionsResponse response) {
         Log.d(TAG,"onInlineSuggestionsResponse called");
         if (Settings.getValues().mSuggestionStripHiddenPerUserSettings) {
+            return false;
+        }
+        final SharedPreferences prefs = DeviceProtectedUtils.getSharedPreferences(this);
+        if (prefs.getBoolean("pref_self_contained_isolation", false)) {
             return false;
         }
 
@@ -1648,15 +1660,74 @@ public class LatinIME extends InputMethodService implements
             return;
         }
 
-        final String typedWord = (suggestedWords != null && suggestedWords.mTypedWordInfo != null)
-                ? suggestedWords.mTypedWordInfo.mWord : null;
-        if (typedWord != null && typedWord.length() >= 4
-                && !currentSettingsValues.mLiteMode && !VaultDao.Companion.getInstance(this).isSuspended()) {
-            final List<VaultEntry> privacyMatches = VaultDao.Companion.getInstance(this).findSuggestions(typedWord);
-            if (!privacyMatches.isEmpty()) {
-                final View pillView = createPrivacyVaultPillView(privacyMatches.get(0));
-                if (pillView != null) {
-                    mSuggestionStripView.setExternalSuggestionView(pillView, true);
+        if (!currentSettingsValues.mLiteMode && !VaultDao.Companion.getInstance(this).isSuspended()) {
+            final CharSequence textBefore = mInputLogic.mConnection.getTextBeforeCursor(40, 0);
+            kotlin.Pair<VaultEntry, Integer> privacyMatch = VaultDao.Companion.getInstance(this).findMatchForTextBeforeCursor(textBefore);
+
+            // Cross-check: If suggestedWords contains a suggestion that matches Privacy Vault,
+            // or if typedWord matches a vault entry, Privacy Vault strictly takes precedence over Personal Dictionary
+            if (privacyMatch == null && suggestedWords != null) {
+                final String typedWord = suggestedWords.mTypedWordInfo != null ? suggestedWords.mTypedWordInfo.mWord : null;
+                VaultEntry matchingEntry = VaultDao.Companion.getInstance(this).findMatchingEntryForWord(typedWord);
+                int replaceLen = typedWord != null ? typedWord.length() : 0;
+                if (matchingEntry == null) {
+                    for (int i = 0; i < suggestedWords.size(); i++) {
+                        final String word = suggestedWords.getWord(i);
+                        matchingEntry = VaultDao.Companion.getInstance(this).findMatchingEntryForWord(word);
+                        if (matchingEntry != null) {
+                            replaceLen = typedWord != null ? typedWord.length() : word.length();
+                            break;
+                        }
+                    }
+                }
+                if (matchingEntry != null) {
+                    privacyMatch = new kotlin.Pair<>(matchingEntry, replaceLen);
+                }
+            }
+
+            if (privacyMatch != null) {
+                final SharedPreferences prefs = DeviceProtectedUtils.getSharedPreferences(this);
+                final boolean isSelfContained = prefs.getBoolean("pref_self_contained_isolation", false);
+                final EditorInfo editorInfo = getCurrentInputEditorInfo();
+                final List<VaultEntryEntity> securityMatches = (isSelfContained && editorInfo != null)
+                        ? SecurityVaultContextSniffer.INSTANCE.findMatchingEntries(this, editorInfo)
+                        : Collections.emptyList();
+
+                final View privacyPillView = createPrivacyVaultPillView(privacyMatch.getFirst(), privacyMatch.getSecond());
+
+                if (isSelfContained && !securityMatches.isEmpty() && privacyPillView != null) {
+                    final View securityPillView = SecurityVaultContextSniffer.INSTANCE.createSuggestionPillView(
+                        this,
+                        editorInfo,
+                        securityMatches,
+                        () -> {
+                            setNeutralSuggestionStrip();
+                            mHandler.postResumeSuggestions(false);
+                            return kotlin.Unit.INSTANCE;
+                        }
+                    );
+                    final LinearLayout container = new LinearLayout(this);
+                    container.setOrientation(LinearLayout.HORIZONTAL);
+                    container.setGravity(Gravity.CENTER_VERTICAL);
+                    container.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+                    final HorizontalScrollView scroll = new HorizontalScrollView(this);
+                    scroll.setHorizontalScrollBarEnabled(false);
+                    scroll.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+
+                    final LinearLayout innerRow = new LinearLayout(this);
+                    innerRow.setOrientation(LinearLayout.HORIZONTAL);
+                    innerRow.setGravity(Gravity.CENTER_VERTICAL);
+
+                    innerRow.addView(securityPillView);
+                    innerRow.addView(privacyPillView);
+                    scroll.addView(innerRow);
+                    container.addView(scroll);
+
+                    mSuggestionStripView.setExternalSuggestionView(container, true);
+                    return;
+                } else if (privacyPillView != null) {
+                    mSuggestionStripView.setExternalSuggestionView(privacyPillView, true);
                     return;
                 }
             }
@@ -1679,7 +1750,6 @@ public class LatinIME extends InputMethodService implements
             if (!noSuggestionsFromDictionaries && (currentSettingsValues.mAutoHideToolbar || mInputLogic.isComposingWord())) {
                 mSuggestionStripView.setToolbarVisibility(false);
             }
-            Log.i(TAG, "updateSuggestionStrip: count=" + suggestedWords.size() + ", composing=" + mInputLogic.isComposingWord() + ", noDict=" + noSuggestionsFromDictionaries);
         }
     }
 
@@ -1728,6 +1798,10 @@ public class LatinIME extends InputMethodService implements
     }
 
     private View createPrivacyVaultPillView(final VaultEntry entry) {
+        return createPrivacyVaultPillView(entry, !TextUtils.isEmpty(entry.getShortcut()) ? entry.getShortcut().length() : 0);
+    }
+
+    private View createPrivacyVaultPillView(final VaultEntry entry, final int replaceLength) {
         final Context context = this;
         final Colors colors = mSettings.getCurrent().mColors;
         final int keyTextCol = colors != null ? colors.get(ColorType.KEY_TEXT) : Color.WHITE;
@@ -1776,22 +1850,19 @@ public class LatinIME extends InputMethodService implements
         pill.addView(label);
 
         pill.setOnClickListener(v -> {
-            final SuggestedWordInfo info = new SuggestedWordInfo(
-                entry.getPhrase(), "", "", 1000,
-                SuggestedWordInfo.KIND_VAULT_ENTRY,
-                Dictionary.DICTIONARY_VAULT,
-                SuggestedWordInfo.NOT_AN_INDEX,
-                SuggestedWordInfo.NOT_A_CONFIDENCE
-            );
-            if (!VaultSessionManager.INSTANCE.isPatternSet(this) || VaultSessionManager.INSTANCE.isPrivacySessionValid()) {
-                pickSuggestionManually(info);
+            final Runnable commitAction = () -> {
+                mInputLogic.mConnection.finishComposingText();
+                if (replaceLength > 0) {
+                    mInputLogic.mConnection.deleteTextBeforeCursor(replaceLength);
+                }
+                mInputLogic.mConnection.commitText(entry.getPhrase(), 1);
                 removeExternalSuggestions();
+            };
+            if (!VaultSessionManager.INSTANCE.isPatternSet(this) || VaultSessionManager.INSTANCE.isPrivacySessionValid()) {
+                commitAction.run();
             } else {
                 KeyboardSwitcher.getInstance().showStealthPatternUnlock(
-                    () -> {
-                        pickSuggestionManually(info);
-                        removeExternalSuggestions();
-                    },
+                    commitAction,
                     () -> LogCatcher.log('I', "PrivacyVault", "Pattern unlock dismissed", null)
                 );
             }
@@ -1809,27 +1880,75 @@ public class LatinIME extends InputMethodService implements
         if (!hasSuggestionStripView()) return false;
         final EditorInfo editorInfo = getCurrentInputEditorInfo();
         if (editorInfo == null) return false;
-        if (!InputTypeUtils.isPasswordInputType(editorInfo.inputType) && !InputTypeUtils.isVisiblePasswordInputType(editorInfo.inputType)) {
+        final SharedPreferences prefs = DeviceProtectedUtils.getSharedPreferences(this);
+        final boolean isSelfContained = prefs.getBoolean("pref_self_contained_isolation", false);
+        final boolean isPasswordField = InputTypeUtils.isPasswordInputType(editorInfo.inputType) || InputTypeUtils.isVisiblePasswordInputType(editorInfo.inputType);
+        if (!isPasswordField && !isSelfContained) {
             return false;
         }
         if (mSettings.getCurrent().mLiteMode) {
             return false;
         }
-        final List<VaultEntryEntity> matches = SecurityVaultContextSniffer.INSTANCE.findMatchingEntries(this, editorInfo);
-        if (matches.isEmpty()) return false;
+        final List<VaultEntryEntity> securityMatches = SecurityVaultContextSniffer.INSTANCE.findMatchingEntries(this, editorInfo);
 
-        final View pillView = SecurityVaultContextSniffer.INSTANCE.createSuggestionPillView(
-            this,
-            editorInfo,
-            matches,
-            () -> {
-                setNeutralSuggestionStrip();
-                mHandler.postResumeSuggestions(false);
-                return kotlin.Unit.INSTANCE;
-            }
-        );
-        mSuggestionStripView.setExternalSuggestionView(pillView, false);
-        return true;
+        final CharSequence textBefore = mInputLogic.mConnection.getTextBeforeCursor(40, 0);
+        final kotlin.Pair<VaultEntry, Integer> privacyMatch = !VaultDao.Companion.getInstance(this).isSuspended()
+                ? VaultDao.Companion.getInstance(this).findMatchForTextBeforeCursor(textBefore)
+                : null;
+
+        if (securityMatches.isEmpty() && privacyMatch == null) {
+            return false;
+        }
+
+        View securityPillView = null;
+        if (!securityMatches.isEmpty()) {
+            securityPillView = SecurityVaultContextSniffer.INSTANCE.createSuggestionPillView(
+                this,
+                editorInfo,
+                securityMatches,
+                () -> {
+                    setNeutralSuggestionStrip();
+                    mHandler.postResumeSuggestions(false);
+                    return kotlin.Unit.INSTANCE;
+                }
+            );
+        }
+
+        View privacyPillView = null;
+        if (privacyMatch != null) {
+            privacyPillView = createPrivacyVaultPillView(privacyMatch.getFirst(), privacyMatch.getSecond());
+        }
+
+        if (securityPillView != null && privacyPillView != null && isSelfContained) {
+            final LinearLayout container = new LinearLayout(this);
+            container.setOrientation(LinearLayout.HORIZONTAL);
+            container.setGravity(Gravity.CENTER_VERTICAL);
+            container.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+            final HorizontalScrollView scroll = new HorizontalScrollView(this);
+            scroll.setHorizontalScrollBarEnabled(false);
+            scroll.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+
+            final LinearLayout innerRow = new LinearLayout(this);
+            innerRow.setOrientation(LinearLayout.HORIZONTAL);
+            innerRow.setGravity(Gravity.CENTER_VERTICAL);
+
+            innerRow.addView(securityPillView);
+            innerRow.addView(privacyPillView);
+            scroll.addView(innerRow);
+            container.addView(scroll);
+
+            mSuggestionStripView.setExternalSuggestionView(container, false);
+            return true;
+        } else if (securityPillView != null) {
+            mSuggestionStripView.setExternalSuggestionView(securityPillView, false);
+            return true;
+        } else if (privacyPillView != null) {
+            mSuggestionStripView.setExternalSuggestionView(privacyPillView, true);
+            return true;
+        }
+
+        return false;
     }
 
     /**

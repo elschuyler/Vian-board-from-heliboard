@@ -254,7 +254,6 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         )
         isExternalSuggestionVisible = false
         updateKeys()
-        Log.i(TAG, "setSuggestions: count=${suggestions.size()}, stripVisible=${suggestionsStrip.isVisible}, toolbarVisible=${toolbarContainer.isVisible}")
     }
 
     fun setExternalSuggestionView(view: View?, addCloseButton: Boolean) {

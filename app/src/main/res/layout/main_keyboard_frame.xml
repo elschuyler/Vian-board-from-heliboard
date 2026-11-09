@@ -29,15 +29,21 @@
             android:layoutDirection="ltr"
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
-        <include
-            android:id="@+id/emoji_palettes_view"
-            layout="@layout/emoji_palettes_view" />
+        <ViewStub
+            android:id="@+id/emoji_palettes_view_stub"
+            android:inflatedId="@+id/emoji_palettes_view"
+            android:layout="@layout/emoji_palettes_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
         <include
             android:id="@+id/clipboard_history_view"
             layout="@layout/clipboard_history_view" />
-        <include
-            android:id="@+id/desktop_shortcuts_view"
-            layout="@layout/desktop_shortcuts_view" />
+        <ViewStub
+            android:id="@+id/desktop_shortcuts_view_stub"
+            android:inflatedId="@+id/desktop_shortcuts_view"
+            android:layout="@layout/desktop_shortcuts_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
         <ViewStub
             android:id="@+id/pattern_unlock_view_stub"
             android:inflatedId="@+id/pattern_unlock_view"

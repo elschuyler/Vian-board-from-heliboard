@@ -1430,5 +1430,8 @@ New dictionary:
     <string name="vault_auth_device_pin_unsupported">No device lockscreen PIN or password set</string>
     <string name="vault_auth_test_success">Authentication verified successfully</string>
 
+    <string name="pref_self_contained_isolation_title">Self-Contained Isolation Mode</string>
+    <string name="pref_self_contained_isolation_summary">Block external password managers and autofill services from connecting or overlaying; use internal Security Vault and Privacy Vault</string>
+
     <!-- new strings should go above the section for gesture data gathering -->
 </resources>

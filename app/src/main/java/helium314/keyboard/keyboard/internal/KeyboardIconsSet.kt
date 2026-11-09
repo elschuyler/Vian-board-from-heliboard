@@ -99,6 +99,8 @@ class KeyboardIconsSet private constructor() {
             "prompt_list_key" to ToolbarKey.COPY.name.lowercase(Locale.US),
             "desktop_shortcuts_key" to ToolbarKey.DESKTOP_SHORTCUTS.name.lowercase(Locale.US),
             "log_keeper_key" to ToolbarKey.LOG_KEEPER.name.lowercase(Locale.US),
+            "floating" to ToolbarKey.FLOATING_BOARD.name.lowercase(Locale.US),
+            "floating_board_key" to ToolbarKey.FLOATING_BOARD.name.lowercase(Locale.US),
         )
 
         private val keyboardIconsHolo get() = keyboardIconsMaterial
@@ -147,7 +149,7 @@ class KeyboardIconsSet private constructor() {
                     ToolbarKey.PASTE -> R.drawable.sym_keyboard_paste
                     ToolbarKey.ONE_HANDED -> R.drawable.sym_keyboard_start_onehanded_lxx
                     ToolbarKey.HALF_BOARD -> R.drawable.ic_half_board
-                    ToolbarKey.FLOATING_BOARD -> R.drawable.ic_drag_indicator
+                    ToolbarKey.FLOATING_BOARD -> R.drawable.ic_floating_board
                     ToolbarKey.INCOGNITO -> R.drawable.sym_keyboard_incognito_lxx
                     ToolbarKey.AUTOCORRECT -> R.drawable.ic_autocorrect
                     ToolbarKey.CLEAR_CLIPBOARD -> R.drawable.sym_keyboard_clear_clipboard_lxx
@@ -219,7 +221,7 @@ class KeyboardIconsSet private constructor() {
                     ToolbarKey.PASTE -> R.drawable.sym_keyboard_paste_rounded
                     ToolbarKey.ONE_HANDED -> R.drawable.sym_keyboard_start_onehanded_rounded
                     ToolbarKey.HALF_BOARD -> R.drawable.ic_half_board
-                    ToolbarKey.FLOATING_BOARD -> R.drawable.ic_drag_indicator
+                    ToolbarKey.FLOATING_BOARD -> R.drawable.ic_floating_board
                     ToolbarKey.INCOGNITO -> R.drawable.sym_keyboard_incognito_lxx
                     ToolbarKey.AUTOCORRECT -> R.drawable.ic_autocorrect_rounded
                     ToolbarKey.CLEAR_CLIPBOARD -> R.drawable.sym_keyboard_clear_clipboard_rounded

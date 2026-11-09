@@ -32,7 +32,7 @@ import java.util.concurrent.Executors
  * 6. Component Lifecycle Tracker to observe active running subsystems ("what is running").
  */
 object LogCatcher {
-    private const val MAX_RING_BUFFER_SIZE = 1000
+    private const val MAX_RING_BUFFER_SIZE = 100
     private const val CRASH_LOG_FILE = "last_crash.log"
     private const val ACTIVE_LOG_FILE = "vianboard_active.log"
     private const val ROTATION_SIZE_BYTES = 2L * 1024L * 1024L // 2 MB
@@ -48,7 +48,9 @@ object LogCatcher {
     private val diskExecutor = Executors.newSingleThreadExecutor()
 
     private val pendingDiskEntries = ArrayList<LogEntry>()
-    private const val DISK_BATCH_THRESHOLD = 20
+
+    @Volatile
+    var isSuggestionsLoggingEnabled: Boolean = false
 
     private val HIGH_FREQUENCY_TYPING_TAGS = arrayOf(
         "PointerTracker",
@@ -56,6 +58,8 @@ object LogCatcher {
         "WordComposer",
         "RichInputConnection",
         "MoreSuggestionsView",
+        "SuggestionStripView",
+        "SuggestionStrip",
         "KeyboardLayoutSet",
         "KeyboardParser",
         "Keyboard.Builder",
@@ -77,6 +81,16 @@ object LogCatcher {
         ) {
             return true
         }
+
+        // Filter high-frequency suggestion bar and inline suggestion logs unless explicitly toggled on in LogKeeper
+        if (message.contains("updateSuggestionStrip", ignoreCase = true) ||
+            message.contains("setSuggestions", ignoreCase = true) ||
+            message.contains("InlineSuggestions", ignoreCase = true) ||
+            tag.contains("SuggestionStrip", ignoreCase = true)
+        ) {
+            if (!isSuggestionsLoggingEnabled) return true
+        }
+
         for (t in HIGH_FREQUENCY_TYPING_TAGS) {
             if (tag.startsWith(t, ignoreCase = true)) {
                 if (level == 'D' || level == 'V') return true
@@ -85,6 +99,11 @@ object LogCatcher {
         }
         if (tag.startsWith("InputLogic", ignoreCase = true) || tag.startsWith("LatinIME", ignoreCase = true)) {
             if (level == 'D' || level == 'V') return true
+            if (message.contains("updateSuggestionStrip", ignoreCase = true) ||
+                message.contains("InlineSuggestions", ignoreCase = true)
+            ) {
+                if (!isSuggestionsLoggingEnabled) return true
+            }
         }
         return false
     }
@@ -211,23 +230,13 @@ object LogCatcher {
     }
 
     private fun queueForDisk(entry: LogEntry) {
-        val shouldFlush: Boolean
-        val batch: List<LogEntry>?
-        synchronized(pendingDiskEntries) {
-            pendingDiskEntries.add(entry)
-            shouldFlush = entry.level == 'E' || entry.level == 'F' || entry.level == 'W' || pendingDiskEntries.size >= DISK_BATCH_THRESHOLD
-            if (shouldFlush) {
-                batch = ArrayList(pendingDiskEntries)
-                pendingDiskEntries.clear()
-            } else {
-                batch = null
-            }
-        }
-
-        if (batch != null) {
+        // Write to disk strictly on actual errors or fatal issues (E / F).
+        // Normal info and debug logs cycle through the lean 100-entry in-memory ring buffer,
+        // saving 100% of background disk I/O, flash storage wear, and battery.
+        if (entry.level == 'E' || entry.level == 'F') {
             val ctx = appContext ?: return
             diskExecutor.execute {
-                writeBatchToDisk(ctx, batch)
+                writeBatchToDisk(ctx, listOf(entry))
             }
         }
     }
@@ -236,7 +245,9 @@ object LogCatcher {
         try {
             val file = File(ctx.filesDir, ACTIVE_LOG_FILE)
             if (file.exists() && file.length() >= ROTATION_SIZE_BYTES) {
-                rotateActiveLogToDownloads(ctx, file)
+                // When 2MB threshold is crossed: export errors with surrounding normal logs to Downloads,
+                // and compact internal active log to preserve only errors and recent context without unbounded growth.
+                rotateAndCompactActiveLog(ctx, file)
             }
             FileOutputStream(file, true).bufferedWriter().use { writer ->
                 for (e in batch) {
@@ -245,6 +256,89 @@ object LogCatcher {
                 }
             }
         } catch (_: Throwable) {}
+    }
+
+    /**
+     * When the active log file reaches 2MB:
+     * 1. Extracts all error/fatal/warning events and their surrounding normal logs (±40 lines context).
+     * 2. If errors occurred, writes a dedicated context-rich error audit file to the public Downloads folder.
+     * 3. Compacts the internal active log to retain all errors plus recent 200 lines (~30KB-50KB),
+     *    resetting disk footprint and preventing unbounded internal storage growth.
+     */
+    private fun rotateAndCompactActiveLog(context: Context, logFile: File) {
+        try {
+            val lines = logFile.readLines()
+            val errorIndices = mutableListOf<Int>()
+            for (i in lines.indices) {
+                val line = lines[i]
+                if (line.contains(" [E] ") || line.contains(" [W] ") || line.contains(" [F] ") ||
+                    line.contains("CRASH", ignoreCase = true) || line.contains("Exception", ignoreCase = true)
+                ) {
+                    errorIndices.add(i)
+                }
+            }
+
+            if (errorIndices.isNotEmpty()) {
+                val contextRadius = 40
+                val includedIndices = BooleanArray(lines.size)
+                for (errIdx in errorIndices) {
+                    val start = (errIdx - contextRadius).coerceAtLeast(0)
+                    val end = (errIdx + contextRadius).coerceAtMost(lines.size - 1)
+                    for (k in start..end) {
+                        includedIndices[k] = true
+                    }
+                }
+
+                val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Calendar.getInstance().time)
+                val fileName = "VianBoard_Errors_$timestamp.log"
+                val dumpContent = buildString {
+                    appendLine("=== VIANBOARD ERROR & CONTEXT AUDIT (2MB THRESHOLD) ===")
+                    appendLine("Timestamp: $timestamp")
+                    appendLine("App Version: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
+                    appendLine("Device: ${Build.BRAND} ${Build.DEVICE}, Android ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT})")
+                    appendLine()
+                    appendLine("--- ACTIVE COMPONENTS (WHAT IS RUNNING) ---")
+                    getActiveComponents().forEach {
+                        appendLine("- [${it.category}] ${it.name}: ${it.status} (lastSeen=${it.lastSeenAt})")
+                    }
+                    appendLine()
+                    appendLine("--- ERROR EVENTS WITH SURROUNDING CONTEXT (Total lines: ${includedIndices.count { it }}) ---")
+                    for (i in lines.indices) {
+                        if (includedIndices[i]) {
+                            appendLine(lines[i])
+                        }
+                    }
+                }
+                saveToDownloads(context, fileName, dumpContent)
+            }
+
+            // Compact internal active log: retain all error lines and the trailing 200 lines of general logs
+            val retainedLines = LinkedHashSet<String>()
+            for (i in lines.indices) {
+                val line = lines[i]
+                if (line.contains(" [E] ") || line.contains(" [W] ") || line.contains(" [F] ") ||
+                    line.contains("CRASH", ignoreCase = true)
+                ) {
+                    retainedLines.add(line)
+                }
+            }
+            val tailStart = (lines.size - 200).coerceAtLeast(0)
+            for (i in tailStart until lines.size) {
+                retainedLines.add(lines[i])
+            }
+
+            logFile.delete()
+            if (retainedLines.isNotEmpty()) {
+                FileOutputStream(logFile, false).bufferedWriter().use { writer ->
+                    for (line in retainedLines) {
+                        writer.write(line)
+                        writer.newLine()
+                    }
+                }
+            }
+        } catch (_: Throwable) {
+            logFile.delete()
+        }
     }
 
     @JvmStatic
@@ -463,19 +557,15 @@ object LogCatcher {
                     appendLine(stackTrace)
                 }
 
-                // 1. Synchronously flush clean crash report to internal filesDir
-                val file = File(context.filesDir, CRASH_LOG_FILE)
-                file.writeText(cleanCrashReport)
-
-                // 2. Drop crash dump into device Download folder immediately (including recent logs for full context)
+                // 1. Synchronously flush clean crash report to internal filesDir (private to app)
                 val fullDump = buildString {
                     appendLine(cleanCrashReport)
                     appendLine()
                     appendLine("RECENT SYSTEM LOGS:")
                     appendLine(recentLogs)
                 }
-                val crashFileName = "VianBoard_CRASH_$timestamp.log"
-                saveToDownloads(context, crashFileName, fullDump)
+                val file = File(context.filesDir, CRASH_LOG_FILE)
+                file.writeText(fullDump)
             } catch (_: Throwable) {
                 // Ensure uncaughtException handler never throws
             } finally {

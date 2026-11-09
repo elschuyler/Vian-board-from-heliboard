@@ -196,7 +196,7 @@ object VaultCryptoManager {
             encryptStringToBase64(rawJson)
         } catch (t: Throwable) {
             LogCatcher.log('E', TAG, "packCustomFieldsJson encryption error: ${t.message}", t)
-            rawJson
+            null
         }
     }
 

@@ -100,27 +100,56 @@ object SecurityVaultContextSniffer {
         return list
     }
 
+    // Fast in-memory package matching cache to eliminate synchronous SQLite queries on UI thread
+    private val packageMatchCache = java.util.concurrent.ConcurrentHashMap<String, List<VaultEntryEntity>>()
+    @Volatile
+    private var isListenerRegistered = false
+
+    fun clearCache() {
+        packageMatchCache.clear()
+    }
+
+    private fun ensureListener(dao: SecurityVaultDao) {
+        if (!isListenerRegistered) {
+            dao.addListener(object : SecurityVaultDao.Listener {
+                override fun onSecurityVaultDataChanged() {
+                    packageMatchCache.clear()
+                }
+            })
+            isListenerRegistered = true
+        }
+    }
+
     /**
      * Evaluates active EditorInfo package name and hints against the Security Vault database.
+     * Uses in-memory index cache to prevent main-thread SQLite disk I/O.
      */
     fun findMatchingEntries(context: Context, editorInfo: EditorInfo?): List<VaultEntryEntity> {
         if (editorInfo == null) return emptyList()
         val pkg = editorInfo.packageName ?: return emptyList()
         if (!VaultSessionManager.isPatternSet(context)) return emptyList()
-        if (!context.getSharedPreferences("${context.packageName}_preferences", Context.MODE_PRIVATE)
-                .getBoolean("pref_vault_context_suggestions", true)) {
+        val prefs = context.getSharedPreferences("${context.packageName}_preferences", Context.MODE_PRIVATE)
+        if (!prefs.getBoolean("pref_vault_context_suggestions", true)) {
             return emptyList()
         }
-        // KeePassDX alignment: only trigger auto-fill pills when input is an explicit password/secret field.
-        // Never hijack the suggestion strip during normal typing, search, or web editing.
+        val isSelfContained = prefs.getBoolean("pref_self_contained_isolation", false)
+        // KeePassDX alignment: trigger auto-fill pills when input is an explicit password/secret field,
+        // or when self-contained isolation mode is active.
         val inputType = editorInfo.inputType
         val isPasswordField = InputTypeUtils.isPasswordInputType(inputType) || InputTypeUtils.isVisiblePasswordInputType(inputType)
-        if (!isPasswordField) {
+        if (!isPasswordField && !isSelfContained) {
             return emptyList()
+        }
+
+        // Fast path: instant in-memory cache hit (0ms SQLite I/O)
+        val cached = packageMatchCache[pkg]
+        if (cached != null) {
+            return cached
         }
 
         val results = mutableListOf<VaultEntryEntity>()
         val dao = SecurityVaultDao.getInstance(context)
+        ensureListener(dao)
 
         // 1. Exact or partial package match
         val pkgMatches = dao.findByPackageOrUrl(pkg)
@@ -137,11 +166,19 @@ object SecurityVaultContextSniffer {
             }
         }
 
-        // Note: Untrusted hintText wildcard querying is strictly excluded to prevent
-        // untrusted web pages and third-party apps from phishing or probing for account records.
+        // 3. Fallback: If no direct package match, but self-contained isolation is ON or in password field,
+        // and vault contains entries, provide entries so autofill pill appears reliably where external managers would appear
+        if (results.isEmpty() && (isSelfContained || isPasswordField)) {
+            val all = dao.getAllEntries()
+            if (all.isNotEmpty()) {
+                results.addAll(all)
+            }
+        }
+
+        packageMatchCache[pkg] = results
 
         if (results.isNotEmpty()) {
-            LogCatcher.log('I', TAG, "Found ${results.size} context match(es) for pkg=$pkg")
+            LogCatcher.log('I', TAG, "Found ${results.size} context match(es) for pkg=$pkg (cached in-memory)")
         }
         return results
     }

@@ -173,8 +173,8 @@ fun getTouchedWordRange(before: CharSequence, after: CharSequence, script: Strin
 // actually this should not be in STRING Utils, but only used for getTouchedWordRange
 private fun isPartOfCompositionForScript(codePoint: Int, spacingAndPunctuations: SpacingAndPunctuations, script: String) =
     spacingAndPunctuations.isWordConnector(codePoint) // We always consider word connectors part of compositions.
-        // Otherwise, it's part of composition if it's part of script and not a separator.
-        || (!spacingAndPunctuations.isWordSeparator(codePoint) && ScriptUtils.isLetterPartOfScript(codePoint, script))
+        // Otherwise, it's part of composition if it's part of script or digit and not a separator.
+        || (!spacingAndPunctuations.isWordSeparator(codePoint) && (ScriptUtils.isLetterPartOfScript(codePoint, script) || Character.isDigit(codePoint)))
 
 /** split the string on the first of consecutive space only, further consecutive spaces are added to the next split */
 fun String.splitOnFirstSpacesOnly(): List<String> {

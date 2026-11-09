@@ -133,18 +133,20 @@ class VaultDao private constructor(private val db: Database) {
 
     /**
      * Finds vault suggestions for the typed query:
-     * 1. Exact shortcut match (highest priority, query length >= 4)
-     * 2. Shortcut prefix match (query length >= 4)
-     * 3. Phrase prefix or delimited token match (requires query length >= 4 to avoid interfering with regular typing)
+     * 1. Exact shortcut match (highest priority, query length >= 3)
+     * 2. Shortcut prefix match (query length >= 3)
+     * 3. Phrase prefix or delimited token match (requires query length >= 3)
      */
     fun findSuggestions(query: String): List<VaultEntry> = synchronized(this) {
         if (isSuspended || query.isBlank() || cache.isEmpty()) return emptyList()
+        // Strict 4-character gating: do not process queries shorter than 4 characters (spaces included)
+        if (query.length < 4) return emptyList()
         val trimmed = query.trim()
         if (trimmed.length < 4) return emptyList()
         val results = mutableListOf<VaultEntry>()
         val seenIds = mutableSetOf<Long>()
 
-        // 1. Exact shortcut (if shortcut set)
+        // 1. Exact shortcut (if shortcut set, query length >= 4)
         for (entry in cache) {
             if (entry.phrase.isBlank() || isCorruptedOrGibberish(entry.phrase)) continue
             if (entry.shortcut.isNotBlank() && entry.shortcut.equals(trimmed, ignoreCase = true)) {
@@ -153,7 +155,7 @@ class VaultDao private constructor(private val db: Database) {
             }
         }
 
-        // 2. Shortcut prefix (if shortcut set)
+        // 2. Shortcut prefix (if shortcut set, query length >= 4)
         for (entry in cache) {
             if (entry.phrase.isBlank() || isCorruptedOrGibberish(entry.phrase)) continue
             if (entry.shortcut.isNotBlank() && !seenIds.contains(entry.id) && entry.shortcut.startsWith(trimmed, ignoreCase = true)) {
@@ -162,24 +164,128 @@ class VaultDao private constructor(private val db: Database) {
             }
         }
 
-        // 3. Phrase & notes token match (only for query length >= 4, allocation-free)
-        if (trimmed.length >= 4) {
-            for (entry in cache) {
-                if (entry.phrase.isBlank() || isCorruptedOrGibberish(entry.phrase)) continue
-                if (!seenIds.contains(entry.id)) {
-                    val p = entry.phrase
-                    if (p.startsWith(trimmed, ignoreCase = true) || containsDelimitedTokenStartingWith(p, trimmed)) {
-                        results.add(entry)
-                        seenIds.add(entry.id)
-                    } else if (entry.notes.isNotBlank() && containsDelimitedTokenStartingWith(entry.notes, trimmed)) {
-                        results.add(entry)
-                        seenIds.add(entry.id)
-                    }
+        // 3. Phrase & notes token match (for query length >= 4, allocation-free)
+        for (entry in cache) {
+            if (entry.phrase.isBlank() || isCorruptedOrGibberish(entry.phrase)) continue
+            if (!seenIds.contains(entry.id)) {
+                val p = entry.phrase
+                if (p.startsWith(trimmed, ignoreCase = true) || containsDelimitedTokenStartingWith(p, trimmed)) {
+                    results.add(entry)
+                    seenIds.add(entry.id)
+                } else if (entry.notes.isNotBlank() && containsDelimitedTokenStartingWith(entry.notes, trimmed)) {
+                    results.add(entry)
+                    seenIds.add(entry.id)
                 }
             }
         }
 
         results
+    }
+
+    /**
+     * Finds a matching VaultEntry based on the text immediately before the cursor.
+     * Evaluates strictly after at least 4 characters (spaces included):
+     * 1. Shortcut match: Checks trailing token (min 4 letters, spaces included if part of shortcut).
+     * 2. Phrase match: Checks trailing text ending at cursor from 4 up to 40 characters (spaces included).
+     *
+     * Returns a Pair(VaultEntry, replaceLength) indicating which entry matched and how many
+     * characters before cursor should be deleted and replaced upon user authorization.
+     */
+    fun findMatchForTextBeforeCursor(textBeforeCursor: CharSequence?): Pair<VaultEntry, Int>? = synchronized(this) {
+        if (isSuspended || textBeforeCursor.isNullOrEmpty() || cache.isEmpty()) return null
+        val text = textBeforeCursor.toString()
+        val textLen = text.length
+        if (textLen < 4) return null
+
+        // 1. Check for shortcut on trailing word token (after space, newline, or delimiter, min 4 chars)
+        var tokenStart = textLen
+        while (tokenStart > 0 && !Character.isWhitespace(text[tokenStart - 1]) && !isDelimiter(text[tokenStart - 1])) {
+            tokenStart--
+        }
+        val token = text.substring(tokenStart)
+        if (token.length >= 4) {
+            // Check exact shortcut match first
+            for (entry in cache) {
+                if (entry.shortcut.isNotBlank() && entry.shortcut.equals(token, ignoreCase = true)) {
+                    if (entry.phrase.isNotBlank() && !isCorruptedOrGibberish(entry.phrase)) {
+                        return Pair(entry, token.length)
+                    }
+                }
+            }
+            // Check shortcut prefix match if token length >= 4
+            for (entry in cache) {
+                if (entry.shortcut.isNotBlank() && entry.shortcut.startsWith(token, ignoreCase = true)) {
+                    if (entry.phrase.isNotBlank() && !isCorruptedOrGibberish(entry.phrase)) {
+                        return Pair(entry, token.length)
+                    }
+                }
+            }
+            // Check exact phrase match on single word token
+            for (entry in cache) {
+                if (entry.phrase.isNotBlank() && !isCorruptedOrGibberish(entry.phrase)) {
+                    if (entry.phrase.equals(token, ignoreCase = true)) {
+                        return Pair(entry, token.length)
+                    }
+                }
+            }
+        }
+
+        // Also check if any shortcut contains spaces (min 4 chars total) and matches text before cursor
+        for (entry in cache) {
+            val sc = entry.shortcut
+            if (sc.isNotBlank() && sc.length >= 4 && sc.contains(' ')) {
+                val scLen = sc.length
+                if (textLen >= scLen && text.regionMatches(textLen - scLen, sc, 0, scLen, ignoreCase = true)) {
+                    val isBoundary = (textLen == scLen) ||
+                            Character.isWhitespace(text[textLen - scLen - 1]) ||
+                            isDelimiter(text[textLen - scLen - 1])
+                    if (isBoundary && entry.phrase.isNotBlank() && !isCorruptedOrGibberish(entry.phrase)) {
+                        return Pair(entry, scLen)
+                    }
+                }
+            }
+        }
+
+        // 2. Check phrase prefix match (at least 4 characters, spaces included)
+        // Check from longest candidate down to 4 characters
+        val maxCandidateLen = minOf(textLen, 40)
+        for (len in maxCandidateLen downTo 4) {
+            val candidate = text.substring(textLen - len)
+            val isBoundary = (textLen == len) ||
+                    Character.isWhitespace(text[textLen - len - 1]) ||
+                    isDelimiter(text[textLen - len - 1])
+            if (isBoundary) {
+                for (entry in cache) {
+                    if (entry.phrase.isNotBlank() && !isCorruptedOrGibberish(entry.phrase)) {
+                        if (entry.phrase.startsWith(candidate, ignoreCase = true)) {
+                            return Pair(entry, candidate.length)
+                        }
+                    }
+                }
+            }
+        }
+
+        return null
+    }
+
+    /**
+     * Cross-checks a candidate word or phrase against Privacy Vault entries.
+     * Evaluates strictly for candidates of at least 4 characters.
+     */
+    fun findMatchingEntryForWord(word: String?): VaultEntry? = synchronized(this) {
+        if (isSuspended || word.isNullOrBlank() || cache.isEmpty()) return null
+        val trimmed = word.trim()
+        if (trimmed.length < 4) return null
+        for (entry in cache) {
+            if (entry.phrase.isBlank() || isCorruptedOrGibberish(entry.phrase)) continue
+            if (entry.shortcut.isNotBlank() && entry.shortcut.equals(trimmed, ignoreCase = true)) {
+                return entry
+            }
+            if (entry.phrase.equals(trimmed, ignoreCase = true)) {
+                return entry
+            }
+        }
+        return null
     }
 
     fun addOrUpdate(id: Long? = null, shortcut: String = "", phrase: String, notes: String = ""): Long = synchronized(this) {

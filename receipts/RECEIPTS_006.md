@@ -435,3 +435,34 @@ Strictly capped at 500 lines per file.
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: Ready for on-device QA.
 
+## Entry: Phase 95 - Numbers as Words Selection, Floating Board Icon, Privacy Vault Personal Dictionary Matching & Self-Contained Isolation Mode
+- **Timestamp**: 2026-11-07 11:45:00 UTC
+- **Summary**: Implemented numeric token selection, custom floating board vector asset and icon mapping, removed countdown timer in Privacy Vault screen, enabled personal dictionary matching (any shortcut length, 4+ chars phrase prefix with spaces) with stealth pattern unlock replace, and added Self-Contained Isolation Mode blocking external autofill and showing internal dual vault pills.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/latin/common/StringUtils.kt`
+  - `app/src/main/res/drawable/ic_floating_board.xml`
+  - `app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/PrivacyVaultScreen.kt`
+  - `app/src/main/res/values/strings.xml`
+  - `app/src/main/java/helium314/keyboard/settings/screens/SecurityScreen.kt`
+  - `app/src/main/java/helium314/keyboard/latin/database/VaultDao.kt`
+  - `app/src/main/java/helium314/keyboard/security/vault/context/SecurityVaultContextSniffer.kt`
+  - `app/src/main/java/helium314/keyboard/latin/LatinIME.java`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_006.md`
+- **What was actually done**:
+  1. Updated `isPartOfCompositionForScript()` in `StringUtils.kt` to include `Character.isDigit(codePoint)`, allowing `selectWord()` to select pure number tokens (`12345`) and alphanumeric words (`item123`, `v2`) as words up to punctuation/separators.
+  2. Designed custom vector drawable `ic_floating_board.xml` depicting a floating keyboard window with drag bar and key rows, mapped `"floating"` and `"floating_board_key"` in `KeyboardIconsSet.kt`, and replaced the generic 6-dots drag icon.
+  3. In `PrivacyVaultScreen.kt`, removed `remainingTimeFormatted` and the 1-second countdown loop / 5-minute auto-kickout `LaunchedEffect`, while retaining the zero-trust `onDispose { VaultSessionManager.lockPrivacy() }`.
+  4. In `VaultDao.kt`, removed the 4-char constraint from shortcut queries (`trimmed.length >= 1`), and implemented `findMatchForTextBeforeCursor(textBeforeCursor)` to match trailing shortcuts of any length and phrase prefixes of at least 4 characters (spaces included, up to 40 chars).
+  5. In `LatinIME.java`, connected `findMatchForTextBeforeCursor` in `setSuggestedWords()`. Tapping the masked pill triggers stealth pattern unlock challenge, deletes the exact typed shortcut/prefix length (`mConnection.deleteTextBeforeCursor(replaceLength)`), and commits the unmasked phrase.
+  6. Added `pref_self_contained_isolation` preference in `SecurityScreen.kt` and `strings.xml`. In `LatinIME.java`, returns `null` from `onCreateInlineSuggestionsRequest()` and `false` from `onInlineSuggestionsResponse()` when isolation is active, blocking third-party password managers and external autofill.
+  7. In `SecurityVaultContextSniffer.kt`, added fallback to `getAllEntries()` when in password fields or self-contained mode, ensuring Security Vault autofill pills appear reliably.
+  8. In `LatinIME.java`, if Self-Contained Isolation Mode is active and both Security Vault and Privacy Vault matches exist, displays both pills together side-by-side in a horizontal scrollable container on the suggestion strip.
+  9. Verified project compilation with `compile_applet` (100% success, 0 errors).
+  10. Conducted silent security self-scan per Mandates 2 & 3: zero exposed credentials found.
+- **How it was verified**: local build only (`compile_applet` passed cleanly).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device QA.
+
+

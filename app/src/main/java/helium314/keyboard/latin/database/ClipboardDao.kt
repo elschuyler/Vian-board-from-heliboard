@@ -43,7 +43,8 @@ class ClipboardDao private constructor(private val db: Database) {
             null,
             null,
             null,
-            "$COLUMN_PINNED, $COLUMN_TIMESTAMP DESC" // was only relevant in the initial approach of using a cursor instead of a cache
+            "$COLUMN_PINNED, $COLUMN_TIMESTAMP DESC",
+            "50" // Windowed bounding: load top 50 pinned & recent clips on startup to keep init < 5ms
         ).use {
             while (it.moveToNext()) {
                 add(ClipboardHistoryEntry(

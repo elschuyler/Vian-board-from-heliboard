@@ -44,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -73,6 +74,9 @@ fun SecurityScreen(
     val primaryUnlockMethod = remember { VaultSessionManager.getPrimaryUnlockMethod(context) }
     var isContextSuggestions by remember {
         mutableStateOf(context.prefs().getBoolean("pref_vault_context_suggestions", true))
+    }
+    var isSelfContainedIsolation by remember {
+        mutableStateOf(context.prefs().getBoolean("pref_self_contained_isolation", false))
     }
     var isUnlocked by remember {
         mutableStateOf(
@@ -149,6 +153,29 @@ fun SecurityScreen(
                         onCheckedChange = { checked ->
                             context.prefs().edit { putBoolean("pref_vault_context_suggestions", checked) }
                             isContextSuggestions = checked
+                        }
+                    )
+                }
+
+                Preference(
+                    name = stringResource(R.string.pref_self_contained_isolation_title),
+                    description = if (isSelfContainedIsolation) {
+                        "External password managers & autofill blocked. Internal vaults active."
+                    } else {
+                        stringResource(R.string.pref_self_contained_isolation_summary)
+                    },
+                    onClick = {
+                        val next = !isSelfContainedIsolation
+                        context.prefs().edit { putBoolean("pref_self_contained_isolation", next) }
+                        isSelfContainedIsolation = next
+                    },
+                    icon = R.drawable.ic_lock
+                ) {
+                    Switch(
+                        checked = isSelfContainedIsolation,
+                        onCheckedChange = { checked ->
+                            context.prefs().edit { putBoolean("pref_self_contained_isolation", checked) }
+                            isSelfContainedIsolation = checked
                         }
                     )
                 }

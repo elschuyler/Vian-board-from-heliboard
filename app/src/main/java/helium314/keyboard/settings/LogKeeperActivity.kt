@@ -114,6 +114,14 @@ enum class TimeFilter(val label: String, val durationMs: Long?) {
     TWENTY_FOUR_HOURS("24h", 24 * 60 * 60 * 1000L)
 }
 
+enum class SubsystemFilter(val label: String) {
+    ALL("All"),
+    CORE("Core"),
+    VAULT("Vault"),
+    VOICE("Voice"),
+    SUGGESTIONS("Suggestions")
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LogKeeperScreen(onBack: () -> Unit) {
@@ -123,6 +131,7 @@ fun LogKeeperScreen(onBack: () -> Unit) {
 
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     var selectedTimeFilter by remember { mutableStateOf(TimeFilter.ALL) }
+    var selectedSubsystemFilter by remember { mutableStateOf(SubsystemFilter.ALL) }
     var isEnabled by remember {
         mutableStateOf(prefs.getBoolean("pref_log_keeper_enabled", true))
     }
@@ -141,12 +150,36 @@ fun LogKeeperScreen(onBack: () -> Unit) {
     }
 
     val now = System.currentTimeMillis()
-    val timeFilteredLogs = remember(logEntries, selectedTimeFilter) {
+    val timeFilteredLogs = remember(logEntries, selectedTimeFilter, selectedSubsystemFilter) {
         val dur = selectedTimeFilter.durationMs
-        if (dur == null) logEntries
+        val byTime = if (dur == null) logEntries
         else {
             val cutoff = now - dur
             logEntries.filter { it.timestamp >= cutoff }
+        }
+
+        when (selectedSubsystemFilter) {
+            SubsystemFilter.ALL -> byTime
+            SubsystemFilter.CORE -> byTime.filter { entry ->
+                entry.tag.contains("Core", ignoreCase = true) ||
+                entry.tag.contains("InputLogic", ignoreCase = true) ||
+                entry.tag.contains("LatinIME", ignoreCase = true) && !entry.message.contains("updateSuggestionStrip", ignoreCase = true)
+            }
+            SubsystemFilter.VAULT -> byTime.filter { entry ->
+                entry.tag.contains("Vault", ignoreCase = true) ||
+                entry.message.contains("vault", ignoreCase = true)
+            }
+            SubsystemFilter.VOICE -> byTime.filter { entry ->
+                entry.tag.contains("Voice", ignoreCase = true) ||
+                entry.message.contains("voice", ignoreCase = true) ||
+                entry.message.contains("whisper", ignoreCase = true)
+            }
+            SubsystemFilter.SUGGESTIONS -> byTime.filter { entry ->
+                entry.tag.contains("Suggestion", ignoreCase = true) ||
+                entry.message.contains("updateSuggestionStrip", ignoreCase = true) ||
+                entry.message.contains("setSuggestions", ignoreCase = true) ||
+                entry.message.contains("suggestion", ignoreCase = true)
+            }
         }
     }
 
@@ -349,7 +382,7 @@ fun LogKeeperScreen(onBack: () -> Unit) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -377,6 +410,40 @@ fun LogKeeperScreen(onBack: () -> Unit) {
                 }
             }
 
+            // Subsystem Pills Filter (Option B: All, Core, Vault, Voice, Suggestions)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SubsystemFilter.values().forEach { filter ->
+                    val isSelected = selectedSubsystemFilter == filter
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = if (isSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                        tonalElevation = if (isSelected) 3.dp else 0.dp,
+                        modifier = Modifier
+                            .clickable {
+                                selectedSubsystemFilter = filter
+                                // When Suggestions pill is explicitly active, enable suggestions capture; otherwise keep off (0% overhead)
+                                LogCatcher.isSuggestionsLoggingEnabled = (filter == SubsystemFilter.SUGGESTIONS)
+                                logEntries = LogCatcher.getLogs()
+                                crashReportText = LogCatcher.readLastCrashReport()
+                            }
+                    ) {
+                        Text(
+                            text = filter.label,
+                            color = if (isSelected) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+
             // Tab Content
             if (selectedTabIndex == 0) {
                 if (activeComponents.isNotEmpty()) {
@@ -389,17 +456,17 @@ fun LogKeeperScreen(onBack: () -> Unit) {
                 LogListContent(
                     entries = timeFilteredLogs,
                     crashReport = null,
-                    emptyMessage = if (selectedTimeFilter == TimeFilter.ALL)
+                    emptyMessage = if (selectedTimeFilter == TimeFilter.ALL && selectedSubsystemFilter == SubsystemFilter.ALL)
                         "No logs recorded.\nSystem is running cleanly."
-                    else "No logs in the last ${selectedTimeFilter.label}."
+                    else "No logs for ${selectedSubsystemFilter.label} in the selected timeframe."
                 )
             } else {
                 LogListContent(
                     entries = timeFilteredErrors,
                     crashReport = crashReportText,
-                    emptyMessage = if (selectedTimeFilter == TimeFilter.ALL)
+                    emptyMessage = if (selectedTimeFilter == TimeFilter.ALL && selectedSubsystemFilter == SubsystemFilter.ALL)
                         "No errors or warnings recorded.\nAll subsystems operating normally."
-                    else "No errors in the last ${selectedTimeFilter.label}."
+                    else "No errors for ${selectedSubsystemFilter.label} in the selected timeframe."
                 )
             }
         }
@@ -412,6 +479,7 @@ fun LogListContent(
     crashReport: String?,
     emptyMessage: String
 ) {
+    val context = LocalContext.current
     if (entries.isEmpty() && crashReport.isNullOrBlank()) {
         Box(
             modifier = Modifier
@@ -485,22 +553,30 @@ fun LogListContent(
                 }
             }
 
-            items(entries.reversed()) { entry ->
-                LogCardItem(entry = entry)
+            items(
+                items = entries.reversed(),
+                key = { entry -> "${entry.timestamp}_${entry.level}_${entry.tag}_${entry.message.hashCode()}" }
+            ) { entry ->
+                LogCardItem(
+                    entry = entry,
+                    onCopy = {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        clipboard.setPrimaryClip(ClipData.newPlainText("LogItem", entry.toExportString()))
+                        Toast.makeText(context, "Log entry copied", Toast.LENGTH_SHORT).show()
+                    }
+                )
             }
         }
     }
 }
 
 @Composable
-fun LogCardItem(entry: LogCatcher.LogEntry) {
-    val context = LocalContext.current
+fun LogCardItem(
+    entry: LogCatcher.LogEntry,
+    onCopy: () -> Unit
+) {
     Card(
-        onClick = {
-            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            clipboard.setPrimaryClip(ClipData.newPlainText("LogItem", entry.toExportString()))
-            Toast.makeText(context, "Log entry copied", Toast.LENGTH_SHORT).show()
-        },
+        onClick = onCopy,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 3.dp),

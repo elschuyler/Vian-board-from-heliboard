@@ -10,7 +10,7 @@ android {
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
-    applicationId = "shura.keyboard"
+    applicationId = "shura.keyboard.rsvjjk"
     minSdk = 24
     targetSdk = 36
     versionCode = 4100

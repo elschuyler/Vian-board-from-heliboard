@@ -86,10 +86,15 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
 
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
-        if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW || level == ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) {
-            if (currentState == VoiceIpcProtocol.ServiceState.PAUSED || currentState == VoiceIpcProtocol.ServiceState.IDLE) {
-                LogCatcher.i(TAG, "Releasing native Whisper model context onTrimMemory (level=$level)")
-                whisperEngine.release()
+        if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW || level == ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN || level >= ComponentCallbacks2.TRIM_MEMORY_MODERATE) {
+            LogCatcher.i(TAG, "Releasing native Whisper model context onTrimMemory (level=$level)")
+            if (currentState == VoiceIpcProtocol.ServiceState.RECORDING) {
+                pauseRecording()
+            }
+            whisperEngine.release()
+            if (currentState != VoiceIpcProtocol.ServiceState.PAUSED) {
+                currentState = VoiceIpcProtocol.ServiceState.PAUSED
+                notifyStateChanged(currentState)
             }
         }
     }

@@ -1,0 +1,1007 @@
+=== VIANBOARD ALL SYSTEM LOGS (1000) [Filter: 1h] ===
+--- ACTIVE SUBSYSTEMS ---
+[Input Service] LatinIME: Active
+[Diagnostic] LogCatcher: Active
+[Core] System: Initialized
+[Storage] VoiceModelManager: Initialized
+
+2026-11-08 00:39:58.135 [I] DictionaryFacilitatorImpl: resetDictionaries, force reloading main dictionary: false
+2026-11-08 00:39:58.140 [I] DictionaryFacilitatorImpl: resetDictionaries finished: groups=1, hasInitMain=false
+2026-11-08 00:39:58.164 [I] LatinIME: ringer mode changed, zen_mode on: true
+2026-11-08 00:39:58.192 [I] Settings: loadSettings
+2026-11-08 00:39:58.368 [I] Settings: loadSettings
+2026-11-08 00:39:58.372 [I] LatinIME: Starting input. Cursor position = 0,0
+2026-11-08 00:39:58.478 [I] SuggestionStripView: setSuggestions: count=0, stripVisible=true, toolbarVisible=false
+2026-11-08 00:39:58.478 [I] LatinIME: updateSuggestionStrip: count=0, composing=false, noDict=true
+2026-11-08 00:40:01.371 [I] LatinIME: hideWindow
+2026-11-08 00:40:01.373 [I] LatinIME: onFinishInputView
+2026-11-08 00:40:01.374 [I] LatinIME: onWindowHidden
+2026-11-08 00:40:02.363 [I] LatinIME: onFinishInput
+2026-11-08 00:40:03.329 [I] Settings: loadSettings
+2026-11-08 00:40:03.335 [I] LatinIME: Starting input. Cursor position = 105,105
+2026-11-08 00:40:03.376 [I] SuggestionStripView: setSuggestions: count=0, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:03.376 [I] LatinIME: updateSuggestionStrip: count=0, composing=false, noDict=true
+2026-11-08 00:40:04.132 [I] LatinIME: onUpdateSelection: oss=105, ose=105, nss=106, nse=106, cs=105, ce=106
+2026-11-08 00:40:04.213 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=9, hasAutoCorrection=true, isTypedWordValid=true
+2026-11-08 00:40:04.221 [I] SuggestionStripView: setSuggestions: count=9, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:04.221 [I] LatinIME: updateSuggestionStrip: count=9, composing=true, noDict=false
+2026-11-08 00:40:04.362 [I] LatinIME: onUpdateSelection: oss=106, ose=106, nss=107, nse=107, cs=105, ce=107
+2026-11-08 00:40:04.441 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=13, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:04.446 [I] SuggestionStripView: setSuggestions: count=13, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:04.446 [I] LatinIME: updateSuggestionStrip: count=13, composing=true, noDict=false
+2026-11-08 00:40:04.603 [I] LatinIME: onUpdateSelection: oss=107, ose=107, nss=108, nse=108, cs=-1, ce=-1
+2026-11-08 00:40:04.667 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=17, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:04.672 [I] SuggestionStripView: setSuggestions: count=17, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:04.672 [I] LatinIME: updateSuggestionStrip: count=17, composing=false, noDict=false
+2026-11-08 00:40:04.849 [I] LatinIME: onUpdateSelection: oss=108, ose=108, nss=109, nse=109, cs=108, ce=109
+2026-11-08 00:40:04.929 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:04.935 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:04.935 [I] LatinIME: updateSuggestionStrip: count=16, composing=true, noDict=false
+2026-11-08 00:40:05.177 [I] LatinIME: onUpdateSelection: oss=109, ose=109, nss=110, nse=110, cs=108, ce=110
+2026-11-08 00:40:05.257 [D] AutoCorrectionUtils: Normalized pa,PA,1595633, 1.595633 (0.1877951)
+2026-11-08 00:40:05.257 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:40:05.257 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:05.260 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:05.260 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:40:05.397 [I] LatinIME: onUpdateSelection: oss=110, ose=110, nss=111, nse=111, cs=108, ce=111
+2026-11-08 00:40:05.476 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=17, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:05.479 [I] SuggestionStripView: setSuggestions: count=17, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:05.479 [I] LatinIME: updateSuggestionStrip: count=17, composing=true, noDict=false
+2026-11-08 00:40:05.547 [I] LatinIME: onUpdateSelection: oss=111, ose=111, nss=112, nse=112, cs=108, ce=112
+2026-11-08 00:40:05.626 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:05.630 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:05.630 [I] LatinIME: updateSuggestionStrip: count=16, composing=true, noDict=false
+2026-11-08 00:40:06.264 [I] LatinIME: onUpdateSelection: oss=112, ose=112, nss=116, nse=116, cs=-1, ce=-1
+2026-11-08 00:40:06.323 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=15, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:06.329 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:06.329 [I] LatinIME: updateSuggestionStrip: count=15, composing=false, noDict=false
+2026-11-08 00:40:07.498 [I] LatinIME: onUpdateSelection: oss=116, ose=116, nss=122, nse=122, cs=-1, ce=-1
+2026-11-08 00:40:07.536 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=17, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:07.542 [I] SuggestionStripView: setSuggestions: count=17, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:07.543 [I] LatinIME: updateSuggestionStrip: count=17, composing=false, noDict=false
+2026-11-08 00:40:08.081 [I] LatinIME: onUpdateSelection: oss=122, ose=122, nss=124, nse=124, cs=123, ce=124
+2026-11-08 00:40:08.133 [D] AutoCorrectionUtils: Normalized a,and,440143, 0.14671431 (0.1877951)
+2026-11-08 00:40:08.133 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=12, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:08.138 [I] SuggestionStripView: setSuggestions: count=12, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:08.138 [I] LatinIME: updateSuggestionStrip: count=12, composing=true, noDict=false
+2026-11-08 00:40:08.263 [I] LatinIME: onUpdateSelection: oss=124, ose=124, nss=125, nse=125, cs=123, ce=125
+2026-11-08 00:40:08.343 [D] AutoCorrectionUtils: Normalized ar,at,530185, 0.2650925 (0.1877951)
+2026-11-08 00:40:08.343 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:40:08.343 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=17, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:40:08.347 [I] SuggestionStripView: setSuggestions: count=17, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:08.347 [I] LatinIME: updateSuggestionStrip: count=17, composing=true, noDict=false
+2026-11-08 00:40:08.479 [I] LatinIME: onUpdateSelection: oss=125, ose=125, nss=126, nse=126, cs=123, ce=126
+2026-11-08 00:40:08.562 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=12, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:08.570 [I] SuggestionStripView: setSuggestions: count=12, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:08.570 [I] LatinIME: updateSuggestionStrip: count=12, composing=true, noDict=false
+2026-11-08 00:40:08.696 [I] LatinIME: onUpdateSelection: oss=126, ose=126, nss=127, nse=127, cs=123, ce=127
+2026-11-08 00:40:08.783 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=13, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:08.792 [I] SuggestionStripView: setSuggestions: count=13, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:08.792 [I] LatinIME: updateSuggestionStrip: count=13, composing=true, noDict=false
+2026-11-08 00:40:09.106 [I] LatinIME: onUpdateSelection: oss=127, ose=127, nss=128, nse=128, cs=-1, ce=-1
+2026-11-08 00:40:09.171 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=13, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:09.176 [I] SuggestionStripView: setSuggestions: count=13, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:09.176 [I] LatinIME: updateSuggestionStrip: count=13, composing=false, noDict=false
+2026-11-08 00:40:09.527 [I] LatinIME: onUpdateSelection: oss=128, ose=128, nss=129, nse=129, cs=128, ce=129
+2026-11-08 00:40:09.599 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:09.604 [I] SuggestionStripView: setSuggestions: count=14, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:09.604 [I] LatinIME: updateSuggestionStrip: count=14, composing=true, noDict=false
+2026-11-08 00:40:09.774 [I] LatinIME: onUpdateSelection: oss=129, ose=129, nss=130, nse=130, cs=128, ce=130
+2026-11-08 00:40:09.858 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:09.861 [I] SuggestionStripView: setSuggestions: count=14, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:09.862 [I] LatinIME: updateSuggestionStrip: count=14, composing=true, noDict=false
+2026-11-08 00:40:10.059 [I] LatinIME: onUpdateSelection: oss=130, ose=130, nss=131, nse=131, cs=-1, ce=-1
+2026-11-08 00:40:10.123 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=17, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:10.128 [I] SuggestionStripView: setSuggestions: count=17, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:10.128 [I] LatinIME: updateSuggestionStrip: count=17, composing=false, noDict=false
+2026-11-08 00:40:10.967 [I] LatinIME: onUpdateSelection: oss=131, ose=131, nss=132, nse=132, cs=131, ce=132
+2026-11-08 00:40:11.052 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:11.055 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:11.056 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:40:11.163 [I] LatinIME: onUpdateSelection: oss=132, ose=132, nss=133, nse=133, cs=131, ce=133
+2026-11-08 00:40:11.244 [D] AutoCorrectionUtils: Normalized ae,as,496433, 0.2482165 (0.1877951)
+2026-11-08 00:40:11.244 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:40:11.244 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=12, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:40:11.250 [I] SuggestionStripView: setSuggestions: count=12, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:11.250 [I] LatinIME: updateSuggestionStrip: count=12, composing=true, noDict=false
+2026-11-08 00:40:11.396 [I] LatinIME: onUpdateSelection: oss=133, ose=133, nss=134, nse=134, cs=131, ce=134
+2026-11-08 00:40:11.479 [D] AutoCorrectionUtils: Normalized aec,AEC,1525913, 1.525913 (0.1877951)
+2026-11-08 00:40:11.480 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:40:11.480 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:40:11.483 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:11.483 [I] LatinIME: updateSuggestionStrip: count=16, composing=true, noDict=false
+2026-11-08 00:40:11.614 [I] LatinIME: onUpdateSelection: oss=134, ose=134, nss=135, nse=135, cs=131, ce=135
+2026-11-08 00:40:11.698 [D] AutoCorrectionUtils: Normalized aecu,security,187460, 0.0702975 (0.1877951)
+2026-11-08 00:40:11.698 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:11.704 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:11.704 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:40:11.863 [I] LatinIME: onUpdateSelection: oss=135, ose=135, nss=136, nse=136, cs=131, ce=136
+2026-11-08 00:40:11.946 [D] AutoCorrectionUtils: Normalized aecur,security,239557, 0.1197785 (0.1877951)
+2026-11-08 00:40:11.946 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:11.949 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:11.949 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:40:12.371 [I] LatinIME: onUpdateSelection: oss=136, ose=136, nss=139, nse=139, cs=-1, ce=-1
+2026-11-08 00:40:12.439 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=15, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:12.445 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:12.446 [I] LatinIME: updateSuggestionStrip: count=15, composing=false, noDict=false
+2026-11-08 00:40:13.134 [I] LatinIME: onUpdateSelection: oss=139, ose=139, nss=145, nse=145, cs=-1, ce=-1
+2026-11-08 00:40:13.174 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=16, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:13.180 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:13.180 [I] LatinIME: updateSuggestionStrip: count=16, composing=false, noDict=false
+2026-11-08 00:40:14.016 [I] LatinIME: onUpdateSelection: oss=145, ose=145, nss=147, nse=147, cs=146, ce=147
+2026-11-08 00:40:14.054 [D] AutoCorrectionUtils: Normalized p,plan,365583, 0.09139575 (0.1877951)
+2026-11-08 00:40:14.054 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=17, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:14.061 [I] SuggestionStripView: setSuggestions: count=17, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:14.061 [I] LatinIME: updateSuggestionStrip: count=17, composing=true, noDict=false
+2026-11-08 00:40:14.163 [I] LatinIME: onUpdateSelection: oss=147, ose=147, nss=148, nse=148, cs=146, ce=148
+2026-11-08 00:40:14.243 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=17, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:14.246 [I] SuggestionStripView: setSuggestions: count=17, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:14.247 [I] LatinIME: updateSuggestionStrip: count=17, composing=true, noDict=false
+2026-11-08 00:40:14.397 [I] LatinIME: onUpdateSelection: oss=148, ose=148, nss=149, nse=149, cs=146, ce=149
+2026-11-08 00:40:14.477 [D] AutoCorrectionUtils: Normalized pil,oil,417226, 0.27815065 (0.1877951)
+2026-11-08 00:40:14.477 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:40:14.477 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:40:14.480 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:14.480 [I] LatinIME: updateSuggestionStrip: count=16, composing=true, noDict=false
+2026-11-08 00:40:14.547 [I] LatinIME: onUpdateSelection: oss=149, ose=149, nss=150, nse=150, cs=146, ce=150
+2026-11-08 00:40:14.626 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=13, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:14.630 [I] SuggestionStripView: setSuggestions: count=13, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:14.630 [I] LatinIME: updateSuggestionStrip: count=13, composing=true, noDict=false
+2026-11-08 00:40:14.900 [I] LatinIME: onUpdateSelection: oss=150, ose=150, nss=151, nse=151, cs=146, ce=151
+2026-11-08 00:40:14.981 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:14.988 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:14.988 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:40:15.271 [I] SuggestionStripView: setSuggestions: count=0, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:15.271 [I] LatinIME: updateSuggestionStrip: count=0, composing=false, noDict=true
+2026-11-08 00:40:15.309 [I] LatinIME: onUpdateSelection: oss=151, ose=151, nss=152, nse=152, cs=-1, ce=-1
+2026-11-08 00:40:15.495 [I] LatinIME: onUpdateSelection: oss=152, ose=152, nss=153, nse=153, cs=-1, ce=-1
+2026-11-08 00:40:15.593 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=18, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:15.597 [I] SuggestionStripView: setSuggestions: count=18, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:15.597 [I] LatinIME: updateSuggestionStrip: count=18, composing=false, noDict=false
+2026-11-08 00:40:20.780 [I] LatinIME: onUpdateSelection: oss=153, ose=153, nss=14, nse=14, cs=-1, ce=-1
+2026-11-08 00:40:20.901 [I] LatinIME: onUpdateSelection: oss=14, ose=14, nss=14, nse=14, cs=10, ce=14
+2026-11-08 00:40:20.910 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:20.917 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:20.917 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:40:22.635 [I] LatinIME: onUpdateSelection: oss=14, ose=14, nss=15, nse=15, cs=10, ce=15
+2026-11-08 00:40:22.713 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=17, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:22.716 [I] SuggestionStripView: setSuggestions: count=17, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:22.716 [I] LatinIME: updateSuggestionStrip: count=17, composing=true, noDict=false
+2026-11-08 00:40:23.214 [I] LatinIME: onUpdateSelection: oss=15, ose=15, nss=14, nse=14, cs=10, ce=14
+2026-11-08 00:40:23.282 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:23.285 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:23.286 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:40:23.454 [I] SuggestionStripView: setSuggestions: count=0, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:23.454 [I] LatinIME: updateSuggestionStrip: count=0, composing=false, noDict=true
+2026-11-08 00:40:23.492 [I] LatinIME: onUpdateSelection: oss=14, ose=14, nss=15, nse=15, cs=-1, ce=-1
+2026-11-08 00:40:23.698 [I] LatinIME: onUpdateSelection: oss=15, ose=15, nss=16, nse=16, cs=-1, ce=-1
+2026-11-08 00:40:23.772 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=18, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:23.775 [I] SuggestionStripView: setSuggestions: count=18, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:23.775 [I] LatinIME: updateSuggestionStrip: count=18, composing=false, noDict=false
+2026-11-08 00:40:24.019 [I] LatinIME: onUpdateSelection: oss=16, ose=16, nss=17, nse=17, cs=16, ce=17
+2026-11-08 00:40:24.098 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=12, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:24.101 [I] SuggestionStripView: setSuggestions: count=12, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:24.101 [I] LatinIME: updateSuggestionStrip: count=12, composing=true, noDict=false
+2026-11-08 00:40:24.333 [I] LatinIME: onUpdateSelection: oss=17, ose=17, nss=18, nse=18, cs=16, ce=18
+2026-11-08 00:40:24.413 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=11, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:24.420 [I] SuggestionStripView: setSuggestions: count=11, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:24.420 [I] LatinIME: updateSuggestionStrip: count=11, composing=true, noDict=false
+2026-11-08 00:40:24.532 [I] LatinIME: onUpdateSelection: oss=18, ose=18, nss=19, nse=19, cs=16, ce=19
+2026-11-08 00:40:24.613 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:24.617 [I] SuggestionStripView: setSuggestions: count=14, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:24.617 [I] LatinIME: updateSuggestionStrip: count=14, composing=true, noDict=false
+2026-11-08 00:40:24.767 [I] LatinIME: onUpdateSelection: oss=19, ose=19, nss=20, nse=20, cs=16, ce=20
+2026-11-08 00:40:24.851 [D] AutoCorrectionUtils: Normalized Bedu,Be du,111711, 0.089368805 (0.1877951)
+2026-11-08 00:40:24.852 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=13, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:24.857 [I] SuggestionStripView: setSuggestions: count=13, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:24.857 [I] LatinIME: updateSuggestionStrip: count=13, composing=true, noDict=false
+2026-11-08 00:40:25.035 [I] LatinIME: onUpdateSelection: oss=20, ose=20, nss=21, nse=21, cs=16, ce=21
+2026-11-08 00:40:25.117 [D] AutoCorrectionUtils: Normalized Bedud,Beside,117161, 0.0585805 (0.1877951)
+2026-11-08 00:40:25.117 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:25.120 [I] SuggestionStripView: setSuggestions: count=14, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:25.120 [I] LatinIME: updateSuggestionStrip: count=14, composing=true, noDict=false
+2026-11-08 00:40:25.234 [I] LatinIME: onUpdateSelection: oss=21, ose=21, nss=22, nse=22, cs=16, ce=22
+2026-11-08 00:40:25.322 [D] AutoCorrectionUtils: Normalized Bedude,Beside,443867, 0.2959113 (0.1877951)
+2026-11-08 00:40:25.322 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:40:25.322 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:40:25.333 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:25.333 [I] LatinIME: updateSuggestionStrip: count=16, composing=true, noDict=false
+2026-11-08 00:40:25.401 [I] LatinIME: onUpdateSelection: oss=22, ose=22, nss=23, nse=23, cs=16, ce=23
+2026-11-08 00:40:25.485 [D] AutoCorrectionUtils: Normalized Bedudes,Besides,428315, 0.30593932 (0.1877951)
+2026-11-08 00:40:25.486 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:40:25.486 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:40:25.489 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:25.489 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:40:25.750 [I] LatinIME: onUpdateSelection: oss=23, ose=23, nss=24, nse=24, cs=-1, ce=-1
+2026-11-08 00:40:25.789 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=5, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:25.792 [I] SuggestionStripView: setSuggestions: count=5, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:25.793 [I] LatinIME: updateSuggestionStrip: count=5, composing=false, noDict=false
+2026-11-08 00:40:26.000 [I] LatinIME: onUpdateSelection: oss=24, ose=24, nss=25, nse=25, cs=24, ce=25
+2026-11-08 00:40:26.092 [D] AutoCorrectionUtils: Normalized t,that,473808, 0.118452 (0.1877951)
+2026-11-08 00:40:26.092 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:26.096 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:26.096 [I] LatinIME: updateSuggestionStrip: count=16, composing=true, noDict=false
+2026-11-08 00:40:26.184 [I] LatinIME: onUpdateSelection: oss=25, ose=25, nss=26, nse=26, cs=24, ce=26
+2026-11-08 00:40:26.262 [D] AutoCorrectionUtils: Normalized th,that,473280, 0.23664 (0.1877951)
+2026-11-08 00:40:26.262 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:40:26.262 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=13, hasAutoCorrection=true, isTypedWordValid=true
+2026-11-08 00:40:26.265 [I] SuggestionStripView: setSuggestions: count=13, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:26.266 [I] LatinIME: updateSuggestionStrip: count=13, composing=true, noDict=false
+2026-11-08 00:40:26.413 [I] LatinIME: onUpdateSelection: oss=26, ose=26, nss=27, nse=27, cs=24, ce=27
+2026-11-08 00:40:26.493 [D] AutoCorrectionUtils: Normalized tha,that,513769, 0.38532674 (0.1877951)
+2026-11-08 00:40:26.493 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:40:26.494 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:40:26.498 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:26.498 [I] LatinIME: updateSuggestionStrip: count=16, composing=true, noDict=false
+2026-11-08 00:40:26.900 [I] LatinIME: onUpdateSelection: oss=27, ose=27, nss=28, nse=28, cs=24, ce=28
+2026-11-08 00:40:26.979 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=12, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:26.985 [I] SuggestionStripView: setSuggestions: count=12, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:26.985 [I] LatinIME: updateSuggestionStrip: count=12, composing=true, noDict=false
+2026-11-08 00:40:28.575 [I] LatinIME: onUpdateSelection: oss=28, ose=28, nss=167, nse=167, cs=24, ce=28
+2026-11-08 00:40:28.589 [I] LatinIME: onUpdateSelection: oss=167, ose=167, nss=167, nse=167, cs=-1, ce=-1
+2026-11-08 00:40:28.789 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=18, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:28.792 [I] SuggestionStripView: setSuggestions: count=18, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:28.792 [I] LatinIME: updateSuggestionStrip: count=18, composing=false, noDict=false
+2026-11-08 00:40:33.673 [I] LatinIME: onUpdateSelection: oss=167, ose=167, nss=107, nse=107, cs=-1, ce=-1
+2026-11-08 00:40:33.800 [I] LatinIME: onUpdateSelection: oss=107, ose=107, nss=107, nse=107, cs=100, ce=112
+2026-11-08 00:40:33.851 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=8, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:33.853 [I] SuggestionStripView: setSuggestions: count=8, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:33.854 [I] LatinIME: updateSuggestionStrip: count=8, composing=true, noDict=false
+2026-11-08 00:40:35.001 [I] LatinIME: onUpdateSelection: oss=107, ose=107, nss=113, nse=113, cs=-1, ce=-1
+2026-11-08 00:40:35.045 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=8, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:35.049 [I] SuggestionStripView: setSuggestions: count=8, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:35.049 [I] LatinIME: updateSuggestionStrip: count=8, composing=false, noDict=false
+2026-11-08 00:40:35.797 [I] LatinIME: onUpdateSelection: oss=113, ose=113, nss=107, nse=113, cs=-1, ce=-1
+2026-11-08 00:40:35.908 [I] SuggestionStripView: setSuggestions: count=0, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:35.909 [I] LatinIME: updateSuggestionStrip: count=0, composing=false, noDict=true
+2026-11-08 00:40:36.330 [I] LatinIME: onUpdateSelection: oss=107, ose=113, nss=107, nse=107, cs=-1, ce=-1
+2026-11-08 00:40:36.347 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=8, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:36.351 [I] SuggestionStripView: setSuggestions: count=8, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:36.351 [I] LatinIME: updateSuggestionStrip: count=8, composing=false, noDict=false
+2026-11-08 00:40:36.542 [I] LatinIME: onUpdateSelection: oss=107, ose=107, nss=106, nse=106, cs=100, ce=106
+2026-11-08 00:40:36.553 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=7, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:36.558 [I] SuggestionStripView: setSuggestions: count=7, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:36.558 [I] LatinIME: updateSuggestionStrip: count=7, composing=true, noDict=false
+2026-11-08 00:40:37.294 [I] SuggestionStripView: setSuggestions: count=0, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:37.295 [I] LatinIME: updateSuggestionStrip: count=0, composing=false, noDict=true
+2026-11-08 00:40:37.325 [I] LatinIME: onUpdateSelection: oss=106, ose=106, nss=107, nse=107, cs=-1, ce=-1
+2026-11-08 00:40:37.534 [I] LatinIME: onUpdateSelection: oss=107, ose=107, nss=108, nse=108, cs=-1, ce=-1
+2026-11-08 00:40:37.608 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=18, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:37.610 [I] SuggestionStripView: setSuggestions: count=18, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:37.610 [I] LatinIME: updateSuggestionStrip: count=18, composing=false, noDict=false
+2026-11-08 00:40:38.012 [I] LatinIME: onUpdateSelection: oss=108, ose=108, nss=109, nse=109, cs=108, ce=109
+2026-11-08 00:40:38.086 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=13, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:38.089 [I] SuggestionStripView: setSuggestions: count=13, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:38.090 [I] LatinIME: updateSuggestionStrip: count=13, composing=true, noDict=false
+2026-11-08 00:40:38.353 [I] LatinIME: onUpdateSelection: oss=109, ose=109, nss=110, nse=110, cs=108, ce=110
+2026-11-08 00:40:38.432 [D] AutoCorrectionUtils: Normalized Ev,Even,318108, 0.159054 (0.1877951)
+2026-11-08 00:40:38.432 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:38.439 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:38.439 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:40:38.646 [I] LatinIME: onUpdateSelection: oss=110, ose=110, nss=111, nse=111, cs=108, ce=111
+2026-11-08 00:40:38.730 [D] AutoCorrectionUtils: Normalized Evr,Eve,291951, 0.19463399 (0.1877951)
+2026-11-08 00:40:38.730 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:40:38.730 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:40:38.733 [I] SuggestionStripView: setSuggestions: count=14, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:38.733 [I] LatinIME: updateSuggestionStrip: count=14, composing=true, noDict=false
+2026-11-08 00:40:38.918 [I] LatinIME: onUpdateSelection: oss=111, ose=111, nss=112, nse=112, cs=108, ce=112
+2026-11-08 00:40:38.997 [D] AutoCorrectionUtils: Normalized Evrn,Even,515427, 0.38657025 (0.1877951)
+2026-11-08 00:40:38.997 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:40:38.997 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:40:39.003 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:39.004 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:40:39.112 [I] LatinIME: onUpdateSelection: oss=112, ose=112, nss=113, nse=113, cs=-1, ce=-1
+2026-11-08 00:40:39.158 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=18, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:39.165 [I] SuggestionStripView: setSuggestions: count=18, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:39.165 [I] LatinIME: updateSuggestionStrip: count=18, composing=false, noDict=false
+2026-11-08 00:40:39.392 [I] LatinIME: onUpdateSelection: oss=113, ose=113, nss=114, nse=114, cs=113, ce=114
+2026-11-08 00:40:39.478 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:39.480 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:39.480 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:40:39.701 [I] LatinIME: onUpdateSelection: oss=114, ose=114, nss=115, nse=115, cs=113, ce=115
+2026-11-08 00:40:39.780 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:39.785 [I] SuggestionStripView: setSuggestions: count=14, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:39.785 [I] LatinIME: updateSuggestionStrip: count=14, composing=true, noDict=false
+2026-11-08 00:40:39.946 [I] LatinIME: onUpdateSelection: oss=115, ose=115, nss=116, nse=116, cs=113, ce=116
+2026-11-08 00:40:40.029 [D] AutoCorrectionUtils: Normalized ehe,she,458268, 0.30551198 (0.1877951)
+2026-11-08 00:40:40.029 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:40:40.029 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=11, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:40:40.034 [I] SuggestionStripView: setSuggestions: count=11, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:40.035 [I] LatinIME: updateSuggestionStrip: count=11, composing=true, noDict=false
+2026-11-08 00:40:40.236 [I] LatinIME: onUpdateSelection: oss=116, ose=116, nss=117, nse=117, cs=113, ce=117
+2026-11-08 00:40:40.315 [D] AutoCorrectionUtils: Normalized ehen,when,680827, 0.51062024 (0.1877951)
+2026-11-08 00:40:40.316 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:40:40.316 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=12, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:40:40.319 [I] SuggestionStripView: setSuggestions: count=12, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:40.320 [I] LatinIME: updateSuggestionStrip: count=12, composing=true, noDict=false
+2026-11-08 00:40:40.459 [I] LatinIME: onUpdateSelection: oss=117, ose=117, nss=118, nse=118, cs=-1, ce=-1
+2026-11-08 00:40:40.491 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=9, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:40.494 [I] SuggestionStripView: setSuggestions: count=9, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:40.494 [I] LatinIME: updateSuggestionStrip: count=9, composing=false, noDict=false
+2026-11-08 00:40:40.682 [I] LatinIME: onUpdateSelection: oss=118, ose=118, nss=119, nse=119, cs=118, ce=119
+2026-11-08 00:40:40.775 [D] AutoCorrectionUtils: Normalized t,tile,490230, 0.1225575 (0.1877951)
+2026-11-08 00:40:40.776 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=17, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:40.778 [I] SuggestionStripView: setSuggestions: count=17, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:40.778 [I] LatinIME: updateSuggestionStrip: count=17, composing=true, noDict=false
+2026-11-08 00:40:40.869 [I] LatinIME: onUpdateSelection: oss=119, ose=119, nss=120, nse=120, cs=118, ce=120
+2026-11-08 00:40:40.947 [D] AutoCorrectionUtils: Normalized ty,tu,426317, 0.2131585 (0.1877951)
+2026-11-08 00:40:40.948 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:40:40.948 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=18, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:40:40.952 [I] SuggestionStripView: setSuggestions: count=18, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:40.952 [I] LatinIME: updateSuggestionStrip: count=18, composing=true, noDict=false
+2026-11-08 00:40:41.153 [I] LatinIME: onUpdateSelection: oss=120, ose=120, nss=121, nse=121, cs=118, ce=121
+2026-11-08 00:40:41.230 [D] AutoCorrectionUtils: Normalized typ,type,293516, 0.220137 (0.1877951)
+2026-11-08 00:40:41.230 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:40:41.231 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=17, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:40:41.236 [I] SuggestionStripView: setSuggestions: count=17, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:41.236 [I] LatinIME: updateSuggestionStrip: count=17, composing=true, noDict=false
+2026-11-08 00:40:41.461 [I] LatinIME: onUpdateSelection: oss=121, ose=121, nss=122, nse=122, cs=118, ce=122
+2026-11-08 00:40:41.537 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:41.544 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:41.544 [I] LatinIME: updateSuggestionStrip: count=16, composing=true, noDict=false
+2026-11-08 00:40:41.708 [I] LatinIME: onUpdateSelection: oss=122, ose=122, nss=123, nse=123, cs=-1, ce=-1
+2026-11-08 00:40:41.775 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=17, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:41.778 [I] SuggestionStripView: setSuggestions: count=17, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:41.778 [I] LatinIME: updateSuggestionStrip: count=17, composing=false, noDict=false
+2026-11-08 00:40:41.930 [I] LatinIME: onUpdateSelection: oss=123, ose=123, nss=124, nse=124, cs=123, ce=124
+2026-11-08 00:40:42.017 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:42.020 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:42.020 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:40:42.184 [I] LatinIME: onUpdateSelection: oss=124, ose=124, nss=125, nse=125, cs=123, ce=125
+2026-11-08 00:40:42.263 [D] AutoCorrectionUtils: Normalized sg,SG,1537332, 1.537332 (0.1877951)
+2026-11-08 00:40:42.263 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:40:42.263 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=17, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:40:42.267 [I] SuggestionStripView: setSuggestions: count=17, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:42.268 [I] LatinIME: updateSuggestionStrip: count=17, composing=true, noDict=false
+2026-11-08 00:40:42.462 [I] LatinIME: onUpdateSelection: oss=125, ose=125, nss=126, nse=126, cs=123, ce=126
+2026-11-08 00:40:42.534 [D] AutoCorrectionUtils: Normalized sgo,ago,410199, 0.27346596 (0.1877951)
+2026-11-08 00:40:42.534 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:40:42.534 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:40:42.537 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:42.537 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:40:42.718 [I] LatinIME: onUpdateSelection: oss=126, ose=126, nss=127, nse=127, cs=123, ce=127
+2026-11-08 00:40:42.809 [D] AutoCorrectionUtils: Normalized sgor,shot,407948, 0.203974 (0.1877951)
+2026-11-08 00:40:42.810 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:40:42.810 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:40:42.822 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:42.823 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:40:42.964 [I] LatinIME: onUpdateSelection: oss=127, ose=127, nss=128, nse=128, cs=123, ce=128
+2026-11-08 00:40:43.005 [D] AutoCorrectionUtils: Normalized sgort,short,521793, 0.41743442 (0.1877951)
+2026-11-08 00:40:43.005 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:40:43.006 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:40:43.009 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:43.010 [I] LatinIME: updateSuggestionStrip: count=16, composing=true, noDict=false
+2026-11-08 00:40:43.187 [I] LatinIME: onUpdateSelection: oss=128, ose=128, nss=129, nse=129, cs=123, ce=129
+2026-11-08 00:40:43.250 [D] AutoCorrectionUtils: Normalized sgortc,shortcut,244611, 0.15288188 (0.1877951)
+2026-11-08 00:40:43.250 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:43.258 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:43.259 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:40:43.419 [I] LatinIME: onUpdateSelection: oss=129, ose=129, nss=130, nse=130, cs=123, ce=130
+2026-11-08 00:40:43.502 [D] AutoCorrectionUtils: Normalized sgortcu,shortcut,265442, 0.19908151 (0.1877951)
+2026-11-08 00:40:43.502 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:40:43.502 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:40:43.508 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:43.508 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:40:43.636 [I] LatinIME: onUpdateSelection: oss=130, ose=130, nss=131, nse=131, cs=123, ce=131
+2026-11-08 00:40:43.729 [D] AutoCorrectionUtils: Normalized sgortcut,shortcut,552705, 0.48361686 (0.1877951)
+2026-11-08 00:40:43.729 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:40:43.730 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=12, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:40:43.733 [I] SuggestionStripView: setSuggestions: count=12, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:43.734 [I] LatinIME: updateSuggestionStrip: count=12, composing=true, noDict=false
+2026-11-08 00:40:44.050 [I] LatinIME: onUpdateSelection: oss=131, ose=131, nss=132, nse=132, cs=-1, ce=-1
+2026-11-08 00:40:44.095 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=9, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:44.100 [I] SuggestionStripView: setSuggestions: count=9, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:44.100 [I] LatinIME: updateSuggestionStrip: count=9, composing=false, noDict=false
+2026-11-08 00:40:44.258 [I] LatinIME: onUpdateSelection: oss=132, ose=132, nss=133, nse=133, cs=-1, ce=-1
+2026-11-08 00:40:44.311 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=18, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:44.315 [I] SuggestionStripView: setSuggestions: count=18, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:44.315 [I] LatinIME: updateSuggestionStrip: count=18, composing=false, noDict=false
+2026-11-08 00:40:45.923 [I] LatinIME: onUpdateSelection: oss=133, ose=133, nss=132, nse=132, cs=-1, ce=-1
+2026-11-08 00:40:46.011 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=9, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:46.014 [I] SuggestionStripView: setSuggestions: count=9, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:46.014 [I] LatinIME: updateSuggestionStrip: count=9, composing=false, noDict=false
+2026-11-08 00:40:46.174 [I] LatinIME: onUpdateSelection: oss=132, ose=132, nss=131, nse=131, cs=123, ce=131
+2026-11-08 00:40:46.192 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=10, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:46.196 [I] SuggestionStripView: setSuggestions: count=10, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:46.197 [I] LatinIME: updateSuggestionStrip: count=10, composing=true, noDict=false
+2026-11-08 00:40:47.046 [I] LatinIME: onUpdateSelection: oss=131, ose=131, nss=186, nse=186, cs=123, ce=131
+2026-11-08 00:40:47.063 [I] LatinIME: onUpdateSelection: oss=186, ose=186, nss=186, nse=186, cs=-1, ce=-1
+2026-11-08 00:40:47.262 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=18, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:47.266 [I] SuggestionStripView: setSuggestions: count=18, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:47.266 [I] LatinIME: updateSuggestionStrip: count=18, composing=false, noDict=false
+2026-11-08 00:40:48.848 [I] LatinIME: onUpdateSelection: oss=186, ose=186, nss=187, nse=187, cs=186, ce=187
+2026-11-08 00:40:48.923 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:48.925 [I] SuggestionStripView: setSuggestions: count=14, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:48.926 [I] LatinIME: updateSuggestionStrip: count=14, composing=true, noDict=false
+2026-11-08 00:40:49.663 [I] LatinIME: onUpdateSelection: oss=187, ose=187, nss=188, nse=188, cs=186, ce=188
+2026-11-08 00:40:49.736 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=10, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:49.742 [I] SuggestionStripView: setSuggestions: count=10, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:49.742 [I] LatinIME: updateSuggestionStrip: count=10, composing=true, noDict=false
+2026-11-08 00:40:50.065 [I] LatinIME: onUpdateSelection: oss=188, ose=188, nss=189, nse=189, cs=186, ce=189
+2026-11-08 00:40:50.151 [D] AutoCorrectionUtils: Normalized Als,Also,494433, 0.37082475 (0.1877951)
+2026-11-08 00:40:50.151 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:40:50.151 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=12, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:40:50.155 [I] SuggestionStripView: setSuggestions: count=12, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:50.156 [I] LatinIME: updateSuggestionStrip: count=12, composing=true, noDict=false
+2026-11-08 00:40:50.353 [I] LatinIME: onUpdateSelection: oss=189, ose=189, nss=190, nse=190, cs=186, ce=190
+2026-11-08 00:40:50.435 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=13, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:50.441 [I] SuggestionStripView: setSuggestions: count=13, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:50.442 [I] LatinIME: updateSuggestionStrip: count=13, composing=true, noDict=false
+2026-11-08 00:40:50.629 [I] LatinIME: onUpdateSelection: oss=190, ose=190, nss=191, nse=191, cs=-1, ce=-1
+2026-11-08 00:40:50.698 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=17, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:50.700 [I] SuggestionStripView: setSuggestions: count=17, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:50.700 [I] LatinIME: updateSuggestionStrip: count=17, composing=false, noDict=false
+2026-11-08 00:40:50.932 [I] LatinIME: onUpdateSelection: oss=191, ose=191, nss=192, nse=192, cs=191, ce=192
+2026-11-08 00:40:51.012 [D] AutoCorrectionUtils: Normalized s,a,534571, 0.0 (0.1877951)
+2026-11-08 00:40:51.012 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:51.014 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:51.015 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:40:51.119 [I] LatinIME: onUpdateSelection: oss=192, ose=192, nss=193, nse=193, cs=191, ce=193
+2026-11-08 00:40:51.199 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=13, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:51.201 [I] SuggestionStripView: setSuggestions: count=13, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:51.202 [I] LatinIME: updateSuggestionStrip: count=13, composing=true, noDict=false
+2026-11-08 00:40:51.303 [I] LatinIME: onUpdateSelection: oss=193, ose=193, nss=194, nse=194, cs=191, ce=194
+2026-11-08 00:40:51.384 [D] AutoCorrectionUtils: Normalized sec,Sec,1488159, 1.488159 (0.1877951)
+2026-11-08 00:40:51.384 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:40:51.384 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:40:51.387 [I] SuggestionStripView: setSuggestions: count=14, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:51.387 [I] LatinIME: updateSuggestionStrip: count=14, composing=true, noDict=false
+2026-11-08 00:40:51.570 [I] LatinIME: onUpdateSelection: oss=194, ose=194, nss=195, nse=195, cs=191, ce=195
+2026-11-08 00:40:51.652 [D] AutoCorrectionUtils: Normalized secu,security,379324, 0.189662 (0.1877951)
+2026-11-08 00:40:51.652 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:40:51.652 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:40:51.657 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:51.657 [I] LatinIME: updateSuggestionStrip: count=16, composing=true, noDict=false
+2026-11-08 00:40:51.842 [I] LatinIME: onUpdateSelection: oss=195, ose=195, nss=196, nse=196, cs=191, ce=196
+2026-11-08 00:40:51.919 [D] AutoCorrectionUtils: Normalized secur,security,420763, 0.26297686 (0.1877951)
+2026-11-08 00:40:51.919 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:40:51.920 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:40:51.924 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:51.924 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:40:52.351 [I] LatinIME: onUpdateSelection: oss=196, ose=196, nss=199, nse=199, cs=-1, ce=-1
+2026-11-08 00:40:52.427 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=15, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:52.429 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:52.429 [I] LatinIME: updateSuggestionStrip: count=15, composing=false, noDict=false
+2026-11-08 00:40:55.180 [I] LatinIME: onUpdateSelection: oss=199, ose=199, nss=205, nse=205, cs=-1, ce=-1
+2026-11-08 00:40:55.233 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=16, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:40:55.238 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:40:55.238 [I] LatinIME: updateSuggestionStrip: count=16, composing=false, noDict=false
+2026-11-08 00:40:57.878 [I] LatinIME: requestHideSelf: 0
+2026-11-08 00:40:57.897 [I] LatinIME: hideWindow
+2026-11-08 00:40:57.900 [I] LatinIME: onFinishInputView
+2026-11-08 00:40:57.901 [I] LatinIME: onWindowHidden
+2026-11-08 00:40:58.383 [I] LatinIME: onFinishInput
+2026-11-08 00:41:04.219 [I] VaultSessionManager: verifyPattern: Verification succeeded
+2026-11-08 00:41:04.620 [I] VaultSessionManager: startSettingsSession: 3-minute settings session started
+2026-11-08 00:41:37.554 [I] LatinIME: onFinishInput
+2026-11-08 00:41:38.673 [I] Settings: loadSettings
+2026-11-08 00:41:38.683 [I] LatinIME: Starting input. Cursor position = 205,205
+2026-11-08 00:41:38.961 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:41:38.969 [I] SuggestionStripView: setSuggestions: count=14, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:38.969 [I] LatinIME: updateSuggestionStrip: count=14, composing=true, noDict=false
+2026-11-08 00:41:38.975 [I] LatinIME: onUpdateSelection: oss=205, ose=205, nss=205, nse=205, cs=200, ce=205
+2026-11-08 00:41:42.037 [I] LatinIME: onUpdateSelection: oss=205, ose=205, nss=204, nse=204, cs=200, ce=204
+2026-11-08 00:41:42.111 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:41:42.118 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:42.119 [I] LatinIME: updateSuggestionStrip: count=16, composing=true, noDict=false
+2026-11-08 00:41:42.245 [I] LatinIME: onUpdateSelection: oss=204, ose=204, nss=203, nse=203, cs=200, ce=203
+2026-11-08 00:41:42.324 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:41:42.327 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:42.328 [I] LatinIME: updateSuggestionStrip: count=16, composing=true, noDict=false
+2026-11-08 00:41:42.461 [I] LatinIME: onUpdateSelection: oss=203, ose=203, nss=202, nse=202, cs=200, ce=202
+2026-11-08 00:41:42.540 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:41:42.542 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:42.542 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:41:42.766 [I] LatinIME: onUpdateSelection: oss=202, ose=202, nss=201, nse=201, cs=200, ce=201
+2026-11-08 00:41:42.845 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=17, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:41:42.848 [I] SuggestionStripView: setSuggestions: count=17, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:42.851 [I] LatinIME: updateSuggestionStrip: count=17, composing=true, noDict=false
+2026-11-08 00:41:43.436 [I] LatinIME: onUpdateSelection: oss=201, ose=201, nss=200, nse=200, cs=-1, ce=-1
+2026-11-08 00:41:43.523 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=15, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:41:43.527 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:43.528 [I] LatinIME: updateSuggestionStrip: count=15, composing=false, noDict=false
+2026-11-08 00:41:44.010 [I] LatinIME: onUpdateSelection: oss=200, ose=200, nss=201, nse=201, cs=200, ce=201
+2026-11-08 00:41:44.083 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:41:44.088 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:44.089 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:41:44.229 [I] LatinIME: onUpdateSelection: oss=201, ose=201, nss=202, nse=202, cs=200, ce=202
+2026-11-08 00:41:44.308 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:41:44.311 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:44.311 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:41:44.444 [I] LatinIME: onUpdateSelection: oss=202, ose=202, nss=203, nse=203, cs=200, ce=203
+2026-11-08 00:41:44.528 [D] AutoCorrectionUtils: Normalized set,Settings,448280, 0.168105 (0.1877951)
+2026-11-08 00:41:44.528 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:41:44.536 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:44.536 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:41:44.628 [I] LatinIME: onUpdateSelection: oss=203, ose=203, nss=204, nse=204, cs=200, ce=204
+2026-11-08 00:41:44.710 [D] AutoCorrectionUtils: Normalized sett,Settings,478114, 0.239057 (0.1877951)
+2026-11-08 00:41:44.711 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:41:44.711 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=13, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:41:44.713 [I] SuggestionStripView: setSuggestions: count=13, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:44.713 [I] LatinIME: updateSuggestionStrip: count=13, composing=true, noDict=false
+2026-11-08 00:41:45.174 [I] LatinIME: onUpdateSelection: oss=204, ose=204, nss=208, nse=208, cs=-1, ce=-1
+2026-11-08 00:41:45.238 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=16, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:41:45.244 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:45.244 [I] LatinIME: updateSuggestionStrip: count=16, composing=false, noDict=false
+2026-11-08 00:41:46.027 [I] LatinIME: onUpdateSelection: oss=208, ose=208, nss=213, nse=213, cs=-1, ce=-1
+2026-11-08 00:41:46.073 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=16, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:41:46.079 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:46.080 [I] LatinIME: updateSuggestionStrip: count=16, composing=false, noDict=false
+2026-11-08 00:41:47.237 [I] LatinIME: onUpdateSelection: oss=213, ose=213, nss=215, nse=215, cs=214, ce=215
+2026-11-08 00:41:47.275 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=17, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:41:47.279 [I] SuggestionStripView: setSuggestions: count=17, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:47.280 [I] LatinIME: updateSuggestionStrip: count=17, composing=true, noDict=false
+2026-11-08 00:41:47.474 [I] LatinIME: onUpdateSelection: oss=215, ose=215, nss=216, nse=216, cs=214, ce=216
+2026-11-08 00:41:47.558 [D] AutoCorrectionUtils: Normalized pr,PR,1540032, 1.540032 (0.1877951)
+2026-11-08 00:41:47.558 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:41:47.558 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:41:47.563 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:47.564 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:41:47.730 [I] LatinIME: onUpdateSelection: oss=216, ose=216, nss=217, nse=217, cs=214, ce=217
+2026-11-08 00:41:47.809 [D] AutoCorrectionUtils: Normalized pri,PRI,1539055, 1.539055 (0.1877951)
+2026-11-08 00:41:47.810 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:41:47.810 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:41:47.813 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:47.813 [I] LatinIME: updateSuggestionStrip: count=16, composing=true, noDict=false
+2026-11-08 00:41:47.995 [I] LatinIME: onUpdateSelection: oss=217, ose=217, nss=218, nse=218, cs=214, ce=218
+2026-11-08 00:41:48.076 [D] AutoCorrectionUtils: Normalized priv,privacy,403179, 0.23038799 (0.1877951)
+2026-11-08 00:41:48.076 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:41:48.076 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:41:48.079 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:48.079 [I] LatinIME: updateSuggestionStrip: count=16, composing=true, noDict=false
+2026-11-08 00:41:48.230 [I] LatinIME: onUpdateSelection: oss=218, ose=218, nss=219, nse=219, cs=214, ce=219
+2026-11-08 00:41:48.308 [D] AutoCorrectionUtils: Normalized priva,privacy,398323, 0.28451642 (0.1877951)
+2026-11-08 00:41:48.308 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:41:48.308 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:41:48.310 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:48.310 [I] LatinIME: updateSuggestionStrip: count=16, composing=true, noDict=false
+2026-11-08 00:41:48.775 [I] LatinIME: onUpdateSelection: oss=219, ose=219, nss=221, nse=221, cs=-1, ce=-1
+2026-11-08 00:41:48.840 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=6, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:41:48.847 [I] SuggestionStripView: setSuggestions: count=6, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:48.847 [I] LatinIME: updateSuggestionStrip: count=6, composing=false, noDict=false
+2026-11-08 00:41:49.510 [I] LatinIME: onUpdateSelection: oss=221, ose=221, nss=227, nse=227, cs=-1, ce=-1
+2026-11-08 00:41:49.557 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=16, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:41:49.564 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:49.564 [I] LatinIME: updateSuggestionStrip: count=16, composing=false, noDict=false
+2026-11-08 00:41:51.070 [I] LatinIME: onUpdateSelection: oss=227, ose=227, nss=228, nse=228, cs=-1, ce=-1
+2026-11-08 00:41:51.369 [I] LatinIME: onUpdateSelection: oss=228, ose=228, nss=229, nse=229, cs=228, ce=229
+2026-11-08 00:41:51.447 [D] AutoCorrectionUtils: Normalized p,plan,378578, 0.0946445 (0.1877951)
+2026-11-08 00:41:51.447 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=17, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:41:51.449 [I] SuggestionStripView: setSuggestions: count=17, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:51.450 [I] LatinIME: updateSuggestionStrip: count=17, composing=true, noDict=false
+2026-11-08 00:41:51.748 [I] LatinIME: onUpdateSelection: oss=229, ose=229, nss=230, nse=230, cs=228, ce=230
+2026-11-08 00:41:51.828 [D] AutoCorrectionUtils: Normalized pa,PA,1637158, 1.637158 (0.1877951)
+2026-11-08 00:41:51.828 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:41:51.829 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:41:51.832 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:51.832 [I] LatinIME: updateSuggestionStrip: count=16, composing=true, noDict=false
+2026-11-08 00:41:51.980 [I] LatinIME: onUpdateSelection: oss=230, ose=230, nss=231, nse=231, cs=228, ce=231
+2026-11-08 00:41:52.058 [D] AutoCorrectionUtils: Normalized pag,page,343414, 0.2575605 (0.1877951)
+2026-11-08 00:41:52.059 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:41:52.059 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:41:52.068 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:52.068 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:41:52.177 [I] LatinIME: onUpdateSelection: oss=231, ose=231, nss=232, nse=232, cs=228, ce=232
+2026-11-08 00:41:52.258 [D] AutoCorrectionUtils: Normalized page,Page,1628521, 1.628521 (0.1877951)
+2026-11-08 00:41:52.258 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:41:52.258 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=13, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:41:52.261 [I] SuggestionStripView: setSuggestions: count=13, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:52.261 [I] LatinIME: updateSuggestionStrip: count=13, composing=true, noDict=false
+2026-11-08 00:41:52.559 [I] LatinIME: onUpdateSelection: oss=232, ose=232, nss=233, nse=233, cs=-1, ce=-1
+2026-11-08 00:41:52.623 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=16, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:41:52.627 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:52.627 [I] LatinIME: updateSuggestionStrip: count=16, composing=false, noDict=false
+2026-11-08 00:41:52.805 [I] LatinIME: onUpdateSelection: oss=233, ose=233, nss=234, nse=234, cs=-1, ce=-1
+2026-11-08 00:41:52.858 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=18, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:41:52.863 [I] SuggestionStripView: setSuggestions: count=18, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:52.864 [I] LatinIME: updateSuggestionStrip: count=18, composing=false, noDict=false
+2026-11-08 00:41:53.298 [I] LatinIME: onUpdateSelection: oss=234, ose=234, nss=235, nse=235, cs=234, ce=235
+2026-11-08 00:41:53.377 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=13, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:41:53.380 [I] SuggestionStripView: setSuggestions: count=13, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:53.380 [I] LatinIME: updateSuggestionStrip: count=13, composing=true, noDict=false
+2026-11-08 00:41:53.507 [I] LatinIME: onUpdateSelection: oss=235, ose=235, nss=236, nse=236, cs=234, ce=236
+2026-11-08 00:41:53.591 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=12, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:41:53.593 [I] SuggestionStripView: setSuggestions: count=12, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:53.593 [I] LatinIME: updateSuggestionStrip: count=12, composing=true, noDict=false
+2026-11-08 00:41:53.775 [I] LatinIME: onUpdateSelection: oss=236, ose=236, nss=237, nse=237, cs=-1, ce=-1
+2026-11-08 00:41:53.840 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=17, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:41:53.842 [I] SuggestionStripView: setSuggestions: count=17, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:53.842 [I] LatinIME: updateSuggestionStrip: count=17, composing=false, noDict=false
+2026-11-08 00:41:54.631 [I] LatinIME: onUpdateSelection: oss=237, ose=237, nss=236, nse=236, cs=234, ce=236
+2026-11-08 00:41:54.633 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=11, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:41:54.639 [I] SuggestionStripView: setSuggestions: count=11, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:54.640 [I] LatinIME: updateSuggestionStrip: count=11, composing=true, noDict=false
+2026-11-08 00:41:54.749 [I] LatinIME: onUpdateSelection: oss=236, ose=236, nss=235, nse=235, cs=234, ce=235
+2026-11-08 00:41:54.826 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=12, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:41:54.832 [I] SuggestionStripView: setSuggestions: count=12, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:54.832 [I] LatinIME: updateSuggestionStrip: count=12, composing=true, noDict=false
+2026-11-08 00:41:55.035 [I] LatinIME: onUpdateSelection: oss=235, ose=235, nss=234, nse=234, cs=-1, ce=-1
+2026-11-08 00:41:55.125 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=18, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:41:55.129 [I] SuggestionStripView: setSuggestions: count=18, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:55.130 [I] LatinIME: updateSuggestionStrip: count=18, composing=false, noDict=false
+2026-11-08 00:41:55.950 [I] LatinIME: onUpdateSelection: oss=234, ose=234, nss=235, nse=235, cs=234, ce=235
+2026-11-08 00:41:56.030 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:41:56.035 [I] SuggestionStripView: setSuggestions: count=14, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:56.035 [I] LatinIME: updateSuggestionStrip: count=14, composing=true, noDict=false
+2026-11-08 00:41:56.147 [I] LatinIME: onUpdateSelection: oss=235, ose=235, nss=236, nse=236, cs=234, ce=236
+2026-11-08 00:41:56.226 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=11, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:41:56.229 [I] SuggestionStripView: setSuggestions: count=11, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:56.229 [I] LatinIME: updateSuggestionStrip: count=11, composing=true, noDict=false
+2026-11-08 00:41:56.401 [I] LatinIME: onUpdateSelection: oss=236, ose=236, nss=237, nse=237, cs=234, ce=237
+2026-11-08 00:41:56.477 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=7, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:41:56.483 [I] SuggestionStripView: setSuggestions: count=7, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:56.483 [I] LatinIME: updateSuggestionStrip: count=7, composing=true, noDict=false
+2026-11-08 00:41:56.598 [I] LatinIME: onUpdateSelection: oss=237, ose=237, nss=238, nse=238, cs=234, ce=238
+2026-11-08 00:41:56.682 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=12, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:41:56.685 [I] SuggestionStripView: setSuggestions: count=12, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:56.686 [I] LatinIME: updateSuggestionStrip: count=12, composing=true, noDict=false
+2026-11-08 00:41:56.781 [I] LatinIME: onUpdateSelection: oss=238, ose=238, nss=239, nse=239, cs=234, ce=239
+2026-11-08 00:41:56.863 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=10, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:41:56.867 [I] SuggestionStripView: setSuggestions: count=10, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:56.867 [I] LatinIME: updateSuggestionStrip: count=10, composing=true, noDict=false
+2026-11-08 00:41:57.021 [I] LatinIME: onUpdateSelection: oss=239, ose=239, nss=240, nse=240, cs=-1, ce=-1
+2026-11-08 00:41:57.088 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=16, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:41:57.092 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:57.092 [I] LatinIME: updateSuggestionStrip: count=16, composing=false, noDict=false
+2026-11-08 00:41:57.265 [I] LatinIME: onUpdateSelection: oss=240, ose=240, nss=241, nse=241, cs=240, ce=241
+2026-11-08 00:41:57.347 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=10, hasAutoCorrection=true, isTypedWordValid=true
+2026-11-08 00:41:57.352 [I] SuggestionStripView: setSuggestions: count=10, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:57.352 [I] LatinIME: updateSuggestionStrip: count=10, composing=true, noDict=false
+2026-11-08 00:41:57.496 [I] LatinIME: onUpdateSelection: oss=241, ose=241, nss=242, nse=242, cs=240, ce=242
+2026-11-08 00:41:57.580 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:41:57.584 [I] SuggestionStripView: setSuggestions: count=14, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:57.584 [I] LatinIME: updateSuggestionStrip: count=14, composing=true, noDict=false
+2026-11-08 00:41:57.722 [I] LatinIME: onUpdateSelection: oss=242, ose=242, nss=243, nse=243, cs=-1, ce=-1
+2026-11-08 00:41:57.788 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=12, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:41:57.790 [I] SuggestionStripView: setSuggestions: count=12, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:57.790 [I] LatinIME: updateSuggestionStrip: count=12, composing=false, noDict=false
+2026-11-08 00:41:57.953 [I] LatinIME: onUpdateSelection: oss=243, ose=243, nss=244, nse=244, cs=243, ce=244
+2026-11-08 00:41:58.034 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:41:58.040 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:58.040 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:41:58.193 [I] LatinIME: onUpdateSelection: oss=244, ose=244, nss=245, nse=245, cs=243, ce=245
+2026-11-08 00:41:58.276 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=13, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:41:58.278 [I] SuggestionStripView: setSuggestions: count=13, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:58.278 [I] LatinIME: updateSuggestionStrip: count=13, composing=true, noDict=false
+2026-11-08 00:41:58.396 [I] LatinIME: onUpdateSelection: oss=245, ose=245, nss=246, nse=246, cs=243, ce=246
+2026-11-08 00:41:58.477 [D] AutoCorrectionUtils: Normalized tim,Tim,1351628, 1.351628 (0.1877951)
+2026-11-08 00:41:58.477 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:41:58.477 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=17, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:41:58.482 [I] SuggestionStripView: setSuggestions: count=17, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:58.482 [I] LatinIME: updateSuggestionStrip: count=17, composing=true, noDict=false
+2026-11-08 00:41:58.684 [I] LatinIME: onUpdateSelection: oss=246, ose=246, nss=247, nse=247, cs=243, ce=247
+2026-11-08 00:41:58.762 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=13, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:41:58.773 [I] SuggestionStripView: setSuggestions: count=13, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:58.773 [I] LatinIME: updateSuggestionStrip: count=13, composing=true, noDict=false
+2026-11-08 00:41:58.863 [I] LatinIME: onUpdateSelection: oss=247, ose=247, nss=248, nse=248, cs=243, ce=248
+2026-11-08 00:41:58.944 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:41:58.947 [I] SuggestionStripView: setSuggestions: count=14, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:58.948 [I] LatinIME: updateSuggestionStrip: count=14, composing=true, noDict=false
+2026-11-08 00:41:59.154 [I] SuggestionStripView: setSuggestions: count=0, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:59.154 [I] LatinIME: updateSuggestionStrip: count=0, composing=false, noDict=true
+2026-11-08 00:41:59.194 [I] LatinIME: onUpdateSelection: oss=248, ose=248, nss=249, nse=249, cs=-1, ce=-1
+2026-11-08 00:41:59.347 [I] LatinIME: onUpdateSelection: oss=249, ose=249, nss=250, nse=250, cs=-1, ce=-1
+2026-11-08 00:41:59.419 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=18, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:41:59.422 [I] SuggestionStripView: setSuggestions: count=18, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:59.422 [I] LatinIME: updateSuggestionStrip: count=18, composing=false, noDict=false
+2026-11-08 00:41:59.594 [I] LatinIME: onUpdateSelection: oss=250, ose=250, nss=251, nse=251, cs=250, ce=251
+2026-11-08 00:41:59.679 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:41:59.683 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:59.683 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:41:59.842 [I] LatinIME: onUpdateSelection: oss=251, ose=251, nss=252, nse=252, cs=250, ce=252
+2026-11-08 00:41:59.925 [D] AutoCorrectionUtils: Normalized Di,Do,547730, 0.273865 (0.1877951)
+2026-11-08 00:41:59.925 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:41:59.925 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=12, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:41:59.928 [I] SuggestionStripView: setSuggestions: count=12, stripVisible=true, toolbarVisible=false
+2026-11-08 00:41:59.929 [I] LatinIME: updateSuggestionStrip: count=12, composing=true, noDict=false
+2026-11-08 00:42:00.049 [I] LatinIME: onUpdateSelection: oss=252, ose=252, nss=253, nse=253, cs=250, ce=253
+2026-11-08 00:42:00.129 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=13, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:42:00.133 [I] SuggestionStripView: setSuggestions: count=13, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:00.133 [I] LatinIME: updateSuggestionStrip: count=13, composing=true, noDict=false
+2026-11-08 00:42:00.281 [I] LatinIME: onUpdateSelection: oss=253, ose=253, nss=254, nse=254, cs=250, ce=254
+2026-11-08 00:42:00.362 [D] AutoCorrectionUtils: Normalized Dint,Don't,605789, 0.36347342 (0.1877951)
+2026-11-08 00:42:00.362 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:42:00.363 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=12, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:42:00.369 [I] SuggestionStripView: setSuggestions: count=12, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:00.369 [I] LatinIME: updateSuggestionStrip: count=12, composing=true, noDict=false
+2026-11-08 00:42:00.538 [I] LatinIME: onUpdateSelection: oss=254, ose=254, nss=256, nse=256, cs=-1, ce=-1
+2026-11-08 00:42:00.571 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=18, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:42:00.576 [I] SuggestionStripView: setSuggestions: count=18, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:00.576 [I] LatinIME: updateSuggestionStrip: count=18, composing=false, noDict=false
+2026-11-08 00:42:00.760 [I] LatinIME: onUpdateSelection: oss=256, ose=256, nss=257, nse=257, cs=256, ce=257
+2026-11-08 00:42:00.853 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:42:00.856 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:00.856 [I] LatinIME: updateSuggestionStrip: count=16, composing=true, noDict=false
+2026-11-08 00:42:00.948 [I] LatinIME: onUpdateSelection: oss=257, ose=257, nss=258, nse=258, cs=256, ce=258
+2026-11-08 00:42:01.025 [D] AutoCorrectionUtils: Normalized wa,was,436214, 0.2908093 (0.1877951)
+2026-11-08 00:42:01.025 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:42:01.025 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:42:01.029 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:01.029 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:42:01.237 [I] LatinIME: onUpdateSelection: oss=258, ose=258, nss=259, nse=259, cs=256, ce=259
+2026-11-08 00:42:01.310 [D] AutoCorrectionUtils: Normalized wan,want,438442, 0.3288315 (0.1877951)
+2026-11-08 00:42:01.310 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:42:01.311 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:42:01.316 [I] SuggestionStripView: setSuggestions: count=14, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:01.316 [I] LatinIME: updateSuggestionStrip: count=14, composing=true, noDict=false
+2026-11-08 00:42:01.475 [I] LatinIME: onUpdateSelection: oss=259, ose=259, nss=260, nse=260, cs=256, ce=260
+2026-11-08 00:42:01.559 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=12, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:42:01.562 [I] SuggestionStripView: setSuggestions: count=12, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:01.562 [I] LatinIME: updateSuggestionStrip: count=12, composing=true, noDict=false
+2026-11-08 00:42:01.687 [I] LatinIME: onUpdateSelection: oss=260, ose=260, nss=261, nse=261, cs=-1, ce=-1
+2026-11-08 00:42:01.754 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=17, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:42:01.757 [I] SuggestionStripView: setSuggestions: count=17, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:01.758 [I] LatinIME: updateSuggestionStrip: count=17, composing=false, noDict=false
+2026-11-08 00:42:01.955 [I] LatinIME: onUpdateSelection: oss=261, ose=261, nss=262, nse=262, cs=261, ce=262
+2026-11-08 00:42:02.032 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=11, hasAutoCorrection=true, isTypedWordValid=true
+2026-11-08 00:42:02.037 [I] SuggestionStripView: setSuggestions: count=11, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:02.038 [I] LatinIME: updateSuggestionStrip: count=11, composing=true, noDict=false
+2026-11-08 00:42:02.182 [I] LatinIME: onUpdateSelection: oss=262, ose=262, nss=263, nse=263, cs=261, ce=263
+2026-11-08 00:42:02.262 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=11, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:42:02.266 [I] SuggestionStripView: setSuggestions: count=11, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:02.266 [I] LatinIME: updateSuggestionStrip: count=11, composing=true, noDict=false
+2026-11-08 00:42:02.471 [I] LatinIME: onUpdateSelection: oss=263, ose=263, nss=264, nse=264, cs=-1, ce=-1
+2026-11-08 00:42:02.538 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=15, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:42:02.540 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:02.541 [I] LatinIME: updateSuggestionStrip: count=15, composing=false, noDict=false
+2026-11-08 00:42:02.689 [I] LatinIME: onUpdateSelection: oss=264, ose=264, nss=265, nse=265, cs=-1, ce=-1
+2026-11-08 00:42:02.737 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=18, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:42:02.743 [I] SuggestionStripView: setSuggestions: count=18, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:02.743 [I] LatinIME: updateSuggestionStrip: count=18, composing=false, noDict=false
+2026-11-08 00:42:03.278 [I] LatinIME: onUpdateSelection: oss=265, ose=265, nss=266, nse=266, cs=265, ce=266
+2026-11-08 00:42:03.351 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:42:03.357 [I] SuggestionStripView: setSuggestions: count=14, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:03.357 [I] LatinIME: updateSuggestionStrip: count=14, composing=true, noDict=false
+2026-11-08 00:42:03.617 [I] LatinIME: onUpdateSelection: oss=266, ose=266, nss=267, nse=267, cs=265, ce=267
+2026-11-08 00:42:03.695 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=11, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:42:03.705 [I] SuggestionStripView: setSuggestions: count=11, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:03.705 [I] LatinIME: updateSuggestionStrip: count=11, composing=true, noDict=false
+2026-11-08 00:42:03.943 [I] LatinIME: onUpdateSelection: oss=267, ose=267, nss=268, nse=268, cs=265, ce=268
+2026-11-08 00:42:04.028 [D] AutoCorrectionUtils: Normalized Als,Also,499729, 0.37479675 (0.1877951)
+2026-11-08 00:42:04.028 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:42:04.028 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=12, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:42:04.031 [I] SuggestionStripView: setSuggestions: count=12, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:04.031 [I] LatinIME: updateSuggestionStrip: count=12, composing=true, noDict=false
+2026-11-08 00:42:04.249 [I] LatinIME: onUpdateSelection: oss=268, ose=268, nss=269, nse=269, cs=265, ce=269
+2026-11-08 00:42:04.328 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=13, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:42:04.330 [I] SuggestionStripView: setSuggestions: count=13, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:04.330 [I] LatinIME: updateSuggestionStrip: count=13, composing=true, noDict=false
+2026-11-08 00:42:04.480 [I] LatinIME: onUpdateSelection: oss=269, ose=269, nss=270, nse=270, cs=-1, ce=-1
+2026-11-08 00:42:04.542 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=17, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:42:04.545 [I] SuggestionStripView: setSuggestions: count=17, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:04.546 [I] LatinIME: updateSuggestionStrip: count=17, composing=false, noDict=false
+2026-11-08 00:42:04.727 [I] LatinIME: onUpdateSelection: oss=270, ose=270, nss=271, nse=271, cs=270, ce=271
+2026-11-08 00:42:04.814 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:42:04.818 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:04.818 [I] LatinIME: updateSuggestionStrip: count=16, composing=true, noDict=false
+2026-11-08 00:42:04.998 [I] LatinIME: onUpdateSelection: oss=271, ose=271, nss=272, nse=272, cs=270, ce=272
+2026-11-08 00:42:05.078 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=12, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:42:05.083 [I] SuggestionStripView: setSuggestions: count=12, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:05.083 [I] LatinIME: updateSuggestionStrip: count=12, composing=true, noDict=false
+2026-11-08 00:42:05.180 [I] LatinIME: onUpdateSelection: oss=272, ose=272, nss=273, nse=273, cs=270, ce=273
+2026-11-08 00:42:05.263 [D] AutoCorrectionUtils: Normalized flo,floating,416664, 0.156249 (0.1877951)
+2026-11-08 00:42:05.264 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:42:05.268 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:05.268 [I] LatinIME: updateSuggestionStrip: count=16, composing=true, noDict=false
+2026-11-08 00:42:05.894 [I] LatinIME: onUpdateSelection: oss=273, ose=273, nss=278, nse=278, cs=-1, ce=-1
+2026-11-08 00:42:05.957 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=18, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:42:05.963 [I] SuggestionStripView: setSuggestions: count=18, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:05.964 [I] LatinIME: updateSuggestionStrip: count=18, composing=false, noDict=false
+2026-11-08 00:42:07.518 [I] LatinIME: onUpdateSelection: oss=278, ose=278, nss=280, nse=280, cs=279, ce=280
+2026-11-08 00:42:07.555 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:42:07.560 [I] SuggestionStripView: setSuggestions: count=14, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:07.560 [I] LatinIME: updateSuggestionStrip: count=14, composing=true, noDict=false
+2026-11-08 00:42:07.648 [I] LatinIME: onUpdateSelection: oss=280, ose=280, nss=281, nse=281, cs=279, ce=281
+2026-11-08 00:42:07.728 [D] AutoCorrectionUtils: Normalized bi,no,276356, 0.0 (0.1877951)
+2026-11-08 00:42:07.728 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=17, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:42:07.732 [I] SuggestionStripView: setSuggestions: count=17, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:07.732 [I] LatinIME: updateSuggestionStrip: count=17, composing=true, noDict=false
+2026-11-08 00:42:08.082 [I] LatinIME: onUpdateSelection: oss=281, ose=281, nss=280, nse=280, cs=279, ce=280
+2026-11-08 00:42:08.164 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:42:08.166 [I] SuggestionStripView: setSuggestions: count=14, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:08.166 [I] LatinIME: updateSuggestionStrip: count=14, composing=true, noDict=false
+2026-11-08 00:42:08.299 [I] LatinIME: onUpdateSelection: oss=280, ose=280, nss=281, nse=281, cs=279, ce=281
+2026-11-08 00:42:08.377 [D] AutoCorrectionUtils: Normalized bo,board,395124, 0.15804958 (0.1877951)
+2026-11-08 00:42:08.377 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:42:08.379 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:08.379 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:42:08.598 [I] LatinIME: onUpdateSelection: oss=281, ose=281, nss=282, nse=282, cs=279, ce=282
+2026-11-08 00:42:08.680 [D] AutoCorrectionUtils: Normalized boa,board,440261, 0.2641566 (0.1877951)
+2026-11-08 00:42:08.680 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:42:08.680 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:42:08.682 [I] SuggestionStripView: setSuggestions: count=14, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:08.682 [I] LatinIME: updateSuggestionStrip: count=14, composing=true, noDict=false
+2026-11-08 00:42:08.818 [I] LatinIME: onUpdateSelection: oss=282, ose=282, nss=283, nse=283, cs=279, ce=283
+2026-11-08 00:42:08.895 [D] AutoCorrectionUtils: Normalized boar,board,457209, 0.3657672 (0.1877951)
+2026-11-08 00:42:08.896 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:42:08.896 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:42:08.900 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:08.900 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:42:08.982 [I] LatinIME: onUpdateSelection: oss=283, ose=283, nss=284, nse=284, cs=279, ce=284
+2026-11-08 00:42:09.062 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:42:09.065 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:09.066 [I] LatinIME: updateSuggestionStrip: count=16, composing=true, noDict=false
+2026-11-08 00:42:09.363 [I] LatinIME: onUpdateSelection: oss=284, ose=284, nss=285, nse=285, cs=-1, ce=-1
+2026-11-08 00:42:09.423 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=14, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:42:09.428 [I] SuggestionStripView: setSuggestions: count=14, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:09.428 [I] LatinIME: updateSuggestionStrip: count=14, composing=false, noDict=false
+2026-11-08 00:42:10.812 [I] LatinIME: onUpdateSelection: oss=285, ose=285, nss=286, nse=286, cs=285, ce=286
+2026-11-08 00:42:10.884 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:42:10.890 [I] SuggestionStripView: setSuggestions: count=14, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:10.890 [I] LatinIME: updateSuggestionStrip: count=14, composing=true, noDict=false
+2026-11-08 00:42:11.118 [I] LatinIME: onUpdateSelection: oss=286, ose=286, nss=287, nse=287, cs=285, ce=287
+2026-11-08 00:42:11.198 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=13, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:42:11.200 [I] SuggestionStripView: setSuggestions: count=13, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:11.200 [I] LatinIME: updateSuggestionStrip: count=13, composing=true, noDict=false
+2026-11-08 00:42:11.365 [I] LatinIME: onUpdateSelection: oss=287, ose=287, nss=288, nse=288, cs=285, ce=288
+2026-11-08 00:42:11.444 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=10, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:42:11.447 [I] SuggestionStripView: setSuggestions: count=10, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:11.447 [I] LatinIME: updateSuggestionStrip: count=10, composing=true, noDict=false
+2026-11-08 00:42:11.549 [I] LatinIME: onUpdateSelection: oss=288, ose=288, nss=289, nse=289, cs=285, ce=289
+2026-11-08 00:42:11.632 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=11, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:42:11.635 [I] SuggestionStripView: setSuggestions: count=11, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:11.635 [I] LatinIME: updateSuggestionStrip: count=11, composing=true, noDict=false
+2026-11-08 00:42:11.865 [I] LatinIME: onUpdateSelection: oss=289, ose=289, nss=290, nse=290, cs=285, ce=290
+2026-11-08 00:42:11.946 [D] AutoCorrectionUtils: Normalized butto,button,420581, 0.35048416 (0.1877951)
+2026-11-08 00:42:11.947 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:42:11.947 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:42:11.950 [I] SuggestionStripView: setSuggestions: count=14, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:11.950 [I] LatinIME: updateSuggestionStrip: count=14, composing=true, noDict=false
+2026-11-08 00:42:12.133 [I] LatinIME: onUpdateSelection: oss=290, ose=290, nss=291, nse=291, cs=285, ce=291
+2026-11-08 00:42:12.215 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=10, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:42:12.219 [I] SuggestionStripView: setSuggestions: count=10, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:12.219 [I] LatinIME: updateSuggestionStrip: count=10, composing=true, noDict=false
+2026-11-08 00:42:12.409 [I] LatinIME: onUpdateSelection: oss=291, ose=291, nss=292, nse=292, cs=-1, ce=-1
+2026-11-08 00:42:12.477 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=16, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:42:12.480 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:12.480 [I] LatinIME: updateSuggestionStrip: count=16, composing=false, noDict=false
+2026-11-08 00:42:13.337 [I] LatinIME: onUpdateSelection: oss=292, ose=292, nss=293, nse=293, cs=292, ce=293
+2026-11-08 00:42:13.415 [D] AutoCorrectionUtils: Normalized f,for,393350, 0.13111666 (0.1877951)
+2026-11-08 00:42:13.416 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:42:13.419 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:13.419 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:42:13.531 [I] LatinIME: onUpdateSelection: oss=293, ose=293, nss=294, nse=294, cs=292, ce=294
+2026-11-08 00:42:13.612 [D] AutoCorrectionUtils: Normalized fo,for,440848, 0.29389864 (0.1877951)
+2026-11-08 00:42:13.612 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:42:13.612 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=12, hasAutoCorrection=true, isTypedWordValid=true
+2026-11-08 00:42:13.619 [I] SuggestionStripView: setSuggestions: count=12, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:13.620 [I] LatinIME: updateSuggestionStrip: count=12, composing=true, noDict=false
+2026-11-08 00:42:13.853 [I] LatinIME: onUpdateSelection: oss=294, ose=294, nss=295, nse=295, cs=292, ce=295
+2026-11-08 00:42:13.931 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=true, isTypedWordValid=true
+2026-11-08 00:42:13.934 [I] SuggestionStripView: setSuggestions: count=14, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:13.934 [I] LatinIME: updateSuggestionStrip: count=14, composing=true, noDict=false
+2026-11-08 00:42:14.050 [I] LatinIME: onUpdateSelection: oss=295, ose=295, nss=296, nse=296, cs=292, ce=296
+2026-11-08 00:42:14.131 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:42:14.136 [I] SuggestionStripView: setSuggestions: count=14, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:14.137 [I] LatinIME: updateSuggestionStrip: count=14, composing=true, noDict=false
+2026-11-08 00:42:14.400 [I] LatinIME: onUpdateSelection: oss=296, ose=296, nss=297, nse=297, cs=292, ce=297
+2026-11-08 00:42:14.480 [D] AutoCorrectionUtils: Normalized foesn,doesn't,194908, 0.11137599 (0.1877951)
+2026-11-08 00:42:14.480 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:42:14.483 [I] SuggestionStripView: setSuggestions: count=14, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:14.483 [I] LatinIME: updateSuggestionStrip: count=14, composing=true, noDict=false
+2026-11-08 00:42:14.768 [I] LatinIME: onUpdateSelection: oss=297, ose=297, nss=298, nse=298, cs=292, ce=298
+2026-11-08 00:42:14.846 [D] AutoCorrectionUtils: Normalized foesnt,doesn't,524252, 0.37446573 (0.1877951)
+2026-11-08 00:42:14.846 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:42:14.846 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=12, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:42:14.851 [I] SuggestionStripView: setSuggestions: count=12, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:14.851 [I] LatinIME: updateSuggestionStrip: count=12, composing=true, noDict=false
+2026-11-08 00:42:15.062 [I] LatinIME: onUpdateSelection: oss=298, ose=298, nss=300, nse=300, cs=-1, ce=-1
+2026-11-08 00:42:15.106 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=18, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:42:15.115 [I] SuggestionStripView: setSuggestions: count=18, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:15.115 [I] LatinIME: updateSuggestionStrip: count=18, composing=false, noDict=false
+2026-11-08 00:42:15.337 [I] LatinIME: onUpdateSelection: oss=300, ose=300, nss=301, nse=301, cs=300, ce=301
+2026-11-08 00:42:15.419 [D] AutoCorrectionUtils: Normalized h,have,412531, 0.10313275 (0.1877951)
+2026-11-08 00:42:15.420 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:42:15.423 [I] SuggestionStripView: setSuggestions: count=14, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:15.423 [I] LatinIME: updateSuggestionStrip: count=14, composing=true, noDict=false
+2026-11-08 00:42:15.600 [I] LatinIME: onUpdateSelection: oss=301, ose=301, nss=302, nse=302, cs=300, ce=302
+2026-11-08 00:42:15.678 [D] AutoCorrectionUtils: Normalized ha,have,427850, 0.213925 (0.1877951)
+2026-11-08 00:42:15.678 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:42:15.679 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=13, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:42:15.684 [I] SuggestionStripView: setSuggestions: count=13, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:15.684 [I] LatinIME: updateSuggestionStrip: count=13, composing=true, noDict=false
+2026-11-08 00:42:15.884 [I] LatinIME: onUpdateSelection: oss=302, ose=302, nss=303, nse=303, cs=300, ce=303
+2026-11-08 00:42:15.961 [D] AutoCorrectionUtils: Normalized hav,have,468707, 0.35153025 (0.1877951)
+2026-11-08 00:42:15.962 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:42:15.962 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:42:15.966 [I] SuggestionStripView: setSuggestions: count=14, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:15.966 [I] LatinIME: updateSuggestionStrip: count=14, composing=true, noDict=false
+2026-11-08 00:42:16.094 [I] LatinIME: onUpdateSelection: oss=303, ose=303, nss=304, nse=304, cs=300, ce=304
+2026-11-08 00:42:16.178 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=12, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:42:16.181 [I] SuggestionStripView: setSuggestions: count=12, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:16.181 [I] LatinIME: updateSuggestionStrip: count=12, composing=true, noDict=false
+2026-11-08 00:42:16.342 [I] LatinIME: onUpdateSelection: oss=304, ose=304, nss=305, nse=305, cs=-1, ce=-1
+2026-11-08 00:42:16.409 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=17, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:42:16.413 [I] SuggestionStripView: setSuggestions: count=17, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:16.413 [I] LatinIME: updateSuggestionStrip: count=17, composing=false, noDict=false
+2026-11-08 00:42:16.648 [I] LatinIME: onUpdateSelection: oss=305, ose=305, nss=306, nse=306, cs=305, ce=306
+2026-11-08 00:42:16.730 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=12, hasAutoCorrection=true, isTypedWordValid=true
+2026-11-08 00:42:16.734 [I] SuggestionStripView: setSuggestions: count=12, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:16.734 [I] LatinIME: updateSuggestionStrip: count=12, composing=true, noDict=false
+2026-11-08 00:42:16.895 [I] LatinIME: onUpdateSelection: oss=306, ose=306, nss=307, nse=307, cs=305, ce=307
+2026-11-08 00:42:16.978 [D] AutoCorrectionUtils: Normalized ic,of,415253, 0.0 (0.1877951)
+2026-11-08 00:42:16.978 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:42:16.981 [I] SuggestionStripView: setSuggestions: count=14, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:16.981 [I] LatinIME: updateSuggestionStrip: count=14, composing=true, noDict=false
+2026-11-08 00:42:17.189 [I] LatinIME: onUpdateSelection: oss=307, ose=307, nss=308, nse=308, cs=305, ce=308
+2026-11-08 00:42:17.267 [D] AutoCorrectionUtils: Normalized ico,ICO,1421700, 1.4217 (0.1877951)
+2026-11-08 00:42:17.267 [D] AutoCorrectionUtils: Exceeds threshold.
+2026-11-08 00:42:17.267 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-08 00:42:17.275 [I] SuggestionStripView: setSuggestions: count=15, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:17.275 [I] LatinIME: updateSuggestionStrip: count=15, composing=true, noDict=false
+2026-11-08 00:42:17.385 [I] LatinIME: onUpdateSelection: oss=308, ose=308, nss=309, nse=309, cs=305, ce=309
+2026-11-08 00:42:17.464 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=13, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:42:17.467 [I] SuggestionStripView: setSuggestions: count=13, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:17.467 [I] LatinIME: updateSuggestionStrip: count=13, composing=true, noDict=false
+2026-11-08 00:42:17.605 [I] SuggestionStripView: setSuggestions: count=0, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:17.605 [I] LatinIME: updateSuggestionStrip: count=0, composing=false, noDict=true
+2026-11-08 00:42:17.641 [I] LatinIME: onUpdateSelection: oss=309, ose=309, nss=310, nse=310, cs=-1, ce=-1
+2026-11-08 00:42:17.849 [I] LatinIME: onUpdateSelection: oss=310, ose=310, nss=311, nse=311, cs=-1, ce=-1
+2026-11-08 00:42:17.924 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=18, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:42:17.926 [I] SuggestionStripView: setSuggestions: count=18, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:17.926 [I] LatinIME: updateSuggestionStrip: count=18, composing=false, noDict=false
+2026-11-08 00:42:18.102 [I] LatinIME: onUpdateSelection: oss=311, ose=311, nss=312, nse=312, cs=311, ce=312
+2026-11-08 00:42:18.182 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:42:18.185 [I] SuggestionStripView: setSuggestions: count=14, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:18.185 [I] LatinIME: updateSuggestionStrip: count=14, composing=true, noDict=false
+2026-11-08 00:42:18.300 [I] LatinIME: onUpdateSelection: oss=312, ose=312, nss=313, nse=313, cs=311, ce=313
+2026-11-08 00:42:18.378 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-08 00:42:18.381 [I] SuggestionStripView: setSuggestions: count=14, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:18.381 [I] LatinIME: updateSuggestionStrip: count=14, composing=true, noDict=false
+2026-11-08 00:42:18.690 [I] LatinIME: onUpdateSelection: oss=313, ose=313, nss=316, nse=316, cs=-1, ce=-1
+2026-11-08 00:42:18.758 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=13, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:42:18.761 [I] SuggestionStripView: setSuggestions: count=13, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:18.761 [I] LatinIME: updateSuggestionStrip: count=13, composing=false, noDict=false
+2026-11-08 00:42:18.944 [I] LatinIME: onUpdateSelection: oss=316, ose=316, nss=321, nse=321, cs=-1, ce=-1
+2026-11-08 00:42:18.991 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=16, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:42:18.997 [I] SuggestionStripView: setSuggestions: count=16, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:18.998 [I] LatinIME: updateSuggestionStrip: count=16, composing=false, noDict=false
+2026-11-08 00:42:19.290 [I] SuggestionStripView: setSuggestions: count=0, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:19.290 [I] LatinIME: updateSuggestionStrip: count=0, composing=false, noDict=true
+2026-11-08 00:42:19.327 [I] LatinIME: onUpdateSelection: oss=321, ose=321, nss=322, nse=322, cs=-1, ce=-1
+2026-11-08 00:42:19.517 [I] LatinIME: onUpdateSelection: oss=322, ose=322, nss=323, nse=323, cs=-1, ce=-1
+2026-11-08 00:42:19.588 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=18, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:42:19.592 [I] SuggestionStripView: setSuggestions: count=18, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:19.592 [I] LatinIME: updateSuggestionStrip: count=18, composing=false, noDict=false
+2026-11-08 00:42:21.150 [I] LatinIME: onUpdateSelection: oss=323, ose=323, nss=381, nse=381, cs=-1, ce=-1
+2026-11-08 00:42:21.153 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=18, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:42:21.157 [I] SuggestionStripView: setSuggestions: count=18, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:21.157 [I] LatinIME: updateSuggestionStrip: count=18, composing=false, noDict=false
+2026-11-08 00:42:21.348 [I] LatinIME: onUpdateSelection: oss=381, ose=381, nss=439, nse=439, cs=-1, ce=-1
+2026-11-08 00:42:21.376 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=18, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:42:21.381 [I] SuggestionStripView: setSuggestions: count=18, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:21.382 [I] LatinIME: updateSuggestionStrip: count=18, composing=false, noDict=false
+2026-11-08 00:42:21.543 [I] LatinIME: onUpdateSelection: oss=439, ose=439, nss=497, nse=497, cs=-1, ce=-1
+2026-11-08 00:42:21.560 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=18, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-08 00:42:21.564 [I] SuggestionStripView: setSuggestions: count=18, stripVisible=true, toolbarVisible=false
+2026-11-08 00:42:21.565 [I] LatinIME: updateSuggestionStrip: count=18, composing=false, noDict=false
+2026-11-08 00:42:22.525 [I] LatinIME: hideWindow
+2026-11-08 00:42:22.526 [I] LatinIME: onFinishInputView
+2026-11-08 00:42:22.527 [I] LatinIME: onWindowHidden
+2026-11-08 00:42:36.193 [I] LatinIME: onFinishInput
+2026-11-08 00:42:43.778 [I] LatinIME: onUpdateSelection: oss=0, ose=0, nss=496, nse=496, cs=-1, ce=-1
+2026-11-08 00:42:48.401 [I] LatinIME: onFinishInput
+2026-11-08 00:43:14.112 [I] LatinIME: onFinishInput
+2026-11-08 00:43:15.045 [I] LatinIME: onFinishInput
+2026-11-08 00:43:17.151 [I] LatinIME: onFinishInput
+2026-11-08 00:43:20.528 [I] LatinIME: onFinishInput
+2026-11-08 00:43:20.654 [I] Settings: loadSettings
+2026-11-08 00:43:20.709 [I] LatinIME: Starting input. Cursor position = 0,0
+2026-11-08 00:43:23.377 [I] LatinIME: hideWindow
+2026-11-08 00:43:23.392 [I] LatinIME: onFinishInputView
+2026-11-08 00:43:23.394 [I] LatinIME: onWindowHidden
+2026-11-08 00:43:37.413 [I] LatinIME: onConfigurationChanged
+2026-11-08 00:43:37.455 [I] Settings: loadSettings
+2026-11-08 00:44:00.340 [I] LatinIME: onFinishInput
+2026-11-08 00:44:02.537 [I] LatinIME: onFinishInput
+2026-11-08 00:45:15.150 [I] LatinIME: onFinishInput
+2026-11-08 00:45:16.107 [I] LatinIME: onFinishInput
+2026-11-08 00:45:17.386 [I] LatinIME: onFinishInput
+2026-11-08 00:47:28.450 [I] Settings: loadSettings
+2026-11-08 00:47:28.469 [I] LatinIME: Starting input. Cursor position = 0,0
+2026-11-08 00:47:28.652 [I] SuggestionStripView: setSuggestions: count=0, stripVisible=true, toolbarVisible=false
+2026-11-08 00:47:28.652 [I] LatinIME: updateSuggestionStrip: count=0, composing=false, noDict=true
+2026-11-08 00:47:31.040 [I] LatinIME: hideWindow
+2026-11-08 00:47:31.046 [I] LatinIME: onFinishInputView
+2026-11-08 00:47:31.049 [I] LatinIME: onWindowHidden
+2026-11-08 00:47:33.279 [I] LatinIME: onFinishInput
