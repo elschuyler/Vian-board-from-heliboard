@@ -159,11 +159,7 @@ object ModularBackupEngine {
                     // 1. Settings & Appearance
                     if (BackupModule.SETTINGS in selectedModules) {
                         val rawPrefs = context.prefs().all.toMutableMap()
-                        // Security Vault credentials and pattern locks are strictly excluded from .zip backups
-                        rawPrefs.remove(PREF_PATTERN_SALT)
-                        rawPrefs.remove(PREF_PATTERN_HASH)
-                        rawPrefs.remove("pref_vault_security_pattern_salt")
-                        rawPrefs.remove("pref_vault_security_pattern_hash")
+                        // Keep master pattern locks and security configuration safely in the backup
                         val rawProtectedPrefs = context.protectedPrefs().all
 
                         // Write preferences in preferences/ folder and root for backward compatibility
@@ -610,13 +606,17 @@ object ModularBackupEngine {
                 prefs.edit { clear() }
                 readJsonLinesToSettings(prefLines!!, prefs)
 
-                // Always preserve existing vault credentials when restoring settings from zip
+                // If backup did not contain vault pattern, preserve current device pattern
                 prefs.edit {
-                    if (existingVaultSalt != null) putString(PREF_PATTERN_SALT, existingVaultSalt) else remove(PREF_PATTERN_SALT)
-                    if (existingVaultHash != null) putString(PREF_PATTERN_HASH, existingVaultHash) else remove(PREF_PATTERN_HASH)
+                    if (!prefs.contains(PREF_PATTERN_SALT) && existingVaultSalt != null) {
+                        putString(PREF_PATTERN_SALT, existingVaultSalt)
+                    }
+                    if (!prefs.contains(PREF_PATTERN_HASH) && existingVaultHash != null) {
+                        putString(PREF_PATTERN_HASH, existingVaultHash)
+                    }
                 }
                 restoredStats["settings"] = 1
-                LogCatcher.i(TAG, "Restored Settings & Appearance (vault credentials preserved)")
+                LogCatcher.i(TAG, "Restored Settings & Appearance (including unlock pattern)")
             }
             if (BackupModule.SETTINGS in selectedModules && protectedPrefLines != null) {
                 val protectedPrefs = context.protectedPrefs()

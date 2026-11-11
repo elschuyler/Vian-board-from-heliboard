@@ -262,8 +262,16 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
 
         if (addCloseButton) {
             val wrapper = LinearLayout(context)
-            suggestionsStrip.doOnNextLayout {
-                wrapper.layoutParams = LinearLayout.LayoutParams(suggestionsStrip.width - 30.dpToPx(resources), LayoutParams.MATCH_PARENT)
+            val closeWidth = 30.dpToPx(resources)
+            if (suggestionsStrip.width > closeWidth) {
+                wrapper.layoutParams = LinearLayout.LayoutParams(suggestionsStrip.width - closeWidth, LayoutParams.MATCH_PARENT)
+            } else {
+                wrapper.layoutParams = LinearLayout.LayoutParams(0, LayoutParams.MATCH_PARENT, 1f)
+                suggestionsStrip.doOnNextLayout {
+                    if (suggestionsStrip.width > closeWidth) {
+                        wrapper.layoutParams = LinearLayout.LayoutParams(suggestionsStrip.width - closeWidth, LayoutParams.MATCH_PARENT)
+                    }
+                }
             }
             wrapper.addView(view)
             suggestionsStrip.addView(wrapper)

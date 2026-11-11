@@ -41,7 +41,7 @@ public final class ResourceUtils {
         }
         int defaultKeyboardWidth = getDefaultKeyboardWidth(ctx);
         if (settingsValues.mIsHalfBoard) {
-            return (int) (0.75f * defaultKeyboardWidth);
+            return (int) (0.50f * defaultKeyboardWidth);
         }
         if (settingsValues.mOneHandedModeEnabled) {
             return (int) (settingsValues.mOneHandedModeScale * defaultKeyboardWidth);

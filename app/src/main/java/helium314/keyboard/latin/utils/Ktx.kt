@@ -131,7 +131,7 @@ fun InputMethodService.updateSoftInputWindowLayoutParameters(inputView: View?) {
     // and be placed at the bottom of SoftInputWindow. In fullscreen mode, these shouldn't
     // expand to the entire screen and should be coexistent with mExtractedArea above.
     // See setInputView and com.android.internal.R.layout.input_method.xml.
-    val layoutHeight = if (isFullscreenMode)
+    val layoutHeight = if (isFullscreenMode || Settings.getValues().mIsHalfBoard)
         ViewGroup.LayoutParams.WRAP_CONTENT
     else
         ViewGroup.LayoutParams.MATCH_PARENT
@@ -139,6 +139,8 @@ fun InputMethodService.updateSoftInputWindowLayoutParameters(inputView: View?) {
     ViewLayoutUtils.updateLayoutHeightOf(inputArea, layoutHeight)
     if (Settings.getValues().mIsFloatingKeyboard) {
         ViewLayoutUtils.updateLayoutGravityOf(inputArea, Gravity.TOP or Gravity.START)
+    } else if (Settings.getValues().mIsHalfBoard) {
+        ViewLayoutUtils.updateLayoutGravityOf(inputArea, Gravity.BOTTOM or Gravity.END)
     } else {
         ViewLayoutUtils.updateLayoutGravityOf(inputArea, Gravity.BOTTOM)
     }

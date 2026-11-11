@@ -106,15 +106,15 @@
             android:layout_gravity="top"
             />
 
-        <!-- Sticker button row set in bottom right corner slightly on period/enter buttons -->
+        <!-- Sticker button row set in bottom right corner flush with keys -->
         <LinearLayout
             android:id="@+id/float_handle_container"
             android:orientation="horizontal"
             android:visibility="gone"
             android:gravity="center_vertical"
             android:layout_gravity="bottom|end"
-            android:layout_marginBottom="8dp"
-            android:layout_marginEnd="8dp"
+            android:layout_marginBottom="2dp"
+            android:layout_marginEnd="2dp"
             android:layout_width="wrap_content"
             android:layout_height="28dp"
             android:paddingStart="4dp"

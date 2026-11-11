@@ -31,9 +31,89 @@ class VaultDao private constructor(private val db: Database) {
     @Volatile
     var isSuspended: Boolean = false
 
+    // Fast in-memory 3-4 character trigger index (O(1) constant-time check)
+    private val triggerIndex = mutableSetOf<String>()
+
     private val cache = mutableListOf<VaultEntry>().apply {
         ensureTableExists(db.writableDatabase)
         loadFromDb(this)
+        rebuildTriggersLocked(this)
+    }
+
+    private fun rebuildTriggersLocked(entries: List<VaultEntry>) {
+        triggerIndex.clear()
+        for (entry in entries) {
+            val sc = entry.shortcut.trim().lowercase()
+            if (sc.length in 3..4) {
+                triggerIndex.add(sc)
+            } else if (sc.length > 4) {
+                triggerIndex.add(sc.substring(0, 3))
+                triggerIndex.add(sc.substring(0, 4))
+            }
+            // Add exact shortcut with spaces if 3-4 chars
+            val rawSc = entry.shortcut.lowercase()
+            if (rawSc.length in 3..4 && rawSc != sc) {
+                triggerIndex.add(rawSc)
+            }
+            val p = entry.phrase.trim().lowercase()
+            if (p.length in 3..4) {
+                triggerIndex.add(p)
+            } else if (p.length > 4) {
+                triggerIndex.add(p.substring(0, 3))
+                triggerIndex.add(p.substring(0, 4))
+            }
+            val words = p.split(Regex("[\\s._@,-]+"))
+            for (w in words) {
+                if (w.length in 3..4) {
+                    triggerIndex.add(w)
+                } else if (w.length > 4) {
+                    triggerIndex.add(w.substring(0, 3))
+                    triggerIndex.add(w.substring(0, 4))
+                }
+            }
+        }
+    }
+
+    /**
+     * Ultra-lightweight check: Returns true if the candidate token (3-4 letters)
+     * triggers an awakening of Privacy Vault entries. O(1) complexity, 0ms latency.
+     */
+    fun hasTriggerMatch(candidate: CharSequence?): Boolean = synchronized(this) {
+        if (isSuspended || candidate.isNullOrEmpty() || triggerIndex.isEmpty()) return false
+        val str = candidate.toString().lowercase()
+        val len = str.length
+        if (len < 3) return false
+
+        // Direct token match (3 or 4 chars)
+        if (len in 3..4) {
+            if (triggerIndex.contains(str)) return true
+            val trimmed = str.trim()
+            if (trimmed.length in 3..4 && triggerIndex.contains(trimmed)) return true
+        }
+
+        // Check first 3 and 4 characters (prefix)
+        if (triggerIndex.contains(str.substring(0, 3))) return true
+        if (len >= 4 && triggerIndex.contains(str.substring(0, 4))) return true
+
+        // Check trailing 3 and 4 characters (suffix before cursor)
+        if (triggerIndex.contains(str.substring(len - 3))) return true
+        if (len >= 4 && triggerIndex.contains(str.substring(len - 4))) return true
+
+        // Check trailing word token (e.g. after space or delimiter)
+        var start = len
+        while (start > 0 && !Character.isWhitespace(str[start - 1]) && !isDelimiter(str[start - 1])) {
+            start--
+        }
+        val tokenLen = len - start
+        if (tokenLen in 3..4) {
+            val token = str.substring(start)
+            if (triggerIndex.contains(token)) return true
+        } else if (tokenLen > 4) {
+            if (triggerIndex.contains(str.substring(start, start + 3))) return true
+            if (triggerIndex.contains(str.substring(start, start + 4))) return true
+        }
+
+        return false
     }
 
     private fun loadFromDb(target: MutableList<VaultEntry>) {
@@ -139,14 +219,14 @@ class VaultDao private constructor(private val db: Database) {
      */
     fun findSuggestions(query: String): List<VaultEntry> = synchronized(this) {
         if (isSuspended || query.isBlank() || cache.isEmpty()) return emptyList()
-        // Strict 4-character gating: do not process queries shorter than 4 characters (spaces included)
-        if (query.length < 4) return emptyList()
+        // Strict 3-character minimum gating for suggestions
+        if (query.length < 3) return emptyList()
         val trimmed = query.trim()
-        if (trimmed.length < 4) return emptyList()
+        if (trimmed.length < 3) return emptyList()
         val results = mutableListOf<VaultEntry>()
         val seenIds = mutableSetOf<Long>()
 
-        // 1. Exact shortcut (if shortcut set, query length >= 4)
+        // 1. Exact shortcut (if shortcut set, query length >= 3)
         for (entry in cache) {
             if (entry.phrase.isBlank() || isCorruptedOrGibberish(entry.phrase)) continue
             if (entry.shortcut.isNotBlank() && entry.shortcut.equals(trimmed, ignoreCase = true)) {
@@ -155,7 +235,7 @@ class VaultDao private constructor(private val db: Database) {
             }
         }
 
-        // 2. Shortcut prefix (if shortcut set, query length >= 4)
+        // 2. Shortcut prefix (if shortcut set, query length >= 3)
         for (entry in cache) {
             if (entry.phrase.isBlank() || isCorruptedOrGibberish(entry.phrase)) continue
             if (entry.shortcut.isNotBlank() && !seenIds.contains(entry.id) && entry.shortcut.startsWith(trimmed, ignoreCase = true)) {
@@ -164,7 +244,7 @@ class VaultDao private constructor(private val db: Database) {
             }
         }
 
-        // 3. Phrase & notes token match (for query length >= 4, allocation-free)
+        // 3. Phrase & notes token match (for query length >= 3, allocation-free)
         for (entry in cache) {
             if (entry.phrase.isBlank() || isCorruptedOrGibberish(entry.phrase)) continue
             if (!seenIds.contains(entry.id)) {
@@ -184,9 +264,9 @@ class VaultDao private constructor(private val db: Database) {
 
     /**
      * Finds a matching VaultEntry based on the text immediately before the cursor.
-     * Evaluates strictly after at least 4 characters (spaces included):
-     * 1. Shortcut match: Checks trailing token (min 4 letters, spaces included if part of shortcut).
-     * 2. Phrase match: Checks trailing text ending at cursor from 4 up to 40 characters (spaces included).
+     * Evaluates strictly after at least 3-4 characters (spaces included):
+     * 1. Shortcut match: Checks trailing 3-4 letter window or token (min 3 letters, spaces included if part of shortcut).
+     * 2. Phrase match: Checks trailing text ending at cursor from 3 up to 40 characters (spaces included).
      *
      * Returns a Pair(VaultEntry, replaceLength) indicating which entry matched and how many
      * characters before cursor should be deleted and replaced upon user authorization.
@@ -195,26 +275,41 @@ class VaultDao private constructor(private val db: Database) {
         if (isSuspended || textBeforeCursor.isNullOrEmpty() || cache.isEmpty()) return null
         val text = textBeforeCursor.toString()
         val textLen = text.length
-        if (textLen < 4) return null
+        if (textLen < 3) return null
 
-        // 1. Check for shortcut on trailing word token (after space, newline, or delimiter, min 4 chars)
+        // 1. Direct 3 or 4-character window match (letters and spaces included)
+        // If the last 3 or 4 characters match an exact shortcut:
+        if (textLen >= 3) {
+            val last3 = text.substring(textLen - 3)
+            for (entry in cache) {
+                if (entry.shortcut.isNotBlank() && entry.shortcut.equals(last3, ignoreCase = true)) {
+                    if (entry.phrase.isNotBlank() && !isCorruptedOrGibberish(entry.phrase)) {
+                        return Pair(entry, 3)
+                    }
+                }
+            }
+        }
+        if (textLen >= 4) {
+            val last4 = text.substring(textLen - 4)
+            for (entry in cache) {
+                if (entry.shortcut.isNotBlank() && entry.shortcut.equals(last4, ignoreCase = true)) {
+                    if (entry.phrase.isNotBlank() && !isCorruptedOrGibberish(entry.phrase)) {
+                        return Pair(entry, 4)
+                    }
+                }
+            }
+        }
+
+        // 2. Trailing word token shortcut match (token of 3 or more chars, or shortcuts with spaces)
         var tokenStart = textLen
         while (tokenStart > 0 && !Character.isWhitespace(text[tokenStart - 1]) && !isDelimiter(text[tokenStart - 1])) {
             tokenStart--
         }
         val token = text.substring(tokenStart)
-        if (token.length >= 4) {
-            // Check exact shortcut match first
+        if (token.length >= 3) {
+            // Check exact shortcut match
             for (entry in cache) {
                 if (entry.shortcut.isNotBlank() && entry.shortcut.equals(token, ignoreCase = true)) {
-                    if (entry.phrase.isNotBlank() && !isCorruptedOrGibberish(entry.phrase)) {
-                        return Pair(entry, token.length)
-                    }
-                }
-            }
-            // Check shortcut prefix match if token length >= 4
-            for (entry in cache) {
-                if (entry.shortcut.isNotBlank() && entry.shortcut.startsWith(token, ignoreCase = true)) {
                     if (entry.phrase.isNotBlank() && !isCorruptedOrGibberish(entry.phrase)) {
                         return Pair(entry, token.length)
                     }
@@ -230,10 +325,10 @@ class VaultDao private constructor(private val db: Database) {
             }
         }
 
-        // Also check if any shortcut contains spaces (min 4 chars total) and matches text before cursor
+        // Check if any shortcut contains spaces (e.g. "sh  ", "pw  ") and matches text before cursor
         for (entry in cache) {
             val sc = entry.shortcut
-            if (sc.isNotBlank() && sc.length >= 4 && sc.contains(' ')) {
+            if (sc.isNotBlank() && sc.contains(' ')) {
                 val scLen = sc.length
                 if (textLen >= scLen && text.regionMatches(textLen - scLen, sc, 0, scLen, ignoreCase = true)) {
                     val isBoundary = (textLen == scLen) ||
@@ -246,10 +341,10 @@ class VaultDao private constructor(private val db: Database) {
             }
         }
 
-        // 2. Check phrase prefix match (at least 4 characters, spaces included)
-        // Check from longest candidate down to 4 characters
+        // 3. Check phrase prefix match (at least 3 characters, spaces included)
+        // Check from longest candidate down to 3 characters
         val maxCandidateLen = minOf(textLen, 40)
-        for (len in maxCandidateLen downTo 4) {
+        for (len in maxCandidateLen downTo 3) {
             val candidate = text.substring(textLen - len)
             val isBoundary = (textLen == len) ||
                     Character.isWhitespace(text[textLen - len - 1]) ||
@@ -270,18 +365,19 @@ class VaultDao private constructor(private val db: Database) {
 
     /**
      * Cross-checks a candidate word or phrase against Privacy Vault entries.
-     * Evaluates strictly for candidates of at least 4 characters.
+     * Evaluates candidates of 3 or more characters (spaces included).
      */
     fun findMatchingEntryForWord(word: String?): VaultEntry? = synchronized(this) {
-        if (isSuspended || word.isNullOrBlank() || cache.isEmpty()) return null
+        if (isSuspended || word.isNullOrEmpty() || cache.isEmpty()) return null
+        if (word.length < 3) return null
         val trimmed = word.trim()
-        if (trimmed.length < 4) return null
         for (entry in cache) {
             if (entry.phrase.isBlank() || isCorruptedOrGibberish(entry.phrase)) continue
-            if (entry.shortcut.isNotBlank() && entry.shortcut.equals(trimmed, ignoreCase = true)) {
+            // Match raw word or trimmed word
+            if (entry.shortcut.isNotBlank() && (entry.shortcut.equals(word, ignoreCase = true) || entry.shortcut.equals(trimmed, ignoreCase = true))) {
                 return entry
             }
-            if (entry.phrase.equals(trimmed, ignoreCase = true)) {
+            if (entry.phrase.equals(word, ignoreCase = true) || entry.phrase.equals(trimmed, ignoreCase = true)) {
                 return entry
             }
         }
@@ -338,6 +434,7 @@ class VaultDao private constructor(private val db: Database) {
                 LogCatcher.i("VaultDao", "Added vault entry id=$resultId (shortcut='$trimmedShortcut')")
             }
         }
+        rebuildTriggersLocked(cache)
         listener?.onVaultEntriesChanged()
         return resultId
     }
@@ -351,6 +448,7 @@ class VaultDao private constructor(private val db: Database) {
         val success = deletedRows > 0
         if (success) {
             cache.removeAll { it.id == id }
+            rebuildTriggersLocked(cache)
             LogCatcher.i("VaultDao", "Deleted vault entry id=$id")
             listener?.onVaultEntriesChanged()
         }
@@ -360,6 +458,7 @@ class VaultDao private constructor(private val db: Database) {
     fun clear() = synchronized(this) {
         db.writableDatabase.delete(TABLE, null, null)
         cache.clear()
+        rebuildTriggersLocked(cache)
         LogCatcher.i("VaultDao", "Cleared all vault entries")
         listener?.onVaultEntriesChanged()
     }
@@ -367,6 +466,7 @@ class VaultDao private constructor(private val db: Database) {
     fun reload() = synchronized(this) {
         cache.clear()
         loadFromDb(cache)
+        rebuildTriggersLocked(cache)
         LogCatcher.i("VaultDao", "Reloaded ${cache.size} vault entries from database")
         listener?.onVaultEntriesChanged()
     }

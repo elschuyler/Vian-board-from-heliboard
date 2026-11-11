@@ -947,6 +947,9 @@ public class LatinIME extends InputMethodService implements
             return;
         }
 
+        // Guarantee clean touch tracking and dismiss any stale sliding previews from previous sessions
+        mainKeyboardView.cancelAllOngoingEvents();
+
         // Update to a gesture consumer with the current editor and IME state.
         mGestureConsumer = GestureConsumer.newInstance(editorInfo,
                 mInputLogic.getPrivateCommandPerformer(),
@@ -1660,28 +1663,64 @@ public class LatinIME extends InputMethodService implements
             return;
         }
 
-        if (!currentSettingsValues.mLiteMode && !VaultDao.Companion.getInstance(this).isSuspended()) {
-            final CharSequence textBefore = mInputLogic.mConnection.getTextBeforeCursor(40, 0);
-            kotlin.Pair<VaultEntry, Integer> privacyMatch = VaultDao.Companion.getInstance(this).findMatchForTextBeforeCursor(textBefore);
+        final VaultDao vaultDao = VaultDao.Companion.getInstance(this);
+        if (!currentSettingsValues.mLiteMode && !vaultDao.isSuspended() && vaultDao.getCount() > 0) {
+            final String typedWord = suggestedWords != null && suggestedWords.mTypedWordInfo != null
+                    ? suggestedWords.mTypedWordInfo.mWord : null;
 
-            // Cross-check: If suggestedWords contains a suggestion that matches Privacy Vault,
-            // or if typedWord matches a vault entry, Privacy Vault strictly takes precedence over Personal Dictionary
-            if (privacyMatch == null && suggestedWords != null) {
-                final String typedWord = suggestedWords.mTypedWordInfo != null ? suggestedWords.mTypedWordInfo.mWord : null;
-                VaultEntry matchingEntry = VaultDao.Companion.getInstance(this).findMatchingEntryForWord(typedWord);
-                int replaceLen = typedWord != null ? typedWord.length() : 0;
-                if (matchingEntry == null) {
+            // Interconnected Awakening: Use dictionary / prediction engine output to awaken Privacy Vault
+            // Check if 3-4 letters typed match in-memory triggers in O(1) time
+            boolean isAwakened = false;
+            if (typedWord != null && typedWord.length() >= 3 && vaultDao.hasTriggerMatch(typedWord)) {
+                isAwakened = true;
+            }
+
+            // Also check prediction engine completions for 3-4 letter trigger awakening
+            if (!isAwakened && suggestedWords != null) {
+                final int maxCheck = Math.min(suggestedWords.size(), 3);
+                for (int i = 0; i < maxCheck; i++) {
+                    final String word = suggestedWords.getWord(i);
+                    if (word != null && word.length() >= 3 && vaultDao.hasTriggerMatch(word)) {
+                        isAwakened = true;
+                        break;
+                    }
+                }
+            }
+
+            CharSequence textBefore = null;
+            // Also check trailing text before cursor (for space-separated shortcuts or direct phrase prefixes)
+            if (!isAwakened) {
+                textBefore = mInputLogic.mConnection.getTextBeforeCursor(40, 0);
+                if (textBefore != null && textBefore.length() >= 3 && vaultDao.hasTriggerMatch(textBefore)) {
+                    isAwakened = true;
+                }
+            }
+
+            kotlin.Pair<VaultEntry, Integer> privacyMatch = null;
+            if (isAwakened) {
+                if (textBefore == null) {
+                    textBefore = mInputLogic.mConnection.getTextBeforeCursor(40, 0);
+                }
+                privacyMatch = vaultDao.findMatchForTextBeforeCursor(textBefore);
+
+                // Cross-check: If suggestedWords contains a suggestion that matches Privacy Vault,
+                // or if typedWord matches a vault entry, Privacy Vault strictly takes precedence over Personal Dictionary
+                if (privacyMatch == null && typedWord != null) {
+                    final VaultEntry matchingEntry = vaultDao.findMatchingEntryForWord(typedWord);
+                    if (matchingEntry != null) {
+                        privacyMatch = new kotlin.Pair<>(matchingEntry, typedWord.length());
+                    }
+                }
+                if (privacyMatch == null && suggestedWords != null) {
                     for (int i = 0; i < suggestedWords.size(); i++) {
                         final String word = suggestedWords.getWord(i);
-                        matchingEntry = VaultDao.Companion.getInstance(this).findMatchingEntryForWord(word);
+                        final VaultEntry matchingEntry = vaultDao.findMatchingEntryForWord(word);
                         if (matchingEntry != null) {
-                            replaceLen = typedWord != null ? typedWord.length() : word.length();
+                            final int replaceLen = typedWord != null ? typedWord.length() : word.length();
+                            privacyMatch = new kotlin.Pair<>(matchingEntry, replaceLen);
                             break;
                         }
                     }
-                }
-                if (matchingEntry != null) {
-                    privacyMatch = new kotlin.Pair<>(matchingEntry, replaceLen);
                 }
             }
 
@@ -1883,18 +1922,24 @@ public class LatinIME extends InputMethodService implements
         final SharedPreferences prefs = DeviceProtectedUtils.getSharedPreferences(this);
         final boolean isSelfContained = prefs.getBoolean("pref_self_contained_isolation", false);
         final boolean isPasswordField = InputTypeUtils.isPasswordInputType(editorInfo.inputType) || InputTypeUtils.isVisiblePasswordInputType(editorInfo.inputType);
-        if (!isPasswordField && !isSelfContained) {
-            return false;
-        }
         if (mSettings.getCurrent().mLiteMode) {
             return false;
         }
-        final List<VaultEntryEntity> securityMatches = SecurityVaultContextSniffer.INSTANCE.findMatchingEntries(this, editorInfo);
 
-        final CharSequence textBefore = mInputLogic.mConnection.getTextBeforeCursor(40, 0);
-        final kotlin.Pair<VaultEntry, Integer> privacyMatch = !VaultDao.Companion.getInstance(this).isSuspended()
-                ? VaultDao.Companion.getInstance(this).findMatchForTextBeforeCursor(textBefore)
-                : null;
+        // Security Vault credentials trigger on password fields OR in self-contained isolation mode
+        final List<VaultEntryEntity> securityMatches = (isPasswordField || isSelfContained)
+                ? SecurityVaultContextSniffer.INSTANCE.findMatchingEntries(this, editorInfo)
+                : Collections.emptyList();
+
+        // Privacy Vault shortcuts/phrases trigger across all text fields (lightweight 3-4 letter checker)
+        final VaultDao vaultDao = VaultDao.Companion.getInstance(this);
+        kotlin.Pair<VaultEntry, Integer> privacyMatch = null;
+        if (!vaultDao.isSuspended() && vaultDao.getCount() > 0) {
+            final CharSequence textBefore = mInputLogic.mConnection.getTextBeforeCursor(40, 0);
+            if (textBefore != null && textBefore.length() >= 3 && vaultDao.hasTriggerMatch(textBefore)) {
+                privacyMatch = vaultDao.findMatchForTextBeforeCursor(textBefore);
+            }
+        }
 
         if (securityMatches.isEmpty() && privacyMatch == null) {
             return false;

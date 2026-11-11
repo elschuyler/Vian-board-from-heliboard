@@ -52,7 +52,7 @@ public final class SlidingKeyInputDrawingPreview extends AbstractDrawingPreview 
 
     @Override
     public void onDeallocateMemory() {
-        // Nothing to do here.
+        dismissSlidingKeyInputPreview();
     }
 
     public void dismissSlidingKeyInputPreview() {

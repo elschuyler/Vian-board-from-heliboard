@@ -362,6 +362,8 @@ object VaultSessionManager {
 
     fun isSettingsSessionValid(): Boolean = System.currentTimeMillis() < settingsSessionExpiryMs
 
+    fun isAnySessionValid(): Boolean = isPrivacySessionValid() || isSecuritySessionValid() || isSettingsSessionValid()
+
     fun getSecuritySessionRemainingMs(): Long = maxOf(0L, securitySessionExpiryMs - System.currentTimeMillis())
 
     fun getPrivacySessionRemainingMs(): Long = maxOf(0L, privacySessionExpiryMs - System.currentTimeMillis())

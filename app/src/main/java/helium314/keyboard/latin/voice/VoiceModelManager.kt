@@ -33,7 +33,7 @@ object VoiceModelManager {
     private val GGUF_MAGIC = byteArrayOf(0x47, 0x47, 0x55, 0x46) // "GGUF"
 
     init {
-        LogCatcher.markComponentActive("VoiceModelManager", "Storage", "Initialized")
+        LogCatcher.markComponentActive("VoiceModelManager", "Storage", "Idle")
     }
 
     fun getModelDirectory(context: Context): File {

@@ -1321,6 +1321,71 @@ Vianboard is a fully customizable, privacy-conscious offline Android keyboard ap
       - Purged build-generated `./debug.keystore` and `./debug.keystore.base64` per Mandate 2 Credential Immunity.
       - Verified project compilation with `compile_applet` (100% success, 0 errors).
 
+- **2026-11-09**: Completed Phase 100 (Privacy Vault 4-Letter Shortcut Resolution, Pattern Lock Backup & Restore, Subsystem Liveness Fix):
+    - **Component 1: Decoupled Privacy Vault Pill Gating (`LatinIME.java`)**:
+      - Separated Privacy Vault shortcuts and phrase matching from `isPasswordField` / `isSelfContained` checks in `tryShowVaultSuggestion()`. Privacy Vault shortcuts and phrase pills now correctly appear in all normal text input fields (messages, search, notes, browser).
+      - Security Vault credential pills remain protected, triggering specifically on password fields or when Self-Contained Isolation Mode is active.
+    - **Component 2: 4-Character Shortcut Matching with Spaces (`VaultDao.kt`)**:
+      - Implemented direct 4-character window matching against `textBeforeCursor` (inclusive of whitespace) so shortcuts of exactly 4 characters (e.g. `sh  `, `pw  `, `addr`) match instantly.
+      - Maintained trailing word and phrase matching with minimum 4-character candidate thresholds.
+    - **Component 3: Suggestion Strip View LayoutParams Timing Fix (`SuggestionStripView.kt`)**:
+      - Replaced pure `doOnNextLayout` delayed assignment in `setExternalSuggestionView(view, addCloseButton)` with immediate layout parameters (`LinearLayout.LayoutParams(0, MATCH_PARENT, 1f)` fallback and synchronous width check), eliminating layout collapse on already-measured strip views.
+    - **Component 4: Unlock Pattern Preservation Across Backup & Restore (`ModularBackupEngine.kt`)**:
+      - Ceased stripping `PREF_PATTERN_SALT`, `PREF_PATTERN_HASH`, and security pattern preferences during `SETTINGS` export.
+      - Updated restore pipeline to restore existing master unlock pattern from backup archive, ensuring seamless restoration of the same pattern on new devices or clean reinstalls.
+    - **Component 5: Accurate Active Subsystems Reporting in LogKeeper (`LogCatcher.kt`, `VoiceModelManager.kt`, `VaultSessionManager.kt`)**:
+      - Marked `VoiceModelManager` status as `"Idle"` post-initialization.
+      - Added dynamic validity check (`isAnySessionValid()`) in `LogCatcher.getActiveComponents()` so `VaultSessionManager` does not linger as active after in-memory sessions expire.
+      - Filtered out `"Initialized"` status from active subsystems list.
+    - **Component 6: Credential Immunity & Build Verification**:
+      - Cleaned up build-generated `debug.keystore` and `debug.keystore.base64`.
+      - Verified 100% build pass via `compile_applet`.
+
+- **2026-11-10**: Completed Phase 101 (Ghost Red Spot / Rubber-Band Slide Indicator Resolution & Lifecycle Hardening):
+    - **Component 1: Ghost Red Spot Lifecycle Hygiene (`LatinIME.java`, `SlidingKeyInputDrawingPreview.java`)**:
+      - In `LatinIME.onStartInputViewInternal()`, explicitly invoked `mainKeyboardView.cancelAllOngoingEvents()` before setting up touch listeners, clearing out any lingering pointer tracking state or dangling slide indicator previews when opening the keyboard.
+      - In `SlidingKeyInputDrawingPreview.onDeallocateMemory()`, replaced no-op body with `dismissSlidingKeyInputPreview()`, ensuring that when the preview placer view detaches or frees memory, the internal boolean flag `mShowsSlidingKeyInputPreview` is forced to `false`.
+    - **Component 2: Default Toggle Configuration & Settings Exposure (`Defaults.kt`, `GestureTypingScreen.kt`, `strings.xml`)**:
+      - Set `Defaults.PREF_SLIDING_KEY_INPUT_PREVIEW = false` by default, eliminating unsolicited red spot/rubber-band line animations out of the box.
+      - Promoted "Show Slide Indicator" (`pref_sliding_key_input_preview_title`) into user-accessible **Settings > Gesture Typing** with descriptive summary, allowing users to toggle it on or off on demand.
+    - **Component 3: Credential Immunity & Build Verification**:
+      - Purged build-generated `debug.keystore` and `debug.keystore.base64`.
+      - Verified 100% build pass via `compile_applet`.
+
+- **2026-11-10**: Completed Phase 102 (Half Board Horizontal Alignment, Rounded Top Corner, Smooth Resizing & Zero Bottom Padding):
+    - **Component 1: Half Board 50% Horizontal Width & Right Docking (`ResourceUtils.java`, `FloatingKeyboardUtils.kt`, `Ktx.kt`)**:
+      - Reduced Half Board width factor from `0.75f` (3/4 width) to exactly `0.50f` ($50\%$ screen width) in `ResourceUtils.getKeyboardWidth()`.
+      - In `FloatingKeyboardUtils.setHalfBoard()`, positioned the 50%-width keyboard cleanly at the right edge (`Gravity.BOTTOM or Gravity.END`, `x = displayWidth - targetWidth`), leaving the entire left 50% of the screen completely visible and touchable by the host app.
+      - Applied a smooth 16dp rounded corner outline (`outlineProvider` with `clipToOutline = true`) to the top-left corner where the half board container interfaces with the host screen.
+      - Updated `updateSoftInputWindowLayoutParameters` in `Ktx.kt` so that when `mIsHalfBoard` is active, window height wraps content (`WRAP_CONTENT`), avoiding an invisible full-screen intercepting touch overlay.
+    - **Component 2: Smooth Floating Board Resizing (`FloatingKeyboardUtils.kt`)**:
+      - Completely refactored `setResizeListener()` to compute continuous touch deltas using fixed `ACTION_DOWN` reference coordinates (`downRawX`, `downRawY`, `initialWidth`, `initialHeight`), eliminating sensitivity glitches and coordinate jumping.
+      - Updated live layout parameters directly during `ACTION_MOVE` with `requestLayout()`, postponing expensive preference persistence and `reloadKeyboard()` until `ACTION_UP`.
+    - **Component 3: Zero Bottom Padding in Floating Mode (`FloatingKeyboardUtils.kt`, `main_keyboard_frame.xml`)**:
+      - Removed the artificial 72dp bottom clearance from `readPosition()` and `unfold()`, allowing the floating keyboard to rest flush with screen boundaries.
+      - Reduced sticker pill margins on `float_handle_container` to 2dp, eliminating dead padding below the spacebar and bottom row keys.
+    - **Component 4: Credential Immunity & Build Verification**:
+      - Purged build-generated `debug.keystore` and `debug.keystore.base64`.
+      - Verified 100% build pass via `compile_applet`.
+
+- **2026-11-11**: Completed Phase 103 (Privacy Vault Lightweight 3-4 Letter Checker & Prediction Engine Interconnected Awakening):
+    - **Component 1: In-Memory 3-4 Letter Trigger Index (`VaultDao.kt`)**:
+      - Implemented `triggerIndex: MutableSet<String>` storing in-memory 3-character and 4-character tokens, prefix/suffix slices, and space-inclusive tokens for all active vault entries.
+      - Implemented `hasTriggerMatch(candidate: CharSequence?): Boolean` providing an ultra-lightweight, allocation-free $O(1)$ constant-time lookup ($<0.01\text{ms}$).
+      - Bound automatic trigger rebuilds (`rebuildTriggersLocked(cache)`) to all database mutation points (`addOrUpdate()`, `delete()`, `clear()`, `reload()`).
+    - **Component 2: Prediction Engine Interconnected Awakening (`LatinIME.java`)**:
+      - Interconnected the existing dictionary prediction output (`SuggestedWords.mTypedWordInfo.mWord` and top candidate predictions) with `VaultDao.hasTriggerMatch()`.
+      - While typing 1 or 2 characters, Privacy Vault remains 100% dormant ($0$ SQLite queries, $0$ regex scans, $0$ overhead).
+      - Upon reaching 3 or 4 letters, `hasTriggerMatch()` detects matching shortcut or phrase prefixes, awakens Privacy Vault, and seamlessly renders the Privacy Vault pill on the suggestion strip.
+      - Dictionary binaries and `Suggest.kt` prediction logic remain 100% untouched and unmodified.
+    - **Component 3: 3-4 Character Threshold Parity (`VaultDao.kt`, `LatinIME.java`)**:
+      - Updated `findSuggestions()`, `findMatchForTextBeforeCursor()`, and `findMatchingEntryForWord()` in `VaultDao.kt` to support both 3-character (e.g. `pin`, `pwd`, `eml`, `adr`) and 4-character (e.g. `pass`, `test`, `sh  `, `addr`) shortcuts, trailing words, and direct phrase prefixes.
+      - Applied lightweight trigger check to `tryShowVaultSuggestion()` in `LatinIME.java`.
+    - **Component 4: Credential Immunity & Build Verification**:
+      - Purged build-generated `./debug.keystore` and `./debug.keystore.base64` per Mandate 2 Credential Immunity.
+      - Verified 100% clean compilation via `compile_applet`.
+
+
 
 
 

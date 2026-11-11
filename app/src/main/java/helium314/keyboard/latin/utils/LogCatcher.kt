@@ -175,11 +175,15 @@ object LogCatcher {
 
     @JvmStatic
     fun getActiveComponents(): List<ComponentInfo> {
+        val now = System.currentTimeMillis()
         return activeComponents.values.filter {
             !it.status.equals("Stopped", ignoreCase = true) &&
             !it.status.equals("Idle", ignoreCase = true) &&
             !it.status.equals("Locked", ignoreCase = true) &&
-            !it.status.equals("Dismissed", ignoreCase = true)
+            !it.status.equals("Dismissed", ignoreCase = true) &&
+            !it.status.equals("Initialized", ignoreCase = true) &&
+            // Dynamic check for VaultSessionManager expiry
+            (it.name != "VaultSessionManager" || helium314.keyboard.security.VaultSessionManager.isAnySessionValid())
         }.sortedBy { it.name }
     }
 

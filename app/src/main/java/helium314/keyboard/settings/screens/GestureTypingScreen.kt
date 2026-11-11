@@ -50,8 +50,9 @@ fun GestureTypingScreen(
             Settings.PREF_GESTURE_FAST_TYPING_COOLDOWN else null,
         if (gestureEnabled &&
             (prefs.getBoolean(Settings.PREF_GESTURE_PREVIEW_TRAIL, Defaults.PREF_GESTURE_PREVIEW_TRAIL) || gestureFloatingPreviewEnabled))
-            Settings.PREF_GESTURE_TRAIL_FADEOUT_DURATION else null
-        )
+            Settings.PREF_GESTURE_TRAIL_FADEOUT_DURATION else null,
+        helium314.keyboard.latin.settings.DebugSettings.PREF_SLIDING_KEY_INPUT_PREVIEW
+    )
     SearchSettingsScreen(
         onClickBack = onClickBack,
         title = stringResource(R.string.settings_screen_gesture),
@@ -109,6 +110,9 @@ fun createGestureTypingSettings(context: Context) = listOf(
             description = { stringResource(R.string.abbreviation_unit_milliseconds, (it + 100).toString()) },
             stepSize = 10,
         ) { KeyboardSwitcher.getInstance().setThemeNeedsReload() }
+    },
+    Setting(context, helium314.keyboard.latin.settings.DebugSettings.PREF_SLIDING_KEY_INPUT_PREVIEW, R.string.pref_sliding_key_input_preview_title, R.string.pref_sliding_key_input_preview_summary) { def ->
+        SwitchPreference(def, Defaults.PREF_SLIDING_KEY_INPUT_PREVIEW)
     },
 )
 
