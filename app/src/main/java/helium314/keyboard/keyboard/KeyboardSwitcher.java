@@ -114,23 +114,37 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     private boolean mPendingVoiceLaunch = false;
     private boolean mPendingPromptLaunch = false;
     private boolean mIsFloatingModalActive = false;
+    private boolean mIsLoadingKeyboard = false;
 
     public boolean isFloatingModalActive() {
         return mIsFloatingModalActive;
     }
 
     public void setFloatingModalActive(boolean active) {
+        setFloatingModalActiveInternal(active, true);
+    }
+
+    private void setFloatingModalActiveInternal(final boolean active, final boolean reload) {
+        if (mIsFloatingModalActive == active) {
+            return;
+        }
         mIsFloatingModalActive = active;
+        if (mThemeContext != null) {
+            final SettingsValues current = Settings.getValues();
+            Settings.getInstance().loadSettings(mThemeContext, current.mLocale, current.mInputAttributes);
+        }
         if (mCurrentInputView != null) {
             KtxKt.updateSoftInputWindowLayoutParameters(mLatinIME, mCurrentInputView);
             if (active) {
                 FloatingKeyboardUtils.setFloating(mCurrentInputView);
-            } else {
+            } else if (!Settings.getValues().mIsHalfBoard) {
                 FloatingKeyboardUtils.disableFloating(mCurrentInputView);
             }
         }
         setBackgroundGatheringIndicatorPosition();
-        reloadKeyboard();
+        if (reload && !mIsLoadingKeyboard) {
+            reloadKeyboard();
+        }
     }
 
     public void toggleFloatingModal() {
@@ -139,13 +153,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
 
     public void closeFloatingModal() {
         if (mIsFloatingModalActive) {
-            mIsFloatingModalActive = false;
-            if (mCurrentInputView != null) {
-                FloatingKeyboardUtils.disableFloating(mCurrentInputView);
-                KtxKt.updateSoftInputWindowLayoutParameters(mLatinIME, mCurrentInputView);
-            }
-            setBackgroundGatheringIndicatorPosition();
-            reloadKeyboard();
+            setFloatingModalActiveInternal(false, true);
         }
     }
 
@@ -241,6 +249,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                 .setOneHandedModeEnabled(settingsValues.mOneHandedModeEnabled)
                 .setInternalAction(internalAction)
                 .build();
+        mIsLoadingKeyboard = true;
         try {
             mState.onLoadKeyboard(currentAutoCapsState, currentRecapitalizeState, settingsValues.mOneHandedModeEnabled);
         } catch (KeyboardLayoutSet.Companion.KeyboardLayoutSetException e) {
@@ -259,6 +268,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             } catch (KeyboardLayoutSet.Companion.KeyboardLayoutSetException e2) {
                 Log.e(TAG, "even fallback to defaults failed: " + e2.getKeyboardId(), e2.getCause());
             }
+        } finally {
+            mIsLoadingKeyboard = false;
         }
     }
 
@@ -1249,32 +1260,44 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
 
     @Override
     public void setFloatingKeyboardEnabled(boolean enabled) {
-        setFloatingBoardEnabled(enabled);
+        if (!mIsLoadingKeyboard) {
+            setFloatingBoardEnabled(enabled);
+        }
     }
 
     @Override
     public void setFloatingBoardEnabled(boolean enabled) {
         if (enabled && Settings.getValues().mIsHalfBoard) {
-            setHalfBoardEnabled(false);
+            setHalfBoardEnabledInternal(false, false);
         }
-        setFloatingModalActive(enabled);
+        setFloatingModalActiveInternal(enabled, true);
     }
 
     @Override
     public void setHalfBoardEnabled(boolean enabled) {
+        setHalfBoardEnabledInternal(enabled, true);
+    }
+
+    private void setHalfBoardEnabledInternal(boolean enabled, boolean reload) {
         if (enabled && mIsFloatingModalActive) {
-            setFloatingModalActive(false);
+            setFloatingModalActiveInternal(false, false);
         }
-        if (enabled && Settings.getValues().mOneHandedModeEnabled) {
-            setOneHandedModeEnabled(false, false);
+        if (mThemeContext != null) {
+            SettingsKt.setHalfBoardEnabled(mThemeContext, enabled);
+            Settings.getInstance().loadSettings(mThemeContext, Settings.getValues().mLocale, Settings.getValues().mInputAttributes);
         }
-        SettingsKt.setHalfBoardEnabled(mThemeContext, enabled);
-        Settings.getInstance().loadSettings(mThemeContext, Settings.getValues().mLocale, Settings.getValues().mInputAttributes);
-        KtxKt.updateSoftInputWindowLayoutParameters(mLatinIME, mCurrentInputView);
-        if (enabled) FloatingKeyboardUtils.setHalfBoard(mCurrentInputView);
-        else FloatingKeyboardUtils.disableHalfBoard(mCurrentInputView);
+        if (enabled && mKeyboardViewWrapper != null && mKeyboardViewWrapper.getOneHandedModeEnabled()) {
+            mKeyboardViewWrapper.setOneHandedModeEnabled(false);
+        }
+        if (mCurrentInputView != null) {
+            KtxKt.updateSoftInputWindowLayoutParameters(mLatinIME, mCurrentInputView);
+            if (enabled) FloatingKeyboardUtils.setHalfBoard(mCurrentInputView);
+            else FloatingKeyboardUtils.disableHalfBoard(mCurrentInputView);
+        }
         setBackgroundGatheringIndicatorPosition();
-        reloadKeyboard();
+        if (reload && !mIsLoadingKeyboard) {
+            reloadKeyboard();
+        }
     }
 
     public void toggleSplitKeyboardMode() {
@@ -1289,7 +1312,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     }
 
     public void reloadKeyboard() {
-        if (mCurrentInputView == null)
+        if (mCurrentInputView == null || mIsLoadingKeyboard)
             return;
         if (mEmojiPalettesView != null) {
             mEmojiPalettesView.clearKeyboardCache();

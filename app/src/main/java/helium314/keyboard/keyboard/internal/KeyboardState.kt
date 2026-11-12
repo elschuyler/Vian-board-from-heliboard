@@ -116,7 +116,6 @@ class KeyboardState(private val switchActions: SwitchActions) {
             switchActions.requestUpdatingShiftState(autoCapsFlags, recapitalizeMode)
         }
         switchActions.setOneHandedModeEnabled(onHandedModeEnabled)
-        switchActions.setFloatingKeyboardEnabled(KeyboardSwitcher.getInstance().isFloatingModalActive)
     }
 
     fun onSaveKeyboardState() {
@@ -498,11 +497,9 @@ class KeyboardState(private val switchActions: SwitchActions) {
             KeyCode.SWITCH_ONE_HANDED_MODE -> switchActions.switchOneHandedMode()
             KeyCode.TOGGLE_HALF_BOARD -> {
                 switchActions.setHalfBoardEnabled(!Settings.getValues().mIsHalfBoard)
-                KeyboardSwitcher.getInstance().reloadKeyboard()
             }
             KeyCode.TOGGLE_FLOATING_BOARD -> {
                 switchActions.setFloatingBoardEnabled(!KeyboardSwitcher.getInstance().isFloatingModalActive)
-                KeyboardSwitcher.getInstance().reloadKeyboard()
             }
         }
     }

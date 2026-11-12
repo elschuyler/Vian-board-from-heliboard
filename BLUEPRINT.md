@@ -1420,6 +1420,18 @@ Vianboard is a fully customizable, privacy-conscious offline Android keyboard ap
       - Purged build-generated `./debug.keystore` and `./debug.keystore.base64` per Mandate 2 Credential Immunity.
       - Verified 100% clean compilation via `compile_applet`.
 
+- **2026-11-12**: Completed Phase 106 (`StackOverflowError` Crash Fix on Keyboard Select & Floating/Half-Board Toggle Synchronization):
+    - **Component 1: Eliminated `onLoadKeyboard()` Recursion Loop (`KeyboardSwitcher.java`, `KeyboardState.kt`)**:
+      - Removed the unconditional `switchActions.setFloatingKeyboardEnabled(KeyboardSwitcher.getInstance().isFloatingModalActive)` call inside `KeyboardState.onLoadKeyboard()`, breaking the mutual recursion (`onStartInputViewInternal` -> `loadKeyboard` -> `onLoadKeyboard` -> `setFloatingModalActive` -> `reloadKeyboard` -> `loadKeyboard`).
+      - Added `mIsLoadingKeyboard` re-entrancy guard around `mState.onLoadKeyboard(...)` and in `reloadKeyboard()` / `setFloatingKeyboardEnabled()` so no `SwitchActions` callback can recurse back into `reloadKeyboard()` while a layout load is in progress.
+    - **Component 2: State-Change Guard, Fresh `SettingsValues` & Half-Board Protection (`KeyboardSwitcher.java`, `KeyboardState.kt`)**:
+      - Refactored `setFloatingModalActive()` and `closeFloatingModal()` through `setFloatingModalActiveInternal(active, reload)` with a `mIsFloatingModalActive == active` early-return guard, preventing redundant reloads and ensuring `Settings.getInstance().loadSettings(...)` recalculates `mIsFloatingKeyboard` and `mBottomPaddingScale = 0f` before window layout updates and keyboard reload.
+      - Guarded `FloatingKeyboardUtils.disableFloating()` with `!Settings.getValues().mIsHalfBoard` so disabling floating state cannot clobber Half Board's `Gravity.BOTTOM | Gravity.END` and 50% width.
+      - Consolidated `setFloatingBoardEnabled()` / `setHalfBoardEnabled()` through `setHalfBoardEnabledInternal()` and removed duplicate `KeyboardSwitcher.getInstance().reloadKeyboard()` calls in `KeyboardState.kt` (`TOGGLE_HALF_BOARD` / `TOGGLE_FLOATING_BOARD`), reducing mode switches to a single clean reload.
+    - **Component 3: Credential Immunity & Build Verification**:
+      - Purged build-generated `./debug.keystore` and `./debug.keystore.base64` per Mandate 2 Credential Immunity.
+      - Verified 100% clean compilation via `compile_applet`.
+
 
 
 

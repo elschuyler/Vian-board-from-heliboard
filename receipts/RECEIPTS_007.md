@@ -330,6 +330,32 @@ This log file tracks all development steps, modifications, fixes, and build veri
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: Previously installed builds with package ID `shura.keyboard.rsvjjk` must be uninstalled first on physical test devices to avoid dual-install collision.
 
+---
+
+### Receipt 007-11
+- **Timestamp**: 2026-11-12T12:19:00-08:00
+- **Requested**:
+  - Implement agreed fix for `StackOverflowError` crash on keyboard select / input start and floating/half-board toggle state synchronization.
+- **Files touched**:
+  - `app/src/main/java/helium314/keyboard/keyboard/KeyboardSwitcher.java`
+  - `app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardState.kt`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_007.md`
+- **What was actually done**:
+  1. In `KeyboardState.kt`:
+     - Removed unconditional `switchActions.setFloatingKeyboardEnabled(KeyboardSwitcher.getInstance().isFloatingModalActive)` from `onLoadKeyboard()`, breaking the infinite mutual recursion loop (`loadKeyboard -> onLoadKeyboard -> setFloatingKeyboardEnabled -> setFloatingBoardEnabled -> setFloatingModalActive -> reloadKeyboard -> loadKeyboard`).
+     - Removed redundant `KeyboardSwitcher.getInstance().reloadKeyboard()` calls after `setHalfBoardEnabled(...)` and `setFloatingBoardEnabled(...)` in `TOGGLE_HALF_BOARD` and `TOGGLE_FLOATING_BOARD`.
+  2. In `KeyboardSwitcher.java`:
+     - Added `mIsLoadingKeyboard` re-entrancy guard around `mState.onLoadKeyboard(...)` in `loadKeyboard()`, in `reloadKeyboard()`, and in `setFloatingKeyboardEnabled()`.
+     - Consolidated `setFloatingModalActive()` and `closeFloatingModal()` into `setFloatingModalActiveInternal(active, reload)` with an early return when `mIsFloatingModalActive == active`, refreshing `Settings.getInstance().loadSettings(...)` before applying layout params and reloading once.
+     - Protected `FloatingKeyboardUtils.disableFloating()` with `!Settings.getValues().mIsHalfBoard` so closing/syncing floating state never clobbers Half Board layout.
+     - Consolidated `setFloatingBoardEnabled()` and `setHalfBoardEnabled()` via `setHalfBoardEnabledInternal(enabled, reload)` to prevent double reloads when switching between modes.
+  3. Purged build-generated `./debug.keystore` and `./debug.keystore.base64` per Mandate 2 Credential Immunity.
+  4. Verified compilation via `compile_applet` (build succeeded).
+- **How it was verified**: local build only (`compile_applet` passed cleanly; not tested on emulator/device here).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device verification; pre-Phase-104 backups containing `🔒enc:` entries exported under `shura.keyboard.rsvjjk` cannot be decrypted on `shura.keyboard` due to AndroidKeyStore per-app isolation.
+
 
 
 
