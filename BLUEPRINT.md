@@ -1385,6 +1385,41 @@ Vianboard is a fully customizable, privacy-conscious offline Android keyboard ap
       - Purged build-generated `./debug.keystore` and `./debug.keystore.base64` per Mandate 2 Credential Immunity.
       - Verified 100% clean compilation via `compile_applet`.
 
+- **2026-11-12**: Completed Phase 104 (Privacy Vault Encryption/Pattern Restore Fixes, Pill Display Precedence, Half Board Screen & Floating Board Polish):
+    - **Component 1: Privacy Vault Double-Encryption Elimination (`VaultDao.kt`, `ModularBackupEngine.kt`)**:
+      - Fixed `loadFromDb()` in `VaultDao.kt` to recursively unwrap nested `🔒enc:` strings, auto-repairing all legacy encrypted database entries on launch into clean plaintext.
+      - Updated `ModularBackupEngine.exportArchive()` to export clean decrypted phrases via `vaultDao.getAll()`.
+      - Updated `ModularBackupEngine.restoreArchive()` to unwrap any `🔒enc:` prefix before calling `addOrUpdate()`, eliminating double-encryption on backup restore.
+    - **Component 2: Unlock Pattern Restoration from Backup (`ModularBackupEngine.kt`)**:
+      - Bundled `PREF_PATTERN_SALT` and `PREF_PATTERN_HASH` into `database/privacy_vault_pattern.json` inside the backup archive so Privacy Vault backups are self-contained.
+      - Restored pattern credentials on import directly into device preferences.
+      - Switched asynchronous `apply()` calls in `readJsonLinesToSettings()` and `restoreArchive()` to synchronous `commit()`, preventing race conditions during preference clears.
+    - **Component 3: Privacy Vault Pill Visibility & Composing Fallback (`LatinIME.java`, `SuggestionStripView.kt`)**:
+      - In `SuggestionStripView.setExternalSuggestionView()`, set `setToolbarVisibility(false)` unconditionally so the pill is never occluded behind toolbar icons regardless of `mAutoHideToolbar`.
+      - In `setSuggestedWords()` and `tryShowVaultSuggestion()`, checked `mInputLogic.getTypedWord()` alongside `getTextBeforeCursor()`, ensuring pills reliably awaken during active IME composing.
+      - Switched `setExternalSuggestionView(privacyPillView, false)` to render the pill unconstrained without the collapsible weighted close wrapper.
+      - Enhanced `findMatchingEntryForWord()` in `VaultDao.kt` to support exact matches, prefix matches (`startsWith`), and word token matches.
+    - **Component 4: Half Board Positioning & Grey Blocking Screen Elimination (`FloatingKeyboardUtils.kt`, `Ktx.kt`, `LatinIME.java`)**:
+      - Fixed `FloatingKeyboardUtils.setHalfBoard()`: removed conflicting `y=0` placement margins and anchored the half board using `Gravity.BOTTOM or Gravity.END` with zero margins.
+      - In `Ktx.kt` and `FloatingKeyboardUtils.kt`, set `window.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))` so the host app screen remains completely visible on the left half without grey overlay.
+      - In `LatinIME.onComputeInsets()`, bounded touch insets strictly to the keyboard's bounding box on the right half and set `visibleTopY = heightPixels`, preventing host app resize flicker loops.
+    - **Component 5: Floating Board Zero Bottom Padding & Smooth Resizing (`SettingsValues.java`, `KeyboardSwitcher.java`, `FloatingKeyboardUtils.kt`)**:
+      - Linked `KeyboardSwitcher.isFloatingModalActive()` into `SettingsValues.mIsFloatingKeyboard` and triggered `reloadKeyboard()` on modal open, immediately scaling bottom padding to 0.
+      - Fixed `setResizeListener()` in `FloatingKeyboardUtils.kt` to base initial width/height on measured view dimensions rather than unmeasured `-2` (`WRAP_CONTENT`) layout parameters, preventing the 120px clamping glitch.
+      - Removed the 72dp bottom clearance from `setupChevronDrag()`, allowing flush positioning against the bottom of the screen.
+    - **Component 6: Credential Immunity & Build Verification**:
+      - Purged build-generated `./debug.keystore` and `./debug.keystore.base64` per Mandate 2 Credential Immunity.
+      - Verified 100% clean compilation via `compile_applet`.
+
+- **2026-11-12**: Completed Phase 105 (Package Name Alignment to `shura.keyboard`):
+    - **Component 1: Application ID Update (`app/build.gradle.kts`)**:
+      - Updated `defaultConfig.applicationId` from `"shura.keyboard.rsvjjk"` to exact `"shura.keyboard"`.
+      - Preserved internal code namespace `helium314.keyboard.latin` to maintain 100% binary compatibility with C++ JNI dictionary and gesture binaries (`libjni_latinime.so`).
+      - Confirmed all content provider authorities (`shura.keyboard.clipprovider`, `shura.keyboard.provider`) and about screen metadata are in complete sync.
+    - **Component 2: Credential Immunity & Build Verification**:
+      - Purged build-generated `./debug.keystore` and `./debug.keystore.base64` per Mandate 2 Credential Immunity.
+      - Verified 100% clean compilation via `compile_applet`.
+
 
 
 

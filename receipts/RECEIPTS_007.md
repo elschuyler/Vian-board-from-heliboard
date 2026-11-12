@@ -259,6 +259,77 @@ This log file tracks all development steps, modifications, fixes, and build veri
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: Ready for on-device manual QA.
 
+---
+
+### Receipt 007-09
+- **Timestamp**: 2026-11-12T01:14:00-08:00
+- **Requested**:
+  1. Fix Privacy Vault double-encryption bug on import/restore from settings page.
+  2. Restore unlock pattern lock from backup archive reliably.
+  3. Fix Privacy Vault pills not appearing for simple/new entries, during composing, or behind toolbars.
+  4. Fix Half Board completely: eliminate top-half displacement, grey blocking screen, and chat viewport flickering/disappearing loops.
+  5. Fix Floating Board: eliminate dead bottom padding below buttons, and fix buggy resizing/clamping.
+- **Files touched**:
+  - `app/src/main/java/helium314/keyboard/latin/database/VaultDao.kt`
+  - `app/src/main/java/helium314/keyboard/latin/LatinIME.java`
+  - `app/src/main/java/helium314/keyboard/latin/inputlogic/InputLogic.java`
+  - `app/src/main/java/helium314/keyboard/latin/suggestions/SuggestionStripView.kt`
+  - `app/src/main/java/helium314/keyboard/settings/backup/ModularBackupEngine.kt`
+  - `app/src/main/java/helium314/keyboard/latin/settings/SettingsValues.java`
+  - `app/src/main/java/helium314/keyboard/keyboard/KeyboardSwitcher.java`
+  - `app/src/main/java/helium314/keyboard/latin/utils/FloatingKeyboardUtils.kt`
+  - `app/src/main/java/helium314/keyboard/latin/utils/Ktx.kt`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_007.md`
+- **What was actually done**:
+  1. Double-Encryption Fix:
+     - `VaultDao.loadFromDb()` recursively unwraps nested `🔒enc:` strings, auto-repairing all legacy encrypted database entries on launch into clean plaintext.
+     - `ModularBackupEngine.exportArchive()` exports clean decrypted phrases via `vaultDao.getAll()`.
+     - `ModularBackupEngine.restoreArchive()` unwraps any `🔒enc:` prefix before calling `addOrUpdate()`.
+  2. Unlock Pattern Lock Restore:
+     - Bundled `PREF_PATTERN_SALT` and `PREF_PATTERN_HASH` into `database/privacy_vault_pattern.json` in the backup zip.
+     - Restored pattern credentials on import directly into device preferences.
+     - Replaced asynchronous `apply()` with synchronous `commit()` in `readJsonLinesToSettings()` and `restoreArchive()`.
+  3. Privacy Vault Pill Visibility:
+     - In `SuggestionStripView.setExternalSuggestionView()`, set `setToolbarVisibility(false)` unconditionally.
+     - Added `getTypedWord()` in `InputLogic.java` and checked it in `setSuggestedWords()` and `tryShowVaultSuggestion()` in `LatinIME.java` alongside `getTextBeforeCursor()`.
+     - Switched `setExternalSuggestionView(privacyPillView, false)` to render the pill unconstrained without the collapsible weighted close wrapper.
+     - Enhanced `findMatchingEntryForWord()` in `VaultDao.kt` to support exact matches, prefix matches (`startsWith`), and word token matches.
+  4. Half Board Positioning & Grey Screen Fix:
+     - In `FloatingKeyboardUtils.setHalfBoard()`: removed conflicting `y=0` placement margins and anchored the half board using `Gravity.BOTTOM or Gravity.END` with zero margins.
+     - In `Ktx.kt` and `FloatingKeyboardUtils.kt`, set `window.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))` so the host app screen remains completely visible on the left half without grey overlay.
+     - In `LatinIME.onComputeInsets()`, bounded touch insets strictly to the keyboard's bounding box on the right half and set `visibleTopY = heightPixels`, preventing host app resize flicker loops.
+  5. Floating Board Polish:
+     - Linked `KeyboardSwitcher.isFloatingModalActive()` into `SettingsValues.mIsFloatingKeyboard` and triggered `reloadKeyboard()` on modal open, immediately scaling bottom padding to 0.
+     - Fixed `setResizeListener()` in `FloatingKeyboardUtils.kt` to base initial width/height on measured view dimensions rather than unmeasured `-2` (`WRAP_CONTENT`) layout parameters.
+     - Removed 72dp bottom clearance from `setupChevronDrag()`.
+  6. Credential Immunity & Build Verification:
+     - Purged build-generated `./debug.keystore` and `./debug.keystore.base64` per Mandate 2 Credential Immunity.
+     - Verified 100% clean compilation via `compile_applet`.
+- **How it was verified**: local build only (`compile_applet` passed cleanly).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Ready for on-device manual QA.
+
+---
+
+### Receipt 007-10
+- **Timestamp**: 2026-11-12T03:41:00-08:00
+- **Requested**:
+  - Change package name to `shura.keyboard`.
+- **Files touched**:
+  - `app/build.gradle.kts`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_007.md`
+- **What was actually done**:
+  1. Updated `defaultConfig.applicationId` in `app/build.gradle.kts` from `"shura.keyboard.rsvjjk"` to `"shura.keyboard"`.
+  2. Preserved the internal code namespace `helium314.keyboard.latin` to maintain 100% C++ JNI binary compatibility for `libjni_latinime.so`.
+  3. Verified that content provider authorities (`shura.keyboard.clipprovider`, `shura.keyboard.provider`) and about screen metadata are in full alignment.
+  4. Purged build-generated `./debug.keystore` and `./debug.keystore.base64` per Mandate 2 Credential Immunity.
+  5. Verified compilation via `compile_applet` (100% success, 0 errors).
+- **How it was verified**: local build only (`compile_applet` passed cleanly).
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Previously installed builds with package ID `shura.keyboard.rsvjjk` must be uninstalled first on physical test devices to avoid dual-install collision.
+
 
 
 

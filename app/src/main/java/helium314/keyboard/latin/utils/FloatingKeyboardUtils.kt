@@ -246,9 +246,16 @@ object FloatingKeyboardUtils {
 
         val displayWidth = view.context.resources.displayMetrics.widthPixels
         val targetWidth = (displayWidth * 0.50f).toInt().coerceIn(150, displayWidth)
-        val x = (displayWidth - targetWidth).coerceAtLeast(0)
-        ViewLayoutUtils.placeViewAt(view, x, 0, targetWidth, ViewGroup.LayoutParams.WRAP_CONTENT)
+        lp.width = targetWidth
+        lp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+        lp.leftMargin = 0
+        lp.topMargin = 0
+        lp.rightMargin = 0
+        lp.bottomMargin = 0
+        view.layoutParams = lp
         view.requestLayout()
+
+        (view.context as? android.inputmethodservice.InputMethodService)?.window?.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
 
         notifyInsetsChanged(view)
     }
@@ -270,6 +277,9 @@ object FloatingKeyboardUtils {
         lp.height = ViewGroup.LayoutParams.WRAP_CONTENT
         lp.leftMargin = 0
         lp.topMargin = 0
+        lp.rightMargin = 0
+        lp.bottomMargin = 0
+        view.layoutParams = lp
 
         view.findViewById<View>(R.id.float_handle_container)?.isGone = true
         view.findViewById<View>(R.id.floating_folded_button)?.isGone = true
@@ -449,8 +459,8 @@ object FloatingKeyboardUtils {
                 MotionEvent.ACTION_DOWN -> {
                     downRawX = event.rawX
                     downRawY = event.rawY
-                    initialWidth = lp.width
-                    initialHeight = lp.height
+                    initialWidth = if (lp.width > 0) lp.width else (if (rootInputView.width > 0) rootInputView.width else rootInputView.measuredWidth)
+                    initialHeight = if (lp.height > 0) lp.height else (if (rootInputView.height > 0) rootInputView.height else rootInputView.measuredHeight)
                     isResizing = true
                     parent?.requestDisallowInterceptTouchEvent(true)
                     true
@@ -546,10 +556,8 @@ object FloatingKeyboardUtils {
                     if (isDragging) {
                         rootView.getWindowVisibleDisplayFrame(windowFrame)
                         val sv = Settings.getValues()
-                        val density = rootView.context.resources.displayMetrics.density
-                        val bottomClearance = (72 * density).toInt()
                         val availableWidth = (windowFrame.right - windowFrame.left).coerceAtLeast(0)
-                        val availableHeight = (windowFrame.bottom - windowFrame.top - bottomClearance).coerceAtLeast(0)
+                        val availableHeight = (windowFrame.bottom - windowFrame.top).coerceAtLeast(0)
                         val totalHeight = sv.mFloatingHeight + extraHeight.toInt()
                         val newX = (startMarginX + dx).toInt().coerceIn(0, (availableWidth - sv.mFloatingWidth).coerceAtLeast(0))
                         val newY = (startMarginY + dy).toInt().coerceIn(0, (availableHeight - totalHeight).coerceAtLeast(0))

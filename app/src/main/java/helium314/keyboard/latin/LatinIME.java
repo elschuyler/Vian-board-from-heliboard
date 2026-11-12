@@ -1302,7 +1302,7 @@ public class LatinIME extends InputMethodService implements
         }
         final int stripHeight = mKeyboardSwitcher.isShowingStripContainer() ? mKeyboardSwitcher.getStripContainer().getHeight() : 0;
         int visibleTopY = inputHeight - visibleKeyboardView.getHeight() - stripHeight;
-        final boolean isFloatingModal = mKeyboardSwitcher != null && mKeyboardSwitcher.isFloatingModalActive();
+        final boolean isFloatingModal = (mKeyboardSwitcher != null && mKeyboardSwitcher.isFloatingModalActive()) || Settings.getValues().mIsHalfBoard;
         if (isFloatingModal)
             visibleTopY = getResources().getDisplayMetrics().heightPixels;
 
@@ -1665,8 +1665,11 @@ public class LatinIME extends InputMethodService implements
 
         final VaultDao vaultDao = VaultDao.Companion.getInstance(this);
         if (!currentSettingsValues.mLiteMode && !vaultDao.isSuspended() && vaultDao.getCount() > 0) {
-            final String typedWord = suggestedWords != null && suggestedWords.mTypedWordInfo != null
+            String typedWord = suggestedWords != null && suggestedWords.mTypedWordInfo != null
                     ? suggestedWords.mTypedWordInfo.mWord : null;
+            if (typedWord == null) {
+                typedWord = mInputLogic.getTypedWord();
+            }
 
             // Interconnected Awakening: Use dictionary / prediction engine output to awaken Privacy Vault
             // Check if 3-4 letters typed match in-memory triggers in O(1) time
@@ -1763,10 +1766,12 @@ public class LatinIME extends InputMethodService implements
                     scroll.addView(innerRow);
                     container.addView(scroll);
 
-                    mSuggestionStripView.setExternalSuggestionView(container, true);
+                    mSuggestionStripView.setExternalSuggestionView(container, false);
+                    mSuggestionStripView.setToolbarVisibility(false);
                     return;
                 } else if (privacyPillView != null) {
-                    mSuggestionStripView.setExternalSuggestionView(privacyPillView, true);
+                    mSuggestionStripView.setExternalSuggestionView(privacyPillView, false);
+                    mSuggestionStripView.setToolbarVisibility(false);
                     return;
                 }
             }
@@ -1935,9 +1940,16 @@ public class LatinIME extends InputMethodService implements
         final VaultDao vaultDao = VaultDao.Companion.getInstance(this);
         kotlin.Pair<VaultEntry, Integer> privacyMatch = null;
         if (!vaultDao.isSuspended() && vaultDao.getCount() > 0) {
+            String typedWord = mInputLogic.getTypedWord();
             final CharSequence textBefore = mInputLogic.mConnection.getTextBeforeCursor(40, 0);
             if (textBefore != null && textBefore.length() >= 3 && vaultDao.hasTriggerMatch(textBefore)) {
                 privacyMatch = vaultDao.findMatchForTextBeforeCursor(textBefore);
+            }
+            if (privacyMatch == null && typedWord != null && typedWord.length() >= 3 && vaultDao.hasTriggerMatch(typedWord)) {
+                final VaultEntry matchingEntry = vaultDao.findMatchingEntryForWord(typedWord);
+                if (matchingEntry != null) {
+                    privacyMatch = new kotlin.Pair<>(matchingEntry, typedWord.length());
+                }
             }
         }
 
@@ -1984,12 +1996,15 @@ public class LatinIME extends InputMethodService implements
             container.addView(scroll);
 
             mSuggestionStripView.setExternalSuggestionView(container, false);
+            mSuggestionStripView.setToolbarVisibility(false);
             return true;
         } else if (securityPillView != null) {
             mSuggestionStripView.setExternalSuggestionView(securityPillView, false);
+            mSuggestionStripView.setToolbarVisibility(false);
             return true;
         } else if (privacyPillView != null) {
-            mSuggestionStripView.setExternalSuggestionView(privacyPillView, true);
+            mSuggestionStripView.setExternalSuggestionView(privacyPillView, false);
+            mSuggestionStripView.setToolbarVisibility(false);
             return true;
         }
 

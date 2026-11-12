@@ -8,6 +8,8 @@ import android.content.SharedPreferences
 import android.content.res.Resources
 import android.inputmethodservice.InputMethodService
 import android.os.Build
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -125,6 +127,7 @@ fun Context.getDisplayContext(): Context {
 fun InputMethodService.updateSoftInputWindowLayoutParameters(inputView: View?) {
     val window = window.window ?: return
     ViewLayoutUtils.updateLayoutHeightOf(window, ViewGroup.LayoutParams.MATCH_PARENT)
+    window.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
 
     if (inputView == null) return
     // In non-fullscreen mode, InputView and its parent inputArea should expand to the entire screen

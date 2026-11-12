@@ -130,12 +130,22 @@ class VaultDao private constructor(private val db: Database) {
                 while (cursor.moveToNext()) {
                     val rawPhrase = cursor.getString(2) ?: ""
                     val rawNotes = cursor.getString(3) ?: ""
-                    val decryptedPhrase = if (rawPhrase.startsWith(ENCRYPTED_PREFIX)) {
+                    var decryptedPhrase = if (rawPhrase.startsWith(ENCRYPTED_PREFIX)) {
                         VaultCryptoManager.decryptBase64ToString(rawPhrase.removePrefix(ENCRYPTED_PREFIX))
                     } else rawPhrase
-                    val decryptedNotes = if (rawNotes.startsWith(ENCRYPTED_PREFIX)) {
+                    // Auto-repair: recursively unwrap any double-encrypted layers from past restore bugs
+                    while (decryptedPhrase != null && decryptedPhrase.startsWith(ENCRYPTED_PREFIX)) {
+                        val inner = VaultCryptoManager.decryptBase64ToString(decryptedPhrase.removePrefix(ENCRYPTED_PREFIX))
+                        if (inner != null) decryptedPhrase = inner else break
+                    }
+
+                    var decryptedNotes = if (rawNotes.startsWith(ENCRYPTED_PREFIX)) {
                         VaultCryptoManager.decryptBase64ToString(rawNotes.removePrefix(ENCRYPTED_PREFIX))
                     } else rawNotes
+                    while (decryptedNotes != null && decryptedNotes.startsWith(ENCRYPTED_PREFIX)) {
+                        val inner = VaultCryptoManager.decryptBase64ToString(decryptedNotes.removePrefix(ENCRYPTED_PREFIX))
+                        if (inner != null) decryptedNotes = inner else break
+                    }
 
                     if (decryptedPhrase == null || isCorruptedOrGibberish(decryptedPhrase)) {
                         LogCatcher.w("VaultDao", "Skipping un-decryptable or corrupted vault entry id=${cursor.getLong(0)}")
@@ -366,21 +376,47 @@ class VaultDao private constructor(private val db: Database) {
     /**
      * Cross-checks a candidate word or phrase against Privacy Vault entries.
      * Evaluates candidates of 3 or more characters (spaces included).
+     * Supports exact match and prefix/token match for shortcuts and phrases.
      */
     fun findMatchingEntryForWord(word: String?): VaultEntry? = synchronized(this) {
         if (isSuspended || word.isNullOrEmpty() || cache.isEmpty()) return null
         if (word.length < 3) return null
         val trimmed = word.trim()
+        if (trimmed.length < 3) return null
+
+        // 1. Exact shortcut match (highest priority)
         for (entry in cache) {
             if (entry.phrase.isBlank() || isCorruptedOrGibberish(entry.phrase)) continue
-            // Match raw word or trimmed word
             if (entry.shortcut.isNotBlank() && (entry.shortcut.equals(word, ignoreCase = true) || entry.shortcut.equals(trimmed, ignoreCase = true))) {
                 return entry
             }
+        }
+
+        // 2. Shortcut prefix match (typing first 3-4 letters of shortcut)
+        for (entry in cache) {
+            if (entry.phrase.isBlank() || isCorruptedOrGibberish(entry.phrase)) continue
+            if (entry.shortcut.isNotBlank() && entry.shortcut.startsWith(trimmed, ignoreCase = true)) {
+                return entry
+            }
+        }
+
+        // 3. Exact phrase match
+        for (entry in cache) {
+            if (entry.phrase.isBlank() || isCorruptedOrGibberish(entry.phrase)) continue
             if (entry.phrase.equals(word, ignoreCase = true) || entry.phrase.equals(trimmed, ignoreCase = true)) {
                 return entry
             }
         }
+
+        // 4. Phrase prefix or token match
+        for (entry in cache) {
+            if (entry.phrase.isBlank() || isCorruptedOrGibberish(entry.phrase)) continue
+            val p = entry.phrase
+            if (p.startsWith(trimmed, ignoreCase = true) || containsDelimitedTokenStartingWith(p, trimmed)) {
+                return entry
+            }
+        }
+
         return null
     }
 

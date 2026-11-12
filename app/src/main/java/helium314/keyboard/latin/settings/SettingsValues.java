@@ -287,7 +287,9 @@ public class SettingsValues {
         mClipboardHistoryRetentionTime = prefs.getInt(Settings.PREF_CLIPBOARD_HISTORY_RETENTION_TIME, Defaults.PREF_CLIPBOARD_HISTORY_RETENTION_TIME);
         mClipboardHistoryPinnedFirst = prefs.getBoolean(Settings.PREF_CLIPBOARD_HISTORY_PINNED_FIRST, Defaults.PREF_CLIPBOARD_HISTORY_PINNED_FIRST);
 
-        mIsFloatingKeyboard = !mIsLocked && SettingsKt.isFloatingKeyboardEnabled(context);
+        final boolean isFloatingModal = helium314.keyboard.keyboard.KeyboardSwitcher.getInstance() != null
+                && helium314.keyboard.keyboard.KeyboardSwitcher.getInstance().isFloatingModalActive();
+        mIsFloatingKeyboard = isFloatingModal || (!mIsLocked && SettingsKt.isFloatingKeyboardEnabled(context));
         mIsHalfBoard = !mIsLocked && SettingsKt.isHalfBoardEnabled(context);
         mFloatingWidth = SettingsKt.readFloatingWidth(context);
         mFloatingHeight = (mIsFloatingKeyboard || mIsHalfBoard) && mHasHardwareKeyboard && prefs.getBoolean(Settings.PREF_SHOW_ONLY_TOOLBAR_WITH_HARDWARE_KEYBOARD, Defaults.PREF_SHOW_ONLY_TOOLBAR_WITH_HARDWARE_KEYBOARD)

@@ -130,6 +130,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             }
         }
         setBackgroundGatheringIndicatorPosition();
+        reloadKeyboard();
     }
 
     public void toggleFloatingModal() {

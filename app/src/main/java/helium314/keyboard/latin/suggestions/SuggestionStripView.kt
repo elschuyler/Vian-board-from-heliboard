@@ -287,7 +287,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
             suggestionsStrip.addView(view)
         }
 
-        if (Settings.getValues().mAutoHideToolbar) setToolbarVisibility(false)
+        setToolbarVisibility(false)
     }
 
     fun setMoreSuggestionsHeight(remainingHeight: Int) {
