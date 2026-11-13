@@ -11,11 +11,15 @@ data class BackupManifest(
     val timestamp: Long = System.currentTimeMillis(),
     val modules: List<String> = emptyList(),
     val notes: String = "VianBoard Modular Archive",
-    val stats: Map<String, Int> = emptyMap()
+    val stats: Map<String, Int> = emptyMap(),
+    val encryptedVault: Boolean = false,
+    val kdfSaltBase64: String? = null,
+    val kdfIterations: Int = 0
 ) {
     companion object {
         const val CURRENT_SCHEMA_VERSION = 2
         const val MANIFEST_FILE_NAME = "manifest.json"
+        const val DEFAULT_KDF_ITERATIONS = 120_000
     }
 }
 
@@ -101,11 +105,19 @@ data class PrivacyVaultBackupEntry(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+@Serializable
+data class EncryptedVaultPayload(
+    val entries: List<PrivacyVaultBackupEntry> = emptyList(),
+    val patternSalt: String? = null,
+    val patternHash: String? = null
+)
+
 data class BackupArchiveInfo(
     val schemaVersion: Int,
     val appVersion: String,
     val timestamp: Long,
     val availableModules: Set<BackupModule>,
     val stats: Map<String, Int> = emptyMap(),
-    val isLegacy: Boolean = false
+    val isLegacy: Boolean = false,
+    val requiresPassphrase: Boolean = false
 )

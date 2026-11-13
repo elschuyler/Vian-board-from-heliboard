@@ -3,7 +3,6 @@ package helium314.keyboard.latin
 
 import android.app.Application
 import android.os.Build
-import helium314.keyboard.keyboard.emoji.SupportedEmojis
 import helium314.keyboard.latin.define.DebugFlags
 import helium314.keyboard.latin.settings.Defaults
 import helium314.keyboard.latin.settings.Settings
@@ -28,7 +27,6 @@ class App : Application() {
 
         val scope = CoroutineScope(Dispatchers.Default)
         scope.launch { // do some uncritical work in background for faster startup
-            SupportedEmojis.load(this@App)
             LayoutUtilsCustom.removeMissingLayouts(this@App)
             val packageInfo = packageManager.getPackageInfo(packageName, 0)
             @Suppress("DEPRECATION")

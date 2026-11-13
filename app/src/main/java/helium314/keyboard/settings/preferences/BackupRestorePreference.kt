@@ -57,6 +57,7 @@ import helium314.keyboard.settings.backup.ModularRestoreDialog
 import helium314.keyboard.settings.backup.ModuleCheckboxRow
 import helium314.keyboard.settings.backup.BackupModule
 import helium314.keyboard.settings.backup.ModularBackupEngine
+import helium314.keyboard.settings.backup.VaultBackupPassphraseDialog
 import helium314.keyboard.settings.dialogs.ConfirmationDialog
 import helium314.keyboard.settings.dialogs.InfoDialog
 import helium314.keyboard.settings.filePicker
@@ -84,12 +85,19 @@ fun BackupRestorePreference(setting: Setting) {
         mutableStateOf<Uri?>(null)
     }
     var error: String? by rememberSaveable { mutableStateOf(null) }
+    var pendingExportPassphrase by remember { mutableStateOf<String?>(null) }
+    var showExportPassphraseDialog by rememberSaveable { mutableStateOf(false) }
+    var showRestorePassphraseDialog by rememberSaveable { mutableStateOf(false) }
+    var pendingRestorePassphraseUri by remember { mutableStateOf<Uri?>(null) }
+    var pendingRestorePassphraseModules by remember { mutableStateOf<Set<BackupModule>>(emptySet()) }
 
     // Launcher for creating backup zip
     val backupLauncher = filePicker { uri ->
+        val passphraseToUse = pendingExportPassphrase
+        pendingExportPassphrase = null
         ExecutorUtils.getBackgroundExecutor(ExecutorUtils.KEYBOARD).execute {
             try {
-                ModularBackupEngine.createBackup(ctx, uri, selectedExportModules)
+                ModularBackupEngine.createBackup(ctx, uri, selectedExportModules, passphraseToUse)
                 Handler(Looper.getMainLooper()).post {
                     Toast.makeText(ctx, ctx.getString(R.string.backup_restored).replace("restored", "created"), Toast.LENGTH_LONG).show()
                 }
@@ -154,17 +162,56 @@ fun BackupRestorePreference(setting: Setting) {
             onDismiss = { showExportDialog = false },
             onConfirmed = {
                 showExportDialog = false
+                if (BackupModule.PRIVACY_VAULT in selectedExportModules) {
+                    showExportPassphraseDialog = true
+                } else {
+                    pendingExportPassphrase = null
+                    val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Calendar.getInstance().time)
+                    val intent = Intent(Intent.ACTION_CREATE_DOCUMENT)
+                        .addCategory(Intent.CATEGORY_OPENABLE)
+                        .putExtra(Intent.EXTRA_TITLE, "VianBoard_backup_$currentDate.zip")
+                        .setType("application/zip")
+                    backupLauncher.launch(intent)
+                }
+            }
+        )
+    }
+
+    if (showExportPassphraseDialog) {
+        VaultBackupPassphraseDialog(
+            isExport = true,
+            onDismiss = {
+                showExportPassphraseDialog = false
+                pendingExportPassphrase = null
+            },
+            onConfirmed = { passphrase ->
+                showExportPassphraseDialog = false
+                pendingExportPassphrase = passphrase
                 val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Calendar.getInstance().time)
                 val intent = Intent(Intent.ACTION_CREATE_DOCUMENT)
                     .addCategory(Intent.CATEGORY_OPENABLE)
-                    .putExtra(
-                        Intent.EXTRA_TITLE,
-                        "VianBoard_backup_$currentDate.zip"
-                    )
+                    .putExtra(Intent.EXTRA_TITLE, "VianBoard_backup_$currentDate.zip")
                     .setType("application/zip")
                 backupLauncher.launch(intent)
             }
         )
+    }
+
+    fun executeRestore(uri: Uri, modulesToRestore: Set<BackupModule>, passphrase: String?) {
+        ExecutorUtils.getBackgroundExecutor(ExecutorUtils.KEYBOARD).execute {
+            try {
+                ModularBackupEngine.restoreArchive(ctx, uri, modulesToRestore, passphrase)
+                Handler(Looper.getMainLooper()).post {
+                    Toast.makeText(ctx, ctx.getString(R.string.backup_restored), Toast.LENGTH_LONG).show()
+                    (ctx.getActivity() as? SettingsActivity)?.prefChanged()
+                }
+            } catch (t: Throwable) {
+                LogCatcher.e("BackupRestorePreference", "Restore failed: ${t.message}", t)
+                Handler(Looper.getMainLooper()).post {
+                    error = "r" + (t.message ?: "Failed to restore backup")
+                }
+            }
+        }
     }
 
     // Step 3: Selective Restore Dialog
@@ -183,24 +230,36 @@ fun BackupRestorePreference(setting: Setting) {
             onConfirmed = {
                 val uri = currentRestoreUri
                 val modulesToRestore = selectedRestoreModules
+                val needsPassphrase = currentArchiveInfo.requiresPassphrase && BackupModule.PRIVACY_VAULT in modulesToRestore
                 showRestoreDialog = false
                 pendingArchiveInfo = null
                 pendingRestoreUri = null
-
-                ExecutorUtils.getBackgroundExecutor(ExecutorUtils.KEYBOARD).execute {
-                    try {
-                        ModularBackupEngine.restoreArchive(ctx, uri, modulesToRestore)
-                        Handler(Looper.getMainLooper()).post {
-                            Toast.makeText(ctx, ctx.getString(R.string.backup_restored), Toast.LENGTH_LONG).show()
-                            (ctx.getActivity() as? SettingsActivity)?.prefChanged()
-                        }
-                    } catch (t: Throwable) {
-                        LogCatcher.e("BackupRestorePreference", "Restore failed: ${t.message}", t)
-                        Handler(Looper.getMainLooper()).post {
-                            error = "r" + (t.message ?: "Failed to restore backup")
-                        }
-                    }
+                if (needsPassphrase) {
+                    pendingRestorePassphraseUri = uri
+                    pendingRestorePassphraseModules = modulesToRestore
+                    showRestorePassphraseDialog = true
+                } else {
+                    executeRestore(uri, modulesToRestore, null)
                 }
+            }
+        )
+    }
+
+    if (showRestorePassphraseDialog && pendingRestorePassphraseUri != null) {
+        VaultBackupPassphraseDialog(
+            isExport = false,
+            onDismiss = {
+                showRestorePassphraseDialog = false
+                pendingRestorePassphraseUri = null
+                pendingRestorePassphraseModules = emptySet()
+            },
+            onConfirmed = { passphrase ->
+                val uri = pendingRestorePassphraseUri!!
+                val modules = pendingRestorePassphraseModules
+                showRestorePassphraseDialog = false
+                pendingRestorePassphraseUri = null
+                pendingRestorePassphraseModules = emptySet()
+                executeRestore(uri, modules, passphrase)
             }
         )
     }
@@ -220,7 +279,9 @@ fun backupLauncher(onError: (String) -> Unit): ManagedActivityResultLauncher<Int
     return filePicker { uri ->
         ExecutorUtils.getBackgroundExecutor(ExecutorUtils.KEYBOARD).execute {
             try {
-                ModularBackupEngine.createBackup(ctx, uri, BackupModule.entries.toSet())
+                // Quick unprompted launcher excludes PRIVACY_VAULT so secrets are never exported unencrypted
+                val nonVaultModules = BackupModule.entries.filter { it != BackupModule.PRIVACY_VAULT }.toSet()
+                ModularBackupEngine.createBackup(ctx, uri, nonVaultModules)
                 Handler(Looper.getMainLooper()).post {
                     Toast.makeText(ctx, ctx.getString(R.string.backup_restored).replace("restored", "created"), Toast.LENGTH_LONG).show()
                 }
@@ -241,7 +302,12 @@ fun restoreLauncher(onError: (String) -> Unit): ManagedActivityResultLauncher<In
         ExecutorUtils.getBackgroundExecutor(ExecutorUtils.KEYBOARD).execute {
             try {
                 val info = ModularBackupEngine.inspectArchive(ctx, uri)
-                ModularBackupEngine.restoreArchive(ctx, uri, info.availableModules)
+                val targetModules = if (info.requiresPassphrase) {
+                    info.availableModules - BackupModule.PRIVACY_VAULT
+                } else {
+                    info.availableModules
+                }
+                ModularBackupEngine.restoreArchive(ctx, uri, targetModules)
                 Handler(Looper.getMainLooper()).post {
                     Toast.makeText(ctx, ctx.getString(R.string.backup_restored), Toast.LENGTH_LONG).show()
                     (ctx.getActivity() as? SettingsActivity)?.prefChanged()

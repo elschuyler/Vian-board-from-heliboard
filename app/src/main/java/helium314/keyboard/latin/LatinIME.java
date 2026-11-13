@@ -935,8 +935,12 @@ public class LatinIME extends InputMethodService implements
             }
             return;
         }
-        SecurityVaultContextSniffer.INSTANCE.recordExternalContext(editorInfo);
-        VaultDao.Companion.getInstance(this).setSuspended(false);
+        if (SecurityVaultContextSniffer.INSTANCE.areContextPillsEnabled()) {
+            SecurityVaultContextSniffer.INSTANCE.recordExternalContext(editorInfo);
+        }
+        final VaultDao startVaultDao = VaultDao.Companion.getInstance(this);
+        startVaultDao.setSuspended(false);
+        startVaultDao.preloadAsync();
         Log.i(TAG, (restarting ? "Res" : "S") +"tarting input. Cursor position = " + editorInfo.initialSelStart + "," + editorInfo.initialSelEnd);
         if (DebugFlags.DEBUG_ENABLED) {
             EditorInfoCompatUtils.INSTANCE.debugLog(editorInfo, TAG);
@@ -1043,7 +1047,8 @@ public class LatinIME extends InputMethodService implements
         if (!mHandler.hasPendingResumeSuggestions()) {
             mHandler.cancelUpdateSuggestionStrip();
             setNeutralSuggestionStrip();
-            if (hasSuggestionStripView() && currentSettingsValues.mAutoShowToolbar && !tryShowClipboardSuggestion()) {
+            if (hasSuggestionStripView() && currentSettingsValues.mAutoShowToolbar
+                    && !tryShowVaultSuggestion() && !tryShowClipboardSuggestion()) {
                 mSuggestionStripView.setToolbarVisibility(true);
             }
         }
@@ -1664,7 +1669,7 @@ public class LatinIME extends InputMethodService implements
         }
 
         final VaultDao vaultDao = VaultDao.Companion.getInstance(this);
-        if (!currentSettingsValues.mLiteMode && !vaultDao.isSuspended() && vaultDao.getCount() > 0) {
+        if (!vaultDao.isSuspended() && vaultDao.getCount() > 0) {
             String typedWord = suggestedWords != null && suggestedWords.mTypedWordInfo != null
                     ? suggestedWords.mTypedWordInfo.mWord : null;
             if (typedWord == null) {
@@ -1728,10 +1733,11 @@ public class LatinIME extends InputMethodService implements
             }
 
             if (privacyMatch != null) {
-                final SharedPreferences prefs = DeviceProtectedUtils.getSharedPreferences(this);
-                final boolean isSelfContained = prefs.getBoolean("pref_self_contained_isolation", false);
+                final boolean securityPillsEnabled = SecurityVaultContextSniffer.INSTANCE.areContextPillsEnabled();
+                final SharedPreferences prefs = securityPillsEnabled ? DeviceProtectedUtils.getSharedPreferences(this) : null;
+                final boolean isSelfContained = securityPillsEnabled && prefs.getBoolean("pref_self_contained_isolation", false);
                 final EditorInfo editorInfo = getCurrentInputEditorInfo();
-                final List<VaultEntryEntity> securityMatches = (isSelfContained && editorInfo != null)
+                final List<VaultEntryEntity> securityMatches = (securityPillsEnabled && isSelfContained && editorInfo != null)
                         ? SecurityVaultContextSniffer.INSTANCE.findMatchingEntries(this, editorInfo)
                         : Collections.emptyList();
 
@@ -1924,15 +1930,13 @@ public class LatinIME extends InputMethodService implements
         if (!hasSuggestionStripView()) return false;
         final EditorInfo editorInfo = getCurrentInputEditorInfo();
         if (editorInfo == null) return false;
-        final SharedPreferences prefs = DeviceProtectedUtils.getSharedPreferences(this);
-        final boolean isSelfContained = prefs.getBoolean("pref_self_contained_isolation", false);
+        final boolean securityPillsEnabled = SecurityVaultContextSniffer.INSTANCE.areContextPillsEnabled();
+        final SharedPreferences prefs = securityPillsEnabled ? DeviceProtectedUtils.getSharedPreferences(this) : null;
+        final boolean isSelfContained = securityPillsEnabled && prefs.getBoolean("pref_self_contained_isolation", false);
         final boolean isPasswordField = InputTypeUtils.isPasswordInputType(editorInfo.inputType) || InputTypeUtils.isVisiblePasswordInputType(editorInfo.inputType);
-        if (mSettings.getCurrent().mLiteMode) {
-            return false;
-        }
 
-        // Security Vault credentials trigger on password fields OR in self-contained isolation mode
-        final List<VaultEntryEntity> securityMatches = (isPasswordField || isSelfContained)
+        // Security Vault context pills disabled for resource consumption saving (Explorer modal remains intact)
+        final List<VaultEntryEntity> securityMatches = (securityPillsEnabled && (isPasswordField || isSelfContained))
                 ? SecurityVaultContextSniffer.INSTANCE.findMatchingEntries(this, editorInfo)
                 : Collections.emptyList();
 
@@ -2389,9 +2393,8 @@ public class LatinIME extends InputMethodService implements
                 mKeyboardSwitcher.trimMemory();
             }
             case TRIM_MEMORY_RUNNING_LOW, TRIM_MEMORY_RUNNING_CRITICAL, TRIM_MEMORY_COMPLETE -> {
-                KeyboardLayoutSet.Companion.onSystemLocaleChanged(); // clears caches, nothing else
+                KeyboardLayoutSet.Companion.trimMemory(true);
                 mKeyboardSwitcher.trimMemory();
-                VaultDao.Companion.getInstance(this).setSuspended(true);
             }
             // deallocateMemory always called on hiding, and should not be called when showing
         }

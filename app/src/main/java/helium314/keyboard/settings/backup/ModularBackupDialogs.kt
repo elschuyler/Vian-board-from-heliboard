@@ -16,19 +16,30 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import helium314.keyboard.latin.R
@@ -272,3 +283,130 @@ fun ModuleCheckboxRow(
         }
     }
 }
+
+@Composable
+fun VaultBackupPassphraseDialog(
+    isExport: Boolean,
+    onDismiss: () -> Unit,
+    onConfirmed: (String) -> Unit
+) {
+    var passphrase by remember { mutableStateOf("") }
+    var confirmPassphrase by remember { mutableStateOf("") }
+    var isVisible by remember { mutableStateOf(false) }
+    var errorText by remember { mutableStateOf<String?>(null) }
+
+    val emptyErr = stringResource(R.string.backup_vault_passphrase_empty)
+    val mismatchErr = stringResource(R.string.backup_vault_passphrase_mismatch)
+    val showLabel = stringResource(R.string.backup_vault_passphrase_show)
+    val hideLabel = stringResource(R.string.backup_vault_passphrase_hide)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+        modifier = Modifier
+            .fillMaxWidth(0.94f)
+            .clip(RoundedCornerShape(24.dp)),
+        title = {
+            Text(
+                text = stringResource(
+                    if (isExport) R.string.backup_vault_passphrase_export_title
+                    else R.string.backup_vault_passphrase_restore_title
+                ),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = stringResource(
+                        if (isExport) R.string.backup_vault_passphrase_export_desc
+                        else R.string.backup_vault_passphrase_restore_desc
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                OutlinedTextField(
+                    value = passphrase,
+                    onValueChange = {
+                        passphrase = it
+                        errorText = null
+                    },
+                    label = { Text(stringResource(R.string.backup_vault_passphrase_label)) },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("vault_backup_passphrase_input"),
+                    visualTransformation = if (isVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = if (isExport) ImeAction.Next else ImeAction.Done
+                    ),
+                    trailingIcon = {
+                        TextButton(onClick = { isVisible = !isVisible }) {
+                            Text(
+                                text = if (isVisible) hideLabel else showLabel,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    }
+                )
+
+                if (isExport) {
+                    OutlinedTextField(
+                        value = confirmPassphrase,
+                        onValueChange = {
+                            confirmPassphrase = it
+                            errorText = null
+                        },
+                        label = { Text(stringResource(R.string.backup_vault_passphrase_confirm_label)) },
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("vault_backup_passphrase_confirm_input"),
+                        visualTransformation = if (isVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Done
+                        )
+                    )
+                }
+
+                if (errorText != null) {
+                    Text(
+                        text = errorText!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                modifier = Modifier.testTag("vault_backup_passphrase_submit_button"),
+                onClick = {
+                    when {
+                        passphrase.isBlank() -> errorText = emptyErr
+                        isExport && passphrase != confirmPassphrase -> errorText = mismatchErr
+                        else -> onConfirmed(passphrase)
+                    }
+                }
+            ) {
+                Text(
+                    text = stringResource(android.R.string.ok),
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(android.R.string.cancel))
+            }
+        }
+    )
+}
+

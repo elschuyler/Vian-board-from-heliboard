@@ -41,6 +41,11 @@ import helium314.keyboard.security.vault.data.VaultEntryEntity
 object SecurityVaultContextSniffer {
     private const val TAG = "VaultContextSniffer"
 
+    // Security Vault autofill pills disabled for resource conservation (Explorer/ChosenEntry/DB preserved)
+    private const val CONTEXT_PILLS_ENABLED = false
+
+    fun areContextPillsEnabled(): Boolean = CONTEXT_PILLS_ENABLED
+
     // Track the last active external application context for entry creation
     @Volatile
     private var lastExternalPackage: String? = null
@@ -58,6 +63,7 @@ object SecurityVaultContextSniffer {
      * Filters out the keyboard's own package and system UI.
      */
     fun recordExternalContext(editorInfo: EditorInfo?) {
+        if (!CONTEXT_PILLS_ENABLED) return
         if (editorInfo == null) return
         val pkg = editorInfo.packageName ?: return
         if (pkg.isBlank()) return
@@ -125,6 +131,7 @@ object SecurityVaultContextSniffer {
      * Uses in-memory index cache to prevent main-thread SQLite disk I/O.
      */
     fun findMatchingEntries(context: Context, editorInfo: EditorInfo?): List<VaultEntryEntity> {
+        if (!CONTEXT_PILLS_ENABLED) return emptyList()
         if (editorInfo == null) return emptyList()
         val pkg = editorInfo.packageName ?: return emptyList()
         if (!VaultSessionManager.isPatternSet(context)) return emptyList()
@@ -142,7 +149,8 @@ object SecurityVaultContextSniffer {
         }
 
         // Fast path: instant in-memory cache hit (0ms SQLite I/O)
-        val cached = packageMatchCache[pkg]
+        val cacheKey = "$pkg|$isPasswordField|$isSelfContained"
+        val cached = packageMatchCache[cacheKey]
         if (cached != null) {
             return cached
         }
@@ -166,16 +174,7 @@ object SecurityVaultContextSniffer {
             }
         }
 
-        // 3. Fallback: If no direct package match, but self-contained isolation is ON or in password field,
-        // and vault contains entries, provide entries so autofill pill appears reliably where external managers would appear
-        if (results.isEmpty() && (isSelfContained || isPasswordField)) {
-            val all = dao.getAllEntries()
-            if (all.isNotEmpty()) {
-                results.addAll(all)
-            }
-        }
-
-        packageMatchCache[pkg] = results
+        packageMatchCache[cacheKey] = results
 
         if (results.isNotEmpty()) {
             LogCatcher.log('I', TAG, "Found ${results.size} context match(es) for pkg=$pkg (cached in-memory)")

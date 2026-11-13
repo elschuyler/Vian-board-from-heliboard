@@ -207,6 +207,7 @@ public final class EmojiPalettesView extends LinearLayout
 
     public EmojiPalettesView(final Context context, final AttributeSet attrs, final int defStyle) {
         super(context, attrs, defStyle);
+        SupportedEmojis.INSTANCE.ensureLoaded(context);
         mColors = Settings.getValues().mColors;
         final KeyboardLayoutSet.Builder builder = new KeyboardLayoutSet.Builder(context, null);
         final Resources res = context.getResources();
@@ -253,9 +254,12 @@ public final class EmojiPalettesView extends LinearLayout
         if (initialized) return;
         mEmojiCategory.initialize();
         mTabStrip = (LinearLayout) KeyboardSwitcher.getInstance().getEmojiTabStrip();
-        if (Settings.getValues().isSecondaryStripVisible()) {
-            for (EmojiCategory.CategoryProperties properties : mEmojiCategory.getShownCategories()) {
-                addTab(mTabStrip, properties.getCategory());
+        if (mTabStrip != null) {
+            mTabStrip.removeAllViews();
+            if (Settings.getValues().isSecondaryStripVisible()) {
+                for (EmojiCategory.CategoryProperties properties : mEmojiCategory.getShownCategories()) {
+                    addTab(mTabStrip, properties.getCategory());
+                }
             }
         }
 

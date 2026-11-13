@@ -133,12 +133,16 @@ class VoiceInputView @JvmOverloads constructor(
             post {
                 when (state) {
                     VoiceIpcProtocol.ServiceState.RECORDING -> {
+                        isVoicePaused = false
+                        updateMicButtonState()
                         pulseView.pulseState = VoicePulseView.PulseState.LISTENING
                         if (streamingText.text == context.getString(R.string.voice_status_paused)) {
                             streamingText.setText(R.string.voice_status_listening)
                         }
                     }
                     VoiceIpcProtocol.ServiceState.PAUSED -> {
+                        isVoicePaused = true
+                        updateMicButtonState()
                         pulseView.pulseState = VoicePulseView.PulseState.PAUSED
                         streamingText.setText(R.string.voice_status_paused)
                     }

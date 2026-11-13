@@ -23,6 +23,7 @@ import kotlin.math.sqrt
 class EmojiParser(private val params: KeyboardParams, private val context: Context) {
 
     fun parse(): ArrayList<ArrayList<KeyParams>> {
+        SupportedEmojis.ensureLoaded(context)
         val emojiFileName = getEmojiFileName(params.mId.element)
         val emojiLines = if (emojiFileName == null) {
             listOf( // special template keys for recents category
@@ -102,6 +103,7 @@ fun loadEmojiDefaultVersionsAndPopupSpecs(context: Context) {
 }
 
 private fun loadEmojiDefaultVersionsAndPopupSpecs(context: Context, category2EmojiLines: List<String>?) {
+    SupportedEmojis.ensureLoaded(context)
     val defaultTone = context.prefs().getString(Settings.PREF_EMOJI_SKIN_TONE, Defaults.PREF_EMOJI_SKIN_TONE)
     if (defaultSkinTone == defaultTone) {
         return

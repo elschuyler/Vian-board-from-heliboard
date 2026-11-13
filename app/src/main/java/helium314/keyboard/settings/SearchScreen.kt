@@ -81,7 +81,7 @@ fun SearchSettingsScreen(
                                 // a solution would be using a list(visible to key)
                                 AnimatedVisibility(visible = it != null) {
                                     if (it != null)
-                                        SettingsActivity.settingsContainer[it]?.Preference()
+                                        SettingsActivity.settingsContainer?.get(it)?.Preference()
                                 }
                             }
                         }
@@ -105,7 +105,7 @@ fun SearchSettingsScreen(
                 }
             }
         },
-        filteredItems = { SettingsActivity.settingsContainer.filter(it) },
+        filteredItems = { SettingsActivity.settingsContainer?.filter(it).orEmpty() },
         itemContent = { it.Preference() }
     )
 }

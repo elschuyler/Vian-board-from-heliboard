@@ -277,7 +277,7 @@ class EmojiSearchActivity : ComponentActivity() {
             else
                 Character.toString(it.code))
 
-            KeyboardSwitcher.getInstance().emojiPalettesView.addRecentKey(it)
+            KeyboardSwitcher.getInstance().emojiPalettesView?.addRecentKey(it)
         }
         startService(intent)
         super.onStop()
@@ -308,6 +308,7 @@ class EmojiSearchActivity : ComponentActivity() {
         emojiPageKeyboardView.background = null
         colors.setBackground(emojiPageKeyboardView, ColorType.MAIN_BACKGROUND)
         emojiPageKeyboardView.setPadding(0, 10, 0, 10)
+        SupportedEmojis.ensureLoaded(this)
         loadEmojiDefaultVersionsAndPopupSpecs(this)
 
         emojiPageKeyboardView.setEmojiViewCallback(object : EmojiViewCallback {

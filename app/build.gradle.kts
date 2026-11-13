@@ -53,7 +53,8 @@ android {
         signingConfig = customRelease
       }
       isCrunchPngs = false
-      isMinifyEnabled = false
+      isMinifyEnabled = true
+      isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
     }
     debug {
@@ -103,4 +104,10 @@ dependencies {
   implementation(libs.kotpass)
   debugImplementation(libs.androidx.compose.ui.tooling)
   debugImplementation(libs.androidx.compose.ui.test.manifest)
+  testImplementation(libs.junit)
+  testImplementation("org.jetbrains.kotlin:kotlin-test-junit:${libs.versions.kotlin.get()}")
+  testImplementation(libs.androidx.core)
+  testImplementation(libs.robolectric)
+  testImplementation(libs.kotlinx.coroutines.test)
+  testImplementation("org.mockito:mockito-core:5.14.2")
 }

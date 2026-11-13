@@ -45,11 +45,15 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.nio.ByteBuffer
+import java.security.GeneralSecurityException
+import java.security.SecureRandom
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 import javax.crypto.Cipher
+import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.GCMParameterSpec
+import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 
 
@@ -62,7 +66,10 @@ object ModularBackupEngine {
 
     private const val PREF_PATTERN_SALT = "pref_vault_pattern_salt"
     private const val PREF_PATTERN_HASH = "pref_vault_pattern_hash"
+    private const val PREF_SECURITY_PATTERN_SALT = "pref_vault_security_pattern_salt"
+    private const val PREF_SECURITY_PATTERN_HASH = "pref_vault_security_pattern_hash"
 
+    private const val PRIVACY_VAULT_ENC_ENTRY = "database/privacy_vault.enc"
     private const val PREFS_FILE_NAME = "preferences.json"
     private const val PROTECTED_PREFS_FILE_NAME = "protected_preferences.json"
 
@@ -118,10 +125,67 @@ object ModularBackupEngine {
     }
 
 
+    private val sensitivePrefKeys = setOf(
+        PREF_PATTERN_SALT,
+        PREF_PATTERN_HASH,
+        PREF_SECURITY_PATTERN_SALT,
+        PREF_SECURITY_PATTERN_HASH
+    )
+
+    internal fun deriveAesKeyFromPassphrase(
+        passphrase: CharArray,
+        salt: ByteArray,
+        iterations: Int = BackupManifest.DEFAULT_KDF_ITERATIONS
+    ): ByteArray {
+        val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+        val spec = PBEKeySpec(passphrase, salt, iterations, 256)
+        return try {
+            factory.generateSecret(spec).encoded
+        } finally {
+            spec.clearPassword()
+        }
+    }
+
+    internal fun encryptVaultBlob(
+        plaintext: ByteArray,
+        passphrase: String,
+        iterations: Int = BackupManifest.DEFAULT_KDF_ITERATIONS
+    ): Pair<ByteArray, ByteArray> {
+        require(passphrase.isNotBlank()) { "Passphrase cannot be blank" }
+        val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
+        val key = deriveAesKeyFromPassphrase(passphrase.toCharArray(), salt, iterations)
+        return try {
+            encryptWithKey(key, plaintext) to salt
+        } finally {
+            key.fill(0)
+        }
+    }
+
+    internal fun decryptVaultBlob(
+        encryptedBytes: ByteArray,
+        passphrase: String,
+        salt: ByteArray,
+        iterations: Int
+    ): ByteArray {
+        require(passphrase.isNotBlank()) { "Passphrase required to unlock encrypted Privacy Vault backup" }
+        val key = deriveAesKeyFromPassphrase(passphrase.toCharArray(), salt, iterations)
+        return try {
+            decryptWithKey(key, encryptedBytes)
+        } finally {
+            key.fill(0)
+        }
+    }
+
     /**
      * Creates a compressed modular backup archive containing only the requested modules.
+     * Requires a passphrase whenever BackupModule.PRIVACY_VAULT is included.
      */
-    fun createBackup(context: Context, uri: Uri, selectedModules: Set<BackupModule>): Long {
+    fun createBackup(
+        context: Context,
+        uri: Uri,
+        selectedModules: Set<BackupModule>,
+        vaultPassphrase: String? = null
+    ): Long {
         val startTime = SystemClock.elapsedRealtime()
         LogCatcher.markComponentActive(COMPONENT_NAME, "Data", "Backup Started")
         LogCatcher.i(TAG, "Starting modular backup: modules=${selectedModules.map { it.key }}")
@@ -154,13 +218,25 @@ object ModularBackupEngine {
                 0L
             }
 
+            val requiresEncryption = BackupModule.PRIVACY_VAULT in selectedModules
+            if (requiresEncryption) {
+                require(!vaultPassphrase.isNullOrBlank()) {
+                    "A passphrase is required to encrypt Privacy Vault backups."
+                }
+            }
+            var encryptedVaultSaltBase64: String? = null
+            var encryptedVaultIterations = 0
+
             context.contentResolver.openOutputStream(uri)?.use { outputStream ->
                 ZipOutputStream(outputStream).use { zip ->
-                    // 1. Settings & Appearance
+                    // 1. Settings & Appearance (never serialize pattern hashes in plaintext settings json)
                     if (BackupModule.SETTINGS in selectedModules) {
-                        val rawPrefs = context.prefs().all.toMutableMap()
-                        // Keep master pattern locks and security configuration safely in the backup
-                        val rawProtectedPrefs = context.protectedPrefs().all
+                        val rawPrefs = context.prefs().all.toMutableMap().apply {
+                            sensitivePrefKeys.forEach { remove(it) }
+                        }
+                        val rawProtectedPrefs = context.protectedPrefs().all.toMutableMap().apply {
+                            sensitivePrefKeys.forEach { remove(it) }
+                        }
 
                         // Write preferences in preferences/ folder and root for backward compatibility
                         val prefBytes = serializeSettings(rawPrefs)
@@ -334,77 +410,66 @@ object ModularBackupEngine {
 
 
 
-                    // 5b. Privacy Vault (Private phrases and notes from VaultDao)
+                    // 5b. Privacy Vault (AES-256-GCM encrypted with PBKDF2 passphrase)
                     if (BackupModule.PRIVACY_VAULT in selectedModules) {
                         val vaultDao = VaultDao.getInstance(context)
                         val vaultList = mutableListOf<PrivacyVaultBackupEntry>()
-                        try {
-                            val entries = vaultDao.getAll()
-                            entries.forEach { e ->
-                                var cleanPhrase = e.phrase
-                                while (cleanPhrase.startsWith(VaultDao.ENCRYPTED_PREFIX)) {
-                                    cleanPhrase = try {
-                                        VaultCryptoManager.decryptBase64ToString(cleanPhrase.removePrefix(VaultDao.ENCRYPTED_PREFIX))
-                                            ?: cleanPhrase.removePrefix(VaultDao.ENCRYPTED_PREFIX)
-                                    } catch (_: Throwable) {
-                                        cleanPhrase.removePrefix(VaultDao.ENCRYPTED_PREFIX)
-                                    }
+                        val entries = vaultDao.getAll()
+                        entries.forEach { e ->
+                            var cleanPhrase = e.phrase
+                            while (cleanPhrase.startsWith(VaultDao.ENCRYPTED_PREFIX)) {
+                                cleanPhrase = try {
+                                    VaultCryptoManager.decryptBase64ToString(cleanPhrase.removePrefix(VaultDao.ENCRYPTED_PREFIX))
+                                        ?: cleanPhrase.removePrefix(VaultDao.ENCRYPTED_PREFIX)
+                                } catch (_: Throwable) {
+                                    cleanPhrase.removePrefix(VaultDao.ENCRYPTED_PREFIX)
                                 }
-                                vaultList.add(
-                                    PrivacyVaultBackupEntry(
-                                        shortcut = e.shortcut,
-                                        phrase = cleanPhrase,
-                                        notes = e.notes,
-                                        timestamp = e.timestamp
-                                    )
-                                )
                             }
-                        } catch (t: Throwable) {
-                            LogCatcher.w(TAG, "Reading vault table error: ${t.message}")
+                            vaultList.add(
+                                PrivacyVaultBackupEntry(
+                                    shortcut = e.shortcut,
+                                    phrase = cleanPhrase,
+                                    notes = e.notes,
+                                    timestamp = e.timestamp
+                                )
+                            )
                         }
-                        val vaultJsonBytes = json.encodeToString(vaultList).toByteArray(Charsets.UTF_8)
-                        zip.putNextEntry(ZipEntry("database/privacy_vault.json"))
-                        zip.write(vaultJsonBytes)
-                        zip.closeEntry()
-                        stats["privacy_vault_count"] = vaultList.size
-
                         val patternSalt = context.prefs().getString(PREF_PATTERN_SALT, null)
                         val patternHash = context.prefs().getString(PREF_PATTERN_HASH, null)
-                        if (patternSalt != null && patternHash != null) {
-                            val patternMap = mapOf(
-                                PREF_PATTERN_SALT to patternSalt,
-                                PREF_PATTERN_HASH to patternHash
-                            )
-                            val patternBytes = json.encodeToString(patternMap).toByteArray(Charsets.UTF_8)
-                            zip.putNextEntry(ZipEntry("database/privacy_vault_pattern.json"))
-                            zip.write(patternBytes)
-                            zip.closeEntry()
-                        }
+
+                        val payload = EncryptedVaultPayload(
+                            entries = vaultList,
+                            patternSalt = patternSalt,
+                            patternHash = patternHash
+                        )
+                        val payloadBytes = json.encodeToString(payload).toByteArray(Charsets.UTF_8)
+                        val kdfIterations = BackupManifest.DEFAULT_KDF_ITERATIONS
+                        val (encryptedBytes, saltBytes) = encryptVaultBlob(payloadBytes, vaultPassphrase!!, kdfIterations)
+                        encryptedVaultSaltBase64 = Base64.encodeToString(saltBytes, Base64.NO_WRAP)
+                        encryptedVaultIterations = kdfIterations
+
+                        zip.putNextEntry(ZipEntry(PRIVACY_VAULT_ENC_ENTRY))
+                        zip.write(encryptedBytes)
+                        zip.closeEntry()
+                        stats["privacy_vault_count"] = vaultList.size
                     }
 
-                    // 6. Manifest File (Always created)
+                    // 6. Manifest File (Always created; unencrypted metadata only)
                     val manifest = BackupManifest(
                         schemaVersion = BackupManifest.CURRENT_SCHEMA_VERSION,
                         appVersion = appVersionName,
                         appVersionCode = appVersionCode,
                         timestamp = System.currentTimeMillis(),
                         modules = selectedModules.map { it.key },
-                        stats = stats
+                        stats = stats,
+                        encryptedVault = requiresEncryption,
+                        kdfSaltBase64 = encryptedVaultSaltBase64,
+                        kdfIterations = encryptedVaultIterations
                     )
                     val manifestBytes = json.encodeToString(manifest).toByteArray(Charsets.UTF_8)
                     zip.putNextEntry(ZipEntry(BackupManifest.MANIFEST_FILE_NAME))
                     zip.write(manifestBytes)
                     zip.closeEntry()
-
-                    // Also generate a legacy heliboard.db for full backward compatibility if database modules selected
-                    if (BackupModule.CLIPBOARD_PROMPTS in selectedModules || BackupModule.WORD_IMPROVEMENT in selectedModules || BackupModule.PRIVACY_VAULT in selectedModules) {
-                        val dbFile = context.getDatabasePath(Database.NAME)
-                        if (dbFile.exists()) {
-                            zip.putNextEntry(ZipEntry(Database.NAME))
-                            FileInputStream(dbFile).use { it.copyTo(zip) }
-                            zip.closeEntry()
-                        }
-                    }
                 }
             }
 
@@ -431,6 +496,7 @@ object ModularBackupEngine {
         val detectedModules = mutableSetOf<BackupModule>()
         var hasLegacyDb = false
         var hasLegacyPrefs = false
+        var hasEncryptedVaultEntry = false
 
         try {
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
@@ -449,6 +515,9 @@ object ModularBackupEngine {
                             detectedModules.add(BackupModule.CLIPBOARD_PROMPTS)
                         } else if (name.contains("voice_replacements")) {
                             detectedModules.add(BackupModule.WORD_IMPROVEMENT)
+                        } else if (name == PRIVACY_VAULT_ENC_ENTRY) {
+                            hasEncryptedVaultEntry = true
+                            detectedModules.add(BackupModule.PRIVACY_VAULT)
                         } else if (name.contains("privacy_vault")) {
                             detectedModules.add(BackupModule.PRIVACY_VAULT)
                         } else if (name.contains("vault.json") || name.contains("vault_portable.enc") || name.contains(SecurityVaultDatabase.DATABASE_NAME)) {
@@ -472,7 +541,7 @@ object ModularBackupEngine {
                     if (parsedModules.isEmpty()) {
                         parsedModules.addAll(detectedModules)
                     }
-                    LogCatcher.i(TAG, "Manifest parsed: schema=${manifest.schemaVersion}, v=${manifest.appVersion}, modules=${parsedModules.map { it.key }}")
+                    LogCatcher.i(TAG, "Manifest parsed: schema=${manifest.schemaVersion}, v=${manifest.appVersion}, encryptedVault=${manifest.encryptedVault}, modules=${parsedModules.map { it.key }}")
                     LogCatcher.markComponentInactive(COMPONENT_NAME, "Archive Verified")
                     return BackupArchiveInfo(
                         schemaVersion = manifest.schemaVersion,
@@ -480,7 +549,8 @@ object ModularBackupEngine {
                         timestamp = manifest.timestamp,
                         availableModules = parsedModules,
                         stats = manifest.stats,
-                        isLegacy = false
+                        isLegacy = false,
+                        requiresPassphrase = manifest.encryptedVault || hasEncryptedVaultEntry
                     )
                 } catch (t: Throwable) {
                     LogCatcher.w(TAG, "Error parsing manifest json, falling back to entry detection: ${t.message}")
@@ -505,7 +575,8 @@ object ModularBackupEngine {
                 timestamp = System.currentTimeMillis(),
                 availableModules = detectedModules,
                 stats = emptyMap(),
-                isLegacy = true
+                isLegacy = true,
+                requiresPassphrase = hasEncryptedVaultEntry
             )
         } catch (t: Throwable) {
             LogCatcher.e(TAG, "Error reading archive: ${t.message}", t)
@@ -518,7 +589,12 @@ object ModularBackupEngine {
      * Selectively restores chosen categories from the archive.
      * Guaranteed to never touch or overwrite unselected categories.
      */
-    fun restoreArchive(context: Context, uri: Uri, selectedModules: Set<BackupModule>) {
+    fun restoreArchive(
+        context: Context,
+        uri: Uri,
+        selectedModules: Set<BackupModule>,
+        vaultPassphrase: String? = null
+    ) {
         val startTime = SystemClock.elapsedRealtime()
         LogCatcher.markComponentActive(COMPONENT_NAME, "Data", "Restore Started")
         LogCatcher.i(TAG, "Starting selective restore: selected=${selectedModules.map { it.key }}")
@@ -526,9 +602,11 @@ object ModularBackupEngine {
         val filesDir = context.filesDir ?: throw IllegalStateException("Context filesDir is null")
         val deviceProtectedFilesDir = DeviceProtectedUtils.getFilesDir(context)
 
-        // Backup existing vault keys in case Settings is restored without Security Vault
+        // Preserve existing unlock patterns in case Settings is restored without Privacy Vault
         val existingVaultSalt = context.prefs().getString(PREF_PATTERN_SALT, null)
         val existingVaultHash = context.prefs().getString(PREF_PATTERN_HASH, null)
+        val existingSecuritySalt = context.prefs().getString(PREF_SECURITY_PATTERN_SALT, null)
+        val existingSecurityHash = context.prefs().getString(PREF_SECURITY_PATTERN_HASH, null)
 
         val restoredStats = mutableMapOf<String, Int>()
 
@@ -537,11 +615,13 @@ object ModularBackupEngine {
             Settings.getInstance().stopListener()
 
             // In-memory or temporary caches
+            var manifestText: String? = null
             var prefLines: List<String>? = null
             var protectedPrefLines: List<String>? = null
             var clipboardJson: String? = null
             var promptsJson: String? = null
             var voiceReplJson: String? = null
+            var privacyVaultEncBytes: ByteArray? = null
             var privacyVaultJson: String? = null
             var privacyVaultPatternJson: String? = null
             val restoredDbFile = context.getDatabasePath(Database.NAME + "_modular_restored")
@@ -552,6 +632,14 @@ object ModularBackupEngine {
                     while (entry != null) {
                         val name = entry.name
                         when {
+                            name == BackupManifest.MANIFEST_FILE_NAME -> {
+                                manifestText = String(zip.readBytes(), Charsets.UTF_8)
+                            }
+                            name == PRIVACY_VAULT_ENC_ENTRY -> {
+                                if (BackupModule.PRIVACY_VAULT in selectedModules) {
+                                    privacyVaultEncBytes = zip.readBytes()
+                                }
+                            }
                             name == PREFS_FILE_NAME || name == "preferences/$PREFS_FILE_NAME" -> {
                                 if (BackupModule.SETTINGS in selectedModules) {
                                     prefLines = String(zip.readBytes(), Charsets.UTF_8).split("\n")
@@ -626,34 +714,42 @@ object ModularBackupEngine {
                 }
             }
 
+            // Pre-decrypt Privacy Vault container BEFORE mutating any local preferences or databases
+            var decryptedVaultPayload: EncryptedVaultPayload? = null
+            if (BackupModule.PRIVACY_VAULT in selectedModules && privacyVaultEncBytes != null) {
+                val manifest = manifestText?.let { runCatching { json.decodeFromString<BackupManifest>(it) }.getOrNull() }
+                val saltB64 = manifest?.kdfSaltBase64
+                    ?: throw IllegalArgumentException("Encrypted vault backup is missing key salt metadata.")
+                val iterations = manifest.kdfIterations.takeIf { it > 0 } ?: BackupManifest.DEFAULT_KDF_ITERATIONS
+                val saltBytes = Base64.decode(saltB64, Base64.NO_WRAP)
+                if (vaultPassphrase.isNullOrBlank()) {
+                    throw IllegalArgumentException("Passphrase is required to decrypt Privacy Vault backup.")
+                }
+                val decryptedBytes = try {
+                    decryptVaultBlob(privacyVaultEncBytes!!, vaultPassphrase, saltBytes, iterations)
+                } catch (_: GeneralSecurityException) {
+                    throw IllegalArgumentException("Incorrect backup passphrase.")
+                }
+                decryptedVaultPayload = json.decodeFromString<EncryptedVaultPayload>(String(decryptedBytes, Charsets.UTF_8))
+            }
+
             // 1. Restore Settings
             if (BackupModule.SETTINGS in selectedModules && prefLines != null) {
                 val prefs = context.prefs()
                 prefs.edit().clear().commit()
                 readJsonLinesToSettings(prefLines!!, prefs)
 
-                // If backup did not contain vault pattern, preserve current device pattern, or restore from privacy_vault_pattern.json
+                // Strip any pattern credentials from legacy settings backup unless Privacy Vault restore restores them,
+                // preserving the active device pattern locally.
                 prefs.edit().apply {
-                    if (privacyVaultPatternJson != null) {
-                        try {
-                            val patternMap = json.decodeFromString<Map<String, String>>(privacyVaultPatternJson!!)
-                            patternMap[PREF_PATTERN_SALT]?.let { putString(PREF_PATTERN_SALT, it) }
-                            patternMap[PREF_PATTERN_HASH]?.let { putString(PREF_PATTERN_HASH, it) }
-                        } catch (t: Throwable) {
-                            LogCatcher.w(TAG, "Restoring pattern credentials error: ${t.message}")
-                        }
-                    } else {
-                        if (!prefs.contains(PREF_PATTERN_SALT) && existingVaultSalt != null) {
-                            putString(PREF_PATTERN_SALT, existingVaultSalt)
-                        }
-                        if (!prefs.contains(PREF_PATTERN_HASH) && existingVaultHash != null) {
-                            putString(PREF_PATTERN_HASH, existingVaultHash)
-                        }
-                    }
+                    if (existingVaultSalt != null) putString(PREF_PATTERN_SALT, existingVaultSalt) else remove(PREF_PATTERN_SALT)
+                    if (existingVaultHash != null) putString(PREF_PATTERN_HASH, existingVaultHash) else remove(PREF_PATTERN_HASH)
+                    if (existingSecuritySalt != null) putString(PREF_SECURITY_PATTERN_SALT, existingSecuritySalt) else remove(PREF_SECURITY_PATTERN_SALT)
+                    if (existingSecurityHash != null) putString(PREF_SECURITY_PATTERN_HASH, existingSecurityHash) else remove(PREF_SECURITY_PATTERN_HASH)
                     commit()
                 }
                 restoredStats["settings"] = 1
-                LogCatcher.i(TAG, "Restored Settings & Appearance (including unlock pattern)")
+                LogCatcher.i(TAG, "Restored Settings & Appearance")
             }
             if (BackupModule.SETTINGS in selectedModules && protectedPrefLines != null) {
                 val protectedPrefs = context.protectedPrefs()
@@ -661,43 +757,46 @@ object ModularBackupEngine {
                 readJsonLinesToSettings(protectedPrefLines!!, protectedPrefs)
             }
 
-            // 3. Restore Clipboard & Prompts
+            // 3. Restore Clipboard & Prompts (batched inside SQLite transactions)
             if (BackupModule.CLIPBOARD_PROMPTS in selectedModules) {
                 val db = Database.getInstance(context)
                 val clipDao = ClipboardDao.getInstance(context)
 
                 if (clipboardJson != null && clipDao != null) {
                     val clips = json.decodeFromString<List<ClipboardBackupEntry>>(clipboardJson!!)
-                    clipDao.clear()
-                    clips.forEach { entry ->
-                        clipDao.insertNewEntry(
-                            entry.timestamp,
-                            entry.isPinned,
-                            entry.text,
-                            entry.file,
-                            entry.mimeTypes,
-                            null
-                        )
+                    db.writableDatabase.transaction {
+                        clipDao.clear()
+                        clips.forEach { entry ->
+                            clipDao.insertNewEntry(
+                                entry.timestamp,
+                                entry.isPinned,
+                                entry.text,
+                                entry.file,
+                                entry.mimeTypes,
+                                null
+                            )
+                        }
                     }
                     restoredStats["clipboard_count"] = clips.size
                     LogCatcher.i(TAG, "Restored ${clips.size} clipboard entries from json")
                 } else if (restoredDbFile.exists() && clipDao != null) {
-                    // Fallback to legacy restoredDb
                     val otherDb = Database(context, restoredDbFile.name)
                     try {
                         otherDb.readableDatabase.rawQuery("SELECT TIMESTAMP, PINNED, TEXT, FILE, MIME_TYPE FROM CLIPBOARD", null).use { c ->
-                            clipDao.clear()
                             var count = 0
-                            while (c.moveToNext()) {
-                                clipDao.insertNewEntry(
-                                    c.getLong(0),
-                                    c.getInt(1) != 0,
-                                    c.getStringOrNull(2),
-                                    c.getStringOrNull(3),
-                                    c.getStringOrNull(4)?.split("§"),
-                                    null
-                                )
-                                count++
+                            db.writableDatabase.transaction {
+                                clipDao.clear()
+                                while (c.moveToNext()) {
+                                    clipDao.insertNewEntry(
+                                        c.getLong(0),
+                                        c.getInt(1) != 0,
+                                        c.getStringOrNull(2),
+                                        c.getStringOrNull(3),
+                                        c.getStringOrNull(4)?.split("§"),
+                                        null
+                                    )
+                                    count++
+                                }
                             }
                             restoredStats["clipboard_count"] = count
                             LogCatcher.i(TAG, "Restored $count clipboard entries from legacy db")
@@ -710,16 +809,18 @@ object ModularBackupEngine {
                 // Restore Prompts
                 if (promptsJson != null) {
                     val prompts = json.decodeFromString<List<PromptBackupEntry>>(promptsJson!!)
-                    PromptDao.ensureTableExists(db.writableDatabase)
-                    db.writableDatabase.execSQL("DELETE FROM ${PromptDao.TABLE}")
-                    prompts.forEach { p ->
-                        val cv = ContentValues().apply {
-                            put(PromptDao.COLUMN_TIMESTAMP, p.timestamp)
-                            put(PromptDao.COLUMN_PINNED, if (p.isPinned) 1 else 0)
-                            put(PromptDao.COLUMN_TITLE, p.title)
-                            put(PromptDao.COLUMN_TEXT, p.text)
+                    db.writableDatabase.transaction {
+                        PromptDao.ensureTableExists(this)
+                        execSQL("DELETE FROM ${PromptDao.TABLE}")
+                        prompts.forEach { p ->
+                            val cv = ContentValues().apply {
+                                put(PromptDao.COLUMN_TIMESTAMP, p.timestamp)
+                                put(PromptDao.COLUMN_PINNED, if (p.isPinned) 1 else 0)
+                                put(PromptDao.COLUMN_TITLE, p.title)
+                                put(PromptDao.COLUMN_TEXT, p.text)
+                            }
+                            insert(PromptDao.TABLE, null, cv)
                         }
-                        db.writableDatabase.insert(PromptDao.TABLE, null, cv)
                     }
                     restoredStats["prompts_count"] = prompts.size
                     LogCatcher.i(TAG, "Restored ${prompts.size} prompt templates from json")
@@ -730,21 +831,23 @@ object ModularBackupEngine {
                             "SELECT name FROM sqlite_master WHERE type='table' AND name='${PromptDao.TABLE}'", null
                         ).use { it.moveToFirst() }
                         if (hasPrompts) {
-                            PromptDao.ensureTableExists(db.writableDatabase)
-                            db.writableDatabase.execSQL("DELETE FROM ${PromptDao.TABLE}")
                             var count = 0
-                            otherDb.readableDatabase.rawQuery(
-                                "SELECT TIMESTAMP, PINNED, TITLE, TEXT FROM ${PromptDao.TABLE}", null
-                            ).use { c ->
-                                while (c.moveToNext()) {
-                                    val cv = ContentValues().apply {
-                                        put(PromptDao.COLUMN_TIMESTAMP, c.getLong(0))
-                                        put(PromptDao.COLUMN_PINNED, c.getInt(1))
-                                        put(PromptDao.COLUMN_TITLE, c.getStringOrNull(2))
-                                        put(PromptDao.COLUMN_TEXT, c.getStringOrNull(3))
+                            db.writableDatabase.transaction {
+                                PromptDao.ensureTableExists(this)
+                                execSQL("DELETE FROM ${PromptDao.TABLE}")
+                                otherDb.readableDatabase.rawQuery(
+                                    "SELECT TIMESTAMP, PINNED, TITLE, TEXT FROM ${PromptDao.TABLE}", null
+                                ).use { c ->
+                                    while (c.moveToNext()) {
+                                        val cv = ContentValues().apply {
+                                            put(PromptDao.COLUMN_TIMESTAMP, c.getLong(0))
+                                            put(PromptDao.COLUMN_PINNED, c.getInt(1))
+                                            put(PromptDao.COLUMN_TITLE, c.getStringOrNull(2))
+                                            put(PromptDao.COLUMN_TEXT, c.getStringOrNull(3))
+                                        }
+                                        insert(PromptDao.TABLE, null, cv)
+                                        count++
                                     }
-                                    db.writableDatabase.insert(PromptDao.TABLE, null, cv)
-                                    count++
                                 }
                             }
                             restoredStats["prompts_count"] = count
@@ -756,14 +859,17 @@ object ModularBackupEngine {
                 }
             }
 
-            // 4. Restore Word Improvement Dictionary
+            // 4. Restore Word Improvement Dictionary (batched in SQLite transaction)
             if (BackupModule.WORD_IMPROVEMENT in selectedModules) {
+                val db = Database.getInstance(context)
                 val voiceDao = VoiceReplacementDao.getInstance(context)
                 if (voiceReplJson != null) {
                     val entries = json.decodeFromString<List<VoiceReplacementBackupEntry>>(voiceReplJson!!)
-                    voiceDao.clear()
-                    entries.forEach { e ->
-                        voiceDao.addOrUpdate(e.originalWord, e.replacementWord, e.isWholeWord)
+                    db.writableDatabase.transaction {
+                        voiceDao.clear()
+                        entries.forEach { e ->
+                            voiceDao.addOrUpdate(e.originalWord, e.replacementWord, e.isWholeWord)
+                        }
                     }
                     restoredStats["voice_replacements_count"] = entries.size
                     LogCatcher.i(TAG, "Restored ${entries.size} voice replacement rules from json")
@@ -774,14 +880,16 @@ object ModularBackupEngine {
                             "SELECT name FROM sqlite_master WHERE type='table' AND name='${VoiceReplacementDao.TABLE}'", null
                         ).use { it.moveToFirst() }
                         if (hasVoiceTable) {
-                            voiceDao.clear()
                             var count = 0
-                            otherDb.readableDatabase.rawQuery(
-                                "SELECT ORIGINAL_WORD, REPLACEMENT_WORD, IS_WHOLE_WORD FROM ${VoiceReplacementDao.TABLE}", null
-                            ).use { c ->
-                                while (c.moveToNext()) {
-                                    voiceDao.addOrUpdate(c.getString(0) ?: "", c.getString(1) ?: "", c.getInt(2) != 0)
-                                    count++
+                            db.writableDatabase.transaction {
+                                voiceDao.clear()
+                                otherDb.readableDatabase.rawQuery(
+                                    "SELECT ORIGINAL_WORD, REPLACEMENT_WORD, IS_WHOLE_WORD FROM ${VoiceReplacementDao.TABLE}", null
+                                ).use { c ->
+                                    while (c.moveToNext()) {
+                                        voiceDao.addOrUpdate(c.getString(0) ?: "", c.getString(1) ?: "", c.getInt(2) != 0)
+                                        count++
+                                    }
                                 }
                             }
                             restoredStats["voice_replacements_count"] = count
@@ -793,84 +901,99 @@ object ModularBackupEngine {
                 }
             }
 
-            // 5. Restore Privacy Vault
+            // 5. Restore Privacy Vault (AES-GCM encrypted container preferred; legacy fallback supported)
             if (BackupModule.PRIVACY_VAULT in selectedModules) {
-                val db = Database.getInstance(context)
                 val vaultDao = VaultDao.getInstance(context)
-                if (privacyVaultPatternJson != null) {
-                    try {
-                        val patternMap = json.decodeFromString<Map<String, String>>(privacyVaultPatternJson!!)
+                if (decryptedVaultPayload != null) {
+                    if (decryptedVaultPayload.patternSalt != null && decryptedVaultPayload.patternHash != null) {
                         context.prefs().edit().apply {
-                            patternMap[PREF_PATTERN_SALT]?.let { putString(PREF_PATTERN_SALT, it) }
-                            patternMap[PREF_PATTERN_HASH]?.let { putString(PREF_PATTERN_HASH, it) }
+                            putString(PREF_PATTERN_SALT, decryptedVaultPayload.patternSalt)
+                            putString(PREF_PATTERN_HASH, decryptedVaultPayload.patternHash)
                             commit()
                         }
-                        LogCatcher.i(TAG, "Restored unlock pattern from privacy_vault_pattern.json")
-                    } catch (t: Throwable) {
-                        LogCatcher.w(TAG, "Restoring pattern credentials in vault error: ${t.message}")
                     }
-                }
-                if (privacyVaultJson != null) {
-                    val entries = json.decodeFromString<List<PrivacyVaultBackupEntry>>(privacyVaultJson!!)
-                    VaultDao.ensureTableExists(db.writableDatabase)
-                    vaultDao.clear()
-                    entries.forEach { e ->
-                        var cleanPhrase = e.phrase
-                        while (cleanPhrase.startsWith(VaultDao.ENCRYPTED_PREFIX)) {
-                            cleanPhrase = try {
-                                VaultCryptoManager.decryptBase64ToString(cleanPhrase.removePrefix(VaultDao.ENCRYPTED_PREFIX))
-                                    ?: cleanPhrase.removePrefix(VaultDao.ENCRYPTED_PREFIX)
-                            } catch (_: Throwable) {
-                                cleanPhrase.removePrefix(VaultDao.ENCRYPTED_PREFIX)
-                            }
+                    val restoredCount = vaultDao.replaceAllInTransaction(
+                        decryptedVaultPayload.entries.map { e ->
+                            helium314.keyboard.latin.database.VaultEntry(
+                                id = 0L,
+                                shortcut = e.shortcut,
+                                phrase = e.phrase,
+                                notes = e.notes,
+                                timestamp = e.timestamp
+                            )
                         }
-                        vaultDao.addOrUpdate(
-                            shortcut = e.shortcut,
-                            phrase = cleanPhrase,
-                            notes = e.notes
-                        )
+                    )
+                    restoredStats["privacy_vault_count"] = restoredCount
+                    LogCatcher.i(TAG, "Restored $restoredCount encrypted privacy vault entries")
+                } else {
+                    if (privacyVaultPatternJson != null) {
+                        try {
+                            val patternMap = json.decodeFromString<Map<String, String>>(privacyVaultPatternJson!!)
+                            context.prefs().edit().apply {
+                                patternMap[PREF_PATTERN_SALT]?.let { putString(PREF_PATTERN_SALT, it) }
+                                patternMap[PREF_PATTERN_HASH]?.let { putString(PREF_PATTERN_HASH, it) }
+                                commit()
+                            }
+                        } catch (t: Throwable) {
+                            LogCatcher.w(TAG, "Restoring legacy pattern credentials error: ${t.message}")
+                        }
                     }
-                    vaultDao.reload()
-                    restoredStats["privacy_vault_count"] = entries.size
-                    LogCatcher.i(TAG, "Restored ${entries.size} privacy vault entries from json")
-                } else if (restoredDbFile.exists()) {
-                    val otherDb = Database(context, restoredDbFile.name)
-                    try {
-                        val hasVault = otherDb.readableDatabase.rawQuery(
-                            "SELECT name FROM sqlite_master WHERE type='table' AND name='${VaultDao.TABLE}'", null
-                        ).use { it.moveToFirst() }
-                        if (hasVault) {
-                            VaultDao.ensureTableExists(db.writableDatabase)
-                            vaultDao.clear()
-                            var count = 0
-                            otherDb.readableDatabase.rawQuery(
-                                "SELECT SHORTCUT, PHRASE, NOTES, TIMESTAMP FROM ${VaultDao.TABLE}", null
-                            ).use { c ->
-                                while (c.moveToNext()) {
-                                    val rawPhrase = c.getString(1) ?: ""
-                                    var cleanPhrase = rawPhrase
-                                    while (cleanPhrase.startsWith(VaultDao.ENCRYPTED_PREFIX)) {
-                                        cleanPhrase = try {
-                                            VaultCryptoManager.decryptBase64ToString(cleanPhrase.removePrefix(VaultDao.ENCRYPTED_PREFIX))
-                                                ?: cleanPhrase.removePrefix(VaultDao.ENCRYPTED_PREFIX)
-                                        } catch (_: Throwable) {
-                                            cleanPhrase.removePrefix(VaultDao.ENCRYPTED_PREFIX)
-                                        }
-                                    }
-                                    vaultDao.addOrUpdate(
-                                        shortcut = c.getString(0) ?: "",
-                                        phrase = cleanPhrase,
-                                        notes = c.getStringOrNull(2) ?: ""
-                                    )
-                                    count++
+                    if (privacyVaultJson != null) {
+                        val entries = json.decodeFromString<List<PrivacyVaultBackupEntry>>(privacyVaultJson!!)
+                        val mapped = entries.map { e ->
+                            var cleanPhrase = e.phrase
+                            while (cleanPhrase.startsWith(VaultDao.ENCRYPTED_PREFIX)) {
+                                cleanPhrase = try {
+                                    VaultCryptoManager.decryptBase64ToString(cleanPhrase.removePrefix(VaultDao.ENCRYPTED_PREFIX))
+                                        ?: cleanPhrase.removePrefix(VaultDao.ENCRYPTED_PREFIX)
+                                } catch (_: Throwable) {
+                                    cleanPhrase.removePrefix(VaultDao.ENCRYPTED_PREFIX)
                                 }
                             }
-                            vaultDao.reload()
-                            restoredStats["privacy_vault_count"] = count
-                            LogCatcher.i(TAG, "Restored $count privacy vault entries from legacy db")
+                            helium314.keyboard.latin.database.VaultEntry(0L, e.shortcut, cleanPhrase, e.notes, e.timestamp)
                         }
-                    } finally {
-                        otherDb.close()
+                        val count = vaultDao.replaceAllInTransaction(mapped)
+                        restoredStats["privacy_vault_count"] = count
+                        LogCatcher.i(TAG, "Restored $count legacy privacy vault entries from json")
+                    } else if (restoredDbFile.exists()) {
+                        val otherDb = Database(context, restoredDbFile.name)
+                        try {
+                            val hasVault = otherDb.readableDatabase.rawQuery(
+                                "SELECT name FROM sqlite_master WHERE type='table' AND name='${VaultDao.TABLE}'", null
+                            ).use { it.moveToFirst() }
+                            if (hasVault) {
+                                val mapped = mutableListOf<helium314.keyboard.latin.database.VaultEntry>()
+                                otherDb.readableDatabase.rawQuery(
+                                    "SELECT SHORTCUT, PHRASE, NOTES, TIMESTAMP FROM ${VaultDao.TABLE}", null
+                                ).use { c ->
+                                    while (c.moveToNext()) {
+                                        var cleanPhrase = c.getString(1) ?: ""
+                                        while (cleanPhrase.startsWith(VaultDao.ENCRYPTED_PREFIX)) {
+                                            cleanPhrase = try {
+                                                VaultCryptoManager.decryptBase64ToString(cleanPhrase.removePrefix(VaultDao.ENCRYPTED_PREFIX))
+                                                    ?: cleanPhrase.removePrefix(VaultDao.ENCRYPTED_PREFIX)
+                                            } catch (_: Throwable) {
+                                                cleanPhrase.removePrefix(VaultDao.ENCRYPTED_PREFIX)
+                                            }
+                                        }
+                                        mapped.add(
+                                            helium314.keyboard.latin.database.VaultEntry(
+                                                id = 0L,
+                                                shortcut = c.getString(0) ?: "",
+                                                phrase = cleanPhrase,
+                                                notes = c.getStringOrNull(2) ?: "",
+                                                timestamp = c.getLong(3)
+                                            )
+                                        )
+                                    }
+                                }
+                                val count = vaultDao.replaceAllInTransaction(mapped)
+                                restoredStats["privacy_vault_count"] = count
+                                LogCatcher.i(TAG, "Restored $count privacy vault entries from legacy db")
+                            }
+                        } finally {
+                            otherDb.close()
+                        }
                     }
                 }
             }

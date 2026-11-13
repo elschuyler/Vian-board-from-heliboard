@@ -54,6 +54,10 @@ object FloatingKeyboardUtils {
 
         ViewLayoutUtils.updateLayoutGravityOf(view, android.view.Gravity.TOP or android.view.Gravity.START)
         view.findViewById<View>(R.id.main_keyboard_frame)?.let {
+            it.layoutParams = it.layoutParams?.apply {
+                width = ViewGroup.LayoutParams.MATCH_PARENT
+                height = ViewGroup.LayoutParams.WRAP_CONTENT
+            }
             ViewLayoutUtils.updateLayoutGravityOf(it, android.view.Gravity.TOP or android.view.Gravity.START)
             val radiusPx = 16f * view.resources.displayMetrics.density
             it.outlineProvider = object : android.view.ViewOutlineProvider() {
@@ -190,6 +194,10 @@ object FloatingKeyboardUtils {
         isFoldedState = false
         ViewLayoutUtils.updateLayoutGravityOf(view, android.view.Gravity.BOTTOM)
         view.findViewById<View>(R.id.main_keyboard_frame)?.let {
+            it.layoutParams = it.layoutParams?.apply {
+                width = ViewGroup.LayoutParams.MATCH_PARENT
+                height = ViewGroup.LayoutParams.WRAP_CONTENT
+            }
             ViewLayoutUtils.updateLayoutGravityOf(it, android.view.Gravity.BOTTOM)
             it.outlineProvider = null
             it.clipToOutline = false
@@ -220,21 +228,39 @@ object FloatingKeyboardUtils {
     @JvmStatic
     fun setHalfBoard(view: View?) {
         val lp = view?.layoutParams as? ViewGroup.MarginLayoutParams ?: return
-        ViewLayoutUtils.updateLayoutGravityOf(view, android.view.Gravity.BOTTOM or android.view.Gravity.END)
-        view.findViewById<View>(R.id.main_keyboard_frame)?.let {
-            ViewLayoutUtils.updateLayoutGravityOf(it, android.view.Gravity.BOTTOM or android.view.Gravity.END)
+        val displayWidth = view.context.resources.displayMetrics.widthPixels
+        val targetWidth = (displayWidth * 0.50f).toInt().coerceIn(150, displayWidth)
+
+        // Keep root InputView and inputArea MATCH_PARENT height anchored at bottom so
+        // SoftInputWindow never collapses Half Board into the top half of the screen.
+        ViewLayoutUtils.updateLayoutGravityOf(view, android.view.Gravity.BOTTOM)
+        lp.width = ViewGroup.LayoutParams.MATCH_PARENT
+        lp.height = ViewGroup.LayoutParams.MATCH_PARENT
+        lp.leftMargin = 0
+        lp.topMargin = 0
+        lp.rightMargin = 0
+        lp.bottomMargin = 0
+        view.layoutParams = lp
+
+        val inputArea = view.rootView.findViewById<View?>(android.R.id.inputArea)
+        if (inputArea != null) {
+            ViewLayoutUtils.updateLayoutHeightOf(inputArea, ViewGroup.LayoutParams.MATCH_PARENT)
+            ViewLayoutUtils.updateLayoutGravityOf(inputArea, android.view.Gravity.BOTTOM)
+        }
+
+        view.findViewById<View>(R.id.main_keyboard_frame)?.let { frame ->
+            frame.layoutParams = frame.layoutParams?.apply {
+                width = targetWidth
+                height = ViewGroup.LayoutParams.WRAP_CONTENT
+            }
+            ViewLayoutUtils.updateLayoutGravityOf(frame, android.view.Gravity.BOTTOM or android.view.Gravity.END)
             val radiusPx = 16f * view.resources.displayMetrics.density
-            it.outlineProvider = object : android.view.ViewOutlineProvider() {
+            frame.outlineProvider = object : android.view.ViewOutlineProvider() {
                 override fun getOutline(v: View, outline: android.graphics.Outline) {
-                    // Smooth rounded top-left corner where it meets the host screen
                     outline.setRoundRect(0, 0, v.width, v.height, radiusPx)
                 }
             }
-            it.clipToOutline = true
-        }
-        val inputArea = view.rootView.findViewById<View?>(android.R.id.inputArea)
-        if (inputArea != null) {
-            ViewLayoutUtils.updateLayoutGravityOf(inputArea, android.view.Gravity.BOTTOM or android.view.Gravity.END)
+            frame.clipToOutline = true
         }
 
         view.findViewById<View>(R.id.floating_folded_button)?.isGone = true
@@ -243,16 +269,6 @@ object FloatingKeyboardUtils {
             view.findViewById<View>(R.id.strip_container)?.isVisible = true
         }
         view.findViewById<View>(R.id.keyboard_view_wrapper)?.isVisible = true
-
-        val displayWidth = view.context.resources.displayMetrics.widthPixels
-        val targetWidth = (displayWidth * 0.50f).toInt().coerceIn(150, displayWidth)
-        lp.width = targetWidth
-        lp.height = ViewGroup.LayoutParams.WRAP_CONTENT
-        lp.leftMargin = 0
-        lp.topMargin = 0
-        lp.rightMargin = 0
-        lp.bottomMargin = 0
-        view.layoutParams = lp
         view.requestLayout()
 
         (view.context as? android.inputmethodservice.InputMethodService)?.window?.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
@@ -264,17 +280,21 @@ object FloatingKeyboardUtils {
     fun disableHalfBoard(view: View?) {
         val lp = view?.layoutParams as? ViewGroup.MarginLayoutParams ?: return
         ViewLayoutUtils.updateLayoutGravityOf(view, android.view.Gravity.BOTTOM)
-        view.findViewById<View>(R.id.main_keyboard_frame)?.let {
-            ViewLayoutUtils.updateLayoutGravityOf(it, android.view.Gravity.BOTTOM)
-            it.outlineProvider = null
-            it.clipToOutline = false
+        view.findViewById<View>(R.id.main_keyboard_frame)?.let { frame ->
+            frame.layoutParams = frame.layoutParams?.apply {
+                width = ViewGroup.LayoutParams.MATCH_PARENT
+                height = ViewGroup.LayoutParams.WRAP_CONTENT
+            }
+            ViewLayoutUtils.updateLayoutGravityOf(frame, android.view.Gravity.BOTTOM)
+            frame.outlineProvider = null
+            frame.clipToOutline = false
         }
         val inputArea = view.rootView.findViewById<View?>(android.R.id.inputArea)
         if (inputArea != null) {
             ViewLayoutUtils.updateLayoutGravityOf(inputArea, android.view.Gravity.BOTTOM)
         }
         lp.width = ViewGroup.LayoutParams.MATCH_PARENT
-        lp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+        lp.height = ViewGroup.LayoutParams.MATCH_PARENT
         lp.leftMargin = 0
         lp.topMargin = 0
         lp.rightMargin = 0

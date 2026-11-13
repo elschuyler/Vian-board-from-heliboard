@@ -269,6 +269,16 @@
     <string name="backup_select_all">Select All</string>
     <string name="backup_deselect_all">Deselect All</string>
     <string name="backup_archive_info">Archive: %1$s • %2$s modules</string>
+    <string name="backup_vault_passphrase_export_title">Encrypt Privacy Vault Backup</string>
+    <string name="backup_vault_passphrase_export_desc">Enter a strong passphrase to encrypt your Privacy Vault phrases and unlock pattern inside the .zip archive.</string>
+    <string name="backup_vault_passphrase_restore_title">Unlock Encrypted Privacy Vault</string>
+    <string name="backup_vault_passphrase_restore_desc">Enter the passphrase used to encrypt the Privacy Vault data in this backup archive.</string>
+    <string name="backup_vault_passphrase_label">Backup Passphrase</string>
+    <string name="backup_vault_passphrase_confirm_label">Confirm Passphrase</string>
+    <string name="backup_vault_passphrase_empty">Passphrase cannot be empty</string>
+    <string name="backup_vault_passphrase_mismatch">Passphrases do not match</string>
+    <string name="backup_vault_passphrase_show">Show</string>
+    <string name="backup_vault_passphrase_hide">Hide</string>
     <string name="pattern_draw_to_unlock">Draw pattern to unlock</string>
     <string name="pattern_verifying">Verifying…</string>
     <string name="pattern_unlocked">Unlocked</string>

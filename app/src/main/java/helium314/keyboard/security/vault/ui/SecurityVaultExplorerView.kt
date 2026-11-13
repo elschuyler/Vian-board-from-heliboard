@@ -41,6 +41,8 @@ import helium314.keyboard.security.vault.data.VaultEntryEntity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -68,10 +70,23 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
     private lateinit var adapter: AccordionFolderAdapter
 
     private var keyboardActionListener: KeyboardActionListener? = null
-    private val scope = CoroutineScope(Dispatchers.Main + Job())
+    private var scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var tickerJob: Job? = null
     private var basePaddingBottom = 0
     private var navBarBottomInset = 0
+
+    private fun ensureScope(): CoroutineScope {
+        if (!scope.isActive) {
+            scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+        }
+        return scope
+    }
+
+    private fun cancelScope() {
+        tickerJob?.cancel()
+        tickerJob = null
+        scope.cancel()
+    }
 
     companion object {
         private const val TAG = "SecurityVaultExplorerView"
@@ -185,13 +200,13 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-        stopCountdownTicker()
+        cancelScope()
         SecurityVaultDao.getInstance(context).removeListener(this)
     }
 
     private fun startCountdownTicker() {
         tickerJob?.cancel()
-        tickerJob = scope.launch {
+        tickerJob = ensureScope().launch {
             while (isActive) {
                 val remainingMs = VaultSessionManager.getSecuritySessionRemainingMs()
                 if (remainingMs <= 0L) {
@@ -239,7 +254,7 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
     }
 
     fun stopExplorer() {
-        stopCountdownTicker()
+        cancelScope()
         visibility = View.GONE
     }
 
@@ -250,7 +265,6 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
 
     fun closeAndLock() {
         LogCatcher.log('I', TAG, "Locking Security Vault immediately on modal exit/expiry")
-        stopCountdownTicker()
         VaultSessionManager.lockSecurity()
         stopExplorer()
         KeyboardSwitcher.getInstance().closeSecurityVaultExplorer(true)
@@ -263,7 +277,7 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
     }
 
     private fun loadData() {
-        scope.launch {
+        ensureScope().launch {
             val dao = SecurityVaultDao.getInstance(context)
             val groups = withContext(Dispatchers.IO) { dao.getAllGroups() }
             val entries = withContext(Dispatchers.IO) { dao.getAllEntries() }

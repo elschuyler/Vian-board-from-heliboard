@@ -86,17 +86,22 @@ class KeyboardLayoutSet internal constructor(private val mContext: Context, priv
         }
         val keyboard = builder.build()
         keyboardCache[id] = SoftReference<Keyboard>(keyboard)
+        val sv = Settings.getValues()
         val isCoreLayout = id.element.isAlphabet ||
                 id.element == KeyboardElement.SYMBOLS ||
-                id.element == KeyboardElement.SYMBOLS_SHIFTED ||
+                (!sv.mLiteMode && id.element == KeyboardElement.SYMBOLS_SHIFTED) ||
                 id.element == KeyboardElement.NUMPAD ||
                 id.element == KeyboardElement.NUMBER
         if (!mParams.isSpellChecker && isCoreLayout) {
+            val cacheLimit = if (sv.mLiteMode) LITE_FORCIBLE_CACHE_SIZE else FORCIBLE_CACHE_SIZE
             // Forcibly cache core layouts to prevent GC eviction under memory pressure
-            for (i in forcibleKeyboardCache.size - 1 downTo 1) {
+            for (i in cacheLimit - 1 downTo 1) {
                 forcibleKeyboardCache[i] = forcibleKeyboardCache[i - 1]
             }
             forcibleKeyboardCache[0] = keyboard
+            for (i in cacheLimit until forcibleKeyboardCache.size) {
+                forcibleKeyboardCache[i] = null
+            }
             if (DEBUG_CACHE) {
                 Log.d(TAG, "forcing caching of core keyboard with id=$id")
             }
@@ -258,6 +263,7 @@ class KeyboardLayoutSet internal constructor(private val mContext: Context, priv
         // How many layouts we forcibly keep in cache. Includes all primary ALPHABET shift states,
         // SYMBOLS, SYMBOLS_SHIFTED, NUMPAD, and NUMBER so heavy apps like Chrome never evict core layouts.
         private const val FORCIBLE_CACHE_SIZE = 12
+        private const val LITE_FORCIBLE_CACHE_SIZE = 4
 
         // Strong references array prevents the garbage collector from reclaiming core layouts.
         private val forcibleKeyboardCache = arrayOfNulls<Keyboard>(FORCIBLE_CACHE_SIZE)
@@ -292,8 +298,41 @@ class KeyboardLayoutSet internal constructor(private val mContext: Context, priv
             }
         }
 
+        fun trimMemory(aggressive: Boolean = false) {
+            clearNonCoreCache()
+            val lite = Settings.getValues()?.mLiteMode == true
+            if (aggressive) {
+                for (i in forcibleKeyboardCache.indices) {
+                    if (lite || i >= LITE_FORCIBLE_CACHE_SIZE) {
+                        forcibleKeyboardCache[i] = null
+                    }
+                }
+                uniqueKeysCache.clear()
+                LayoutParser.clearCache()
+                if (lite) {
+                    synchronized(keyboardCache) { keyboardCache.clear() }
+                }
+            } else if (lite) {
+                for (i in forcibleKeyboardCache.indices) {
+                    val kb = forcibleKeyboardCache[i]
+                    val el = kb?.mId?.element
+                    val keepCore = el != null && (el.isAlphabet || el == KeyboardElement.SYMBOLS || el == KeyboardElement.NUMPAD || el == KeyboardElement.NUMBER)
+                    if (!keepCore || i >= LITE_FORCIBLE_CACHE_SIZE) {
+                        forcibleKeyboardCache[i] = null
+                    }
+                }
+                uniqueKeysCache.clear()
+                LayoutParser.clearCache()
+            }
+        }
+
         private fun clearKeyboardCache() {
-            keyboardCache.clear()
+            for (i in forcibleKeyboardCache.indices) {
+                forcibleKeyboardCache[i] = null
+            }
+            synchronized(keyboardCache) {
+                keyboardCache.clear()
+            }
             uniqueKeysCache.clear()
             LayoutParser.clearCache()
             needsReload = true

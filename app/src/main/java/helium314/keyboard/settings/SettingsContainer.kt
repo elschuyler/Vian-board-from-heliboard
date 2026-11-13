@@ -17,7 +17,7 @@ import helium314.keyboard.settings.screens.createToolbarSettings
 import helium314.keyboard.settings.screens.createVoiceAdvancedSettings
 
 class SettingsContainer(context: Context) {
-    private val list = createSettings(context)
+    private val list = createSettings(context.applicationContext ?: context)
     private val map: Map<String, Setting> = HashMap<String, Setting>(list.size).apply {
         list.forEach {
             if (put(it.key, it) != null)

@@ -31,13 +31,47 @@ class VaultDao private constructor(private val db: Database) {
     @Volatile
     var isSuspended: Boolean = false
 
+    @Volatile
+    var unDecryptableCount: Int = 0
+        private set
+
+    @Volatile
+    private var isCacheLoaded: Boolean = false
+
+    @Volatile
+    private var isLoadingAsync: Boolean = false
+
     // Fast in-memory 3-4 character trigger index (O(1) constant-time check)
     private val triggerIndex = mutableSetOf<String>()
 
-    private val cache = mutableListOf<VaultEntry>().apply {
+    private val cache = mutableListOf<VaultEntry>()
+
+    fun preloadAsync() {
+        if (isCacheLoaded || isLoadingAsync) return
+        synchronized(this) {
+            if (isCacheLoaded || isLoadingAsync) return
+            isLoadingAsync = true
+        }
+        helium314.keyboard.latin.utils.ExecutorUtils.getBackgroundExecutor(
+            helium314.keyboard.latin.utils.ExecutorUtils.KEYBOARD
+        ).execute {
+            synchronized(this) {
+                try {
+                    ensureLoadedLocked()
+                } finally {
+                    isLoadingAsync = false
+                }
+            }
+        }
+    }
+
+    private fun ensureLoadedLocked() {
+        if (isCacheLoaded) return
         ensureTableExists(db.writableDatabase)
-        loadFromDb(this)
-        rebuildTriggersLocked(this)
+        cache.clear()
+        loadFromDb(cache)
+        rebuildTriggersLocked(cache)
+        isCacheLoaded = true
     }
 
     private fun rebuildTriggersLocked(entries: List<VaultEntry>) {
@@ -50,10 +84,13 @@ class VaultDao private constructor(private val db: Database) {
                 triggerIndex.add(sc.substring(0, 3))
                 triggerIndex.add(sc.substring(0, 4))
             }
-            // Add exact shortcut with spaces if 3-4 chars
+            // Add raw shortcut (including trailing/leading spaces) if >= 3 chars
             val rawSc = entry.shortcut.lowercase()
             if (rawSc.length in 3..4 && rawSc != sc) {
                 triggerIndex.add(rawSc)
+            } else if (rawSc.length > 4 && rawSc != sc) {
+                triggerIndex.add(rawSc.substring(0, 3))
+                triggerIndex.add(rawSc.substring(0, 4))
             }
             val p = entry.phrase.trim().lowercase()
             if (p.length in 3..4) {
@@ -78,11 +115,16 @@ class VaultDao private constructor(private val db: Database) {
      * Ultra-lightweight check: Returns true if the candidate token (3-4 letters)
      * triggers an awakening of Privacy Vault entries. O(1) complexity, 0ms latency.
      */
-    fun hasTriggerMatch(candidate: CharSequence?): Boolean = synchronized(this) {
-        if (isSuspended || candidate.isNullOrEmpty() || triggerIndex.isEmpty()) return false
-        val str = candidate.toString().lowercase()
-        val len = str.length
-        if (len < 3) return false
+    fun hasTriggerMatch(candidate: CharSequence?): Boolean {
+        if (!isCacheLoaded) {
+            preloadAsync()
+            return false
+        }
+        return synchronized(this) {
+            if (isSuspended || candidate.isNullOrEmpty() || triggerIndex.isEmpty()) return@synchronized false
+            val str = candidate.toString().lowercase()
+            val len = str.length
+            if (len < 3) return@synchronized false
 
         // Direct token match (3 or 4 chars)
         if (len in 3..4) {
@@ -113,10 +155,12 @@ class VaultDao private constructor(private val db: Database) {
             if (triggerIndex.contains(str.substring(start, start + 4))) return true
         }
 
-        return false
+        return@synchronized false
+        }
     }
 
     private fun loadFromDb(target: MutableList<VaultEntry>) {
+        var failedCount = 0
         try {
             db.readableDatabase.query(
                 TABLE,
@@ -148,6 +192,7 @@ class VaultDao private constructor(private val db: Database) {
                     }
 
                     if (decryptedPhrase == null || isCorruptedOrGibberish(decryptedPhrase)) {
+                        failedCount++
                         LogCatcher.w("VaultDao", "Skipping un-decryptable or corrupted vault entry id=${cursor.getLong(0)}")
                         continue
                     }
@@ -163,32 +208,49 @@ class VaultDao private constructor(private val db: Database) {
                     )
                 }
             }
-
+            unDecryptableCount = failedCount
         } catch (t: Throwable) {
             LogCatcher.e("VaultDao", "Error loading vault entries from database", t)
         }
     }
 
-    val count: Int get() = synchronized(this) { cache.size }
+    val count: Int
+        get() {
+            if (!isCacheLoaded) {
+                preloadAsync()
+                return 0
+            }
+            return synchronized(this) { cache.size }
+        }
 
     fun getAll(): List<VaultEntry> = synchronized(this) {
+        ensureLoadedLocked()
         cache.toList()
     }
 
     fun getEntry(id: Long): VaultEntry? = synchronized(this) {
+        ensureLoadedLocked()
         cache.firstOrNull { it.id == id }
     }
 
     fun findByShortcut(shortcut: String): VaultEntry? = synchronized(this) {
+        ensureLoadedLocked()
         if (shortcut.isBlank()) return null
         val trimmed = shortcut.trim()
-        cache.firstOrNull { it.shortcut.equals(trimmed, ignoreCase = true) }
+        cache.firstOrNull {
+            it.shortcut.equals(shortcut, ignoreCase = true) ||
+                it.shortcut.equals(trimmed, ignoreCase = true)
+        }
     }
 
     fun findMatchingShortcuts(prefix: String): List<VaultEntry> = synchronized(this) {
+        ensureLoadedLocked()
         if (prefix.isBlank()) return emptyList()
         val trimmed = prefix.trim()
-        cache.filter { it.shortcut.startsWith(trimmed, ignoreCase = true) }
+        cache.filter {
+            it.shortcut.startsWith(prefix, ignoreCase = true) ||
+                it.shortcut.startsWith(trimmed, ignoreCase = true)
+        }
     }
 
     /**
@@ -228,11 +290,11 @@ class VaultDao private constructor(private val db: Database) {
      * 3. Phrase prefix or delimited token match (requires query length >= 3)
      */
     fun findSuggestions(query: String): List<VaultEntry> = synchronized(this) {
+        ensureLoadedLocked()
         if (isSuspended || query.isBlank() || cache.isEmpty()) return emptyList()
-        // Strict 3-character minimum gating for suggestions
+        // Strict 3-character minimum gating for suggestions (spaces included)
         if (query.length < 3) return emptyList()
         val trimmed = query.trim()
-        if (trimmed.length < 3) return emptyList()
         val results = mutableListOf<VaultEntry>()
         val seenIds = mutableSetOf<Long>()
 
@@ -281,11 +343,16 @@ class VaultDao private constructor(private val db: Database) {
      * Returns a Pair(VaultEntry, replaceLength) indicating which entry matched and how many
      * characters before cursor should be deleted and replaced upon user authorization.
      */
-    fun findMatchForTextBeforeCursor(textBeforeCursor: CharSequence?): Pair<VaultEntry, Int>? = synchronized(this) {
-        if (isSuspended || textBeforeCursor.isNullOrEmpty() || cache.isEmpty()) return null
-        val text = textBeforeCursor.toString()
-        val textLen = text.length
-        if (textLen < 3) return null
+    fun findMatchForTextBeforeCursor(textBeforeCursor: CharSequence?): Pair<VaultEntry, Int>? {
+        if (!isCacheLoaded) {
+            preloadAsync()
+            return null
+        }
+        return synchronized(this) {
+            if (isSuspended || textBeforeCursor.isNullOrEmpty() || cache.isEmpty()) return@synchronized null
+            val text = textBeforeCursor.toString()
+            val textLen = text.length
+            if (textLen < 3) return@synchronized null
 
         // 1. Direct 3 or 4-character window match (letters and spaces included)
         // If the last 3 or 4 characters match an exact shortcut:
@@ -370,7 +437,8 @@ class VaultDao private constructor(private val db: Database) {
             }
         }
 
-        return null
+        return@synchronized null
+        }
     }
 
     /**
@@ -378,19 +446,25 @@ class VaultDao private constructor(private val db: Database) {
      * Evaluates candidates of 3 or more characters (spaces included).
      * Supports exact match and prefix/token match for shortcuts and phrases.
      */
-    fun findMatchingEntryForWord(word: String?): VaultEntry? = synchronized(this) {
-        if (isSuspended || word.isNullOrEmpty() || cache.isEmpty()) return null
-        if (word.length < 3) return null
-        val trimmed = word.trim()
-        if (trimmed.length < 3) return null
-
-        // 1. Exact shortcut match (highest priority)
-        for (entry in cache) {
-            if (entry.phrase.isBlank() || isCorruptedOrGibberish(entry.phrase)) continue
-            if (entry.shortcut.isNotBlank() && (entry.shortcut.equals(word, ignoreCase = true) || entry.shortcut.equals(trimmed, ignoreCase = true))) {
-                return entry
-            }
+    fun findMatchingEntryForWord(word: String?): VaultEntry? {
+        if (!isCacheLoaded) {
+            preloadAsync()
+            return null
         }
+        return synchronized(this) {
+            if (isSuspended || word.isNullOrEmpty() || cache.isEmpty()) return@synchronized null
+            if (word.length < 3) return@synchronized null
+            val trimmed = word.trim()
+
+            // 1. Exact shortcut match (highest priority, raw word with spaces OR trimmed)
+            for (entry in cache) {
+                if (entry.phrase.isBlank() || isCorruptedOrGibberish(entry.phrase)) continue
+                if (entry.shortcut.isNotBlank() && (entry.shortcut.equals(word, ignoreCase = true) ||
+                        (trimmed.length >= 3 && entry.shortcut.equals(trimmed, ignoreCase = true)))) {
+                    return@synchronized entry
+                }
+            }
+            if (trimmed.length < 3) return@synchronized null
 
         // 2. Shortcut prefix match (typing first 3-4 letters of shortcut)
         for (entry in cache) {
@@ -413,23 +487,26 @@ class VaultDao private constructor(private val db: Database) {
             if (entry.phrase.isBlank() || isCorruptedOrGibberish(entry.phrase)) continue
             val p = entry.phrase
             if (p.startsWith(trimmed, ignoreCase = true) || containsDelimitedTokenStartingWith(p, trimmed)) {
-                return entry
+                return@synchronized entry
             }
         }
 
-        return null
+        return@synchronized null
+        }
     }
 
     fun addOrUpdate(id: Long? = null, shortcut: String = "", phrase: String, notes: String = ""): Long = synchronized(this) {
-        val trimmedShortcut = shortcut.trim()
+        ensureLoadedLocked()
+        // Preserve intentional whitespace in shortcuts (e.g. "sh ") while discarding blank-only inputs
+        val normalizedShortcut = if (shortcut.isBlank()) "" else shortcut
         val trimmedPhrase = phrase.trim()
         val trimmedNotes = notes.trim()
         if (trimmedPhrase.isEmpty()) return -1L
 
         val existingIndex = if (id != null && id > 0) {
             cache.indexOfFirst { it.id == id }
-        } else if (trimmedShortcut.isNotEmpty()) {
-            cache.indexOfFirst { it.shortcut.isNotBlank() && it.shortcut.equals(trimmedShortcut, ignoreCase = true) }
+        } else if (normalizedShortcut.isNotEmpty()) {
+            cache.indexOfFirst { it.shortcut.isNotBlank() && it.shortcut.equals(normalizedShortcut, ignoreCase = true) }
         } else {
             -1
         }
@@ -450,7 +527,7 @@ class VaultDao private constructor(private val db: Database) {
         } else ""
 
         val cv = ContentValues().apply {
-            put(COLUMN_SHORTCUT, trimmedShortcut)
+            put(COLUMN_SHORTCUT, normalizedShortcut)
             put(COLUMN_PHRASE, encryptedPhrase)
             put(COLUMN_NOTES, encryptedNotes)
             put(COLUMN_TIMESTAMP, now)
@@ -461,13 +538,13 @@ class VaultDao private constructor(private val db: Database) {
             val existing = cache[existingIndex]
             db.writableDatabase.update(TABLE, cv, "$COLUMN_ID = ?", arrayOf(existing.id.toString()))
             resultId = existing.id
-            cache[existingIndex] = VaultEntry(resultId, trimmedShortcut, trimmedPhrase, trimmedNotes, now)
-            LogCatcher.i("VaultDao", "Updated vault entry id=$resultId (shortcut='$trimmedShortcut')")
+            cache[existingIndex] = VaultEntry(resultId, normalizedShortcut, trimmedPhrase, trimmedNotes, now)
+            LogCatcher.i("VaultDao", "Updated vault entry id=$resultId (shortcut='$normalizedShortcut')")
         } else {
             resultId = db.writableDatabase.insert(TABLE, null, cv)
             if (resultId != -1L) {
-                cache.add(0, VaultEntry(resultId, trimmedShortcut, trimmedPhrase, trimmedNotes, now))
-                LogCatcher.i("VaultDao", "Added vault entry id=$resultId (shortcut='$trimmedShortcut')")
+                cache.add(0, VaultEntry(resultId, normalizedShortcut, trimmedPhrase, trimmedNotes, now))
+                LogCatcher.i("VaultDao", "Added vault entry id=$resultId (shortcut='$normalizedShortcut')")
             }
         }
         rebuildTriggersLocked(cache)
@@ -480,6 +557,7 @@ class VaultDao private constructor(private val db: Database) {
     }
 
     fun delete(id: Long): Boolean = synchronized(this) {
+        ensureLoadedLocked()
         val deletedRows = db.writableDatabase.delete(TABLE, "$COLUMN_ID = ?", arrayOf(id.toString()))
         val success = deletedRows > 0
         if (success) {
@@ -492,19 +570,78 @@ class VaultDao private constructor(private val db: Database) {
     }
 
     fun clear() = synchronized(this) {
+        ensureTableExists(db.writableDatabase)
         db.writableDatabase.delete(TABLE, null, null)
         cache.clear()
+        unDecryptableCount = 0
+        isCacheLoaded = true
         rebuildTriggersLocked(cache)
         LogCatcher.i("VaultDao", "Cleared all vault entries")
         listener?.onVaultEntriesChanged()
     }
 
     fun reload() = synchronized(this) {
+        ensureTableExists(db.writableDatabase)
         cache.clear()
         loadFromDb(cache)
         rebuildTriggersLocked(cache)
-        LogCatcher.i("VaultDao", "Reloaded ${cache.size} vault entries from database")
+        isCacheLoaded = true
+        LogCatcher.i("VaultDao", "Reloaded ${cache.size} vault entries from database (unDecryptable=$unDecryptableCount)")
         listener?.onVaultEntriesChanged()
+    }
+
+    /**
+     * Replaces all Privacy Vault entries inside a single SQLite transaction,
+     * rebuilding the trigger index once at the end.
+     */
+    fun replaceAllInTransaction(entries: List<VaultEntry>): Int = synchronized(this) {
+        val writable = db.writableDatabase
+        ensureTableExists(writable)
+        val newCache = mutableListOf<VaultEntry>()
+        writable.beginTransaction()
+        try {
+            writable.delete(TABLE, null, null)
+            for (raw in entries) {
+                val normalizedShortcut = if (raw.shortcut.isBlank()) "" else raw.shortcut
+                val trimmedPhrase = raw.phrase.trim()
+                val trimmedNotes = raw.notes.trim()
+                if (trimmedPhrase.isEmpty()) continue
+                val now = if (raw.timestamp > 0L) raw.timestamp else System.currentTimeMillis()
+                val encryptedPhrase = try {
+                    ENCRYPTED_PREFIX + VaultCryptoManager.encryptStringToBase64(trimmedPhrase)
+                } catch (t: Throwable) {
+                    LogCatcher.e("VaultDao", "Failed to encrypt phrase during batch restore: ${t.message}", t)
+                    trimmedPhrase
+                }
+                val encryptedNotes = if (trimmedNotes.isNotEmpty()) {
+                    try {
+                        ENCRYPTED_PREFIX + VaultCryptoManager.encryptStringToBase64(trimmedNotes)
+                    } catch (_: Throwable) {
+                        trimmedNotes
+                    }
+                } else ""
+                val cv = ContentValues().apply {
+                    put(COLUMN_SHORTCUT, normalizedShortcut)
+                    put(COLUMN_PHRASE, encryptedPhrase)
+                    put(COLUMN_NOTES, encryptedNotes)
+                    put(COLUMN_TIMESTAMP, now)
+                }
+                val rowId = writable.insert(TABLE, null, cv)
+                if (rowId != -1L) {
+                    newCache.add(VaultEntry(rowId, normalizedShortcut, trimmedPhrase, trimmedNotes, now))
+                }
+            }
+            writable.setTransactionSuccessful()
+        } finally {
+            writable.endTransaction()
+        }
+        cache.clear()
+        cache.addAll(newCache.sortedByDescending { it.timestamp })
+        unDecryptableCount = 0
+        isCacheLoaded = true
+        rebuildTriggersLocked(cache)
+        listener?.onVaultEntriesChanged()
+        return newCache.size
     }
 
     companion object {

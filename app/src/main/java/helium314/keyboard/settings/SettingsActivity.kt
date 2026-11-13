@@ -83,7 +83,9 @@ open class SettingsActivity : ComponentActivity(), SharedPreferences.OnSharedPre
         if (!UncachedInputMethodManagerUtils.isThisImeCurrent(this, imm))
             KeyboardIconsSet.instance.loadIcons(this) // otherwise we may crash when displaying toolbar keys
 
-        settingsContainer = SettingsContainer(this)
+        activeSettingsActivities.incrementAndGet()
+        val container = SettingsContainer(applicationContext ?: this)
+        settingsContainer = container
 
         val spellchecker = intent?.getBooleanExtra("spellchecker", false) ?: false
 
@@ -109,9 +111,9 @@ open class SettingsActivity : ComponentActivity(), SharedPreferences.OnSharedPre
                                         BackButton { this@SettingsActivity.finish() }
                                     },
                                 )
-                                settingsContainer[Settings.PREF_USE_APPS]!!.Preference()
-                                settingsContainer[Settings.PREF_BLOCK_POTENTIALLY_OFFENSIVE]!!.Preference()
-                                settingsContainer[Settings.PREF_SPELLCHECK_SUGGEST]!!.Preference()
+                                container[Settings.PREF_USE_APPS]?.Preference()
+                                container[Settings.PREF_BLOCK_POTENTIALLY_OFFENSIVE]?.Preference()
+                                container[Settings.PREF_SPELLCHECK_SUGGEST]?.Preference()
                             }
                         }
                     else {
@@ -229,10 +231,9 @@ open class SettingsActivity : ComponentActivity(), SharedPreferences.OnSharedPre
     }
 
     companion object {
-        // public write so compose previews can show the screens
-        // having it in a companion object is not ideal as it will stay in memory even after settings are closed
-        // but it's small enough to not care
-        lateinit var settingsContainer: SettingsContainer
+        // public write so compose previews can show the screens; cleared when the last SettingsActivity finishes
+        var settingsContainer: SettingsContainer? = null
+        private val activeSettingsActivities = java.util.concurrent.atomic.AtomicInteger(0)
 
         var forceNight: Boolean? = null
         var forceTheme: String? = null
@@ -244,6 +245,9 @@ open class SettingsActivity : ComponentActivity(), SharedPreferences.OnSharedPre
 
     override fun onDestroy() {
         super.onDestroy()
+        if (activeSettingsActivities.updateAndGet { (it - 1).coerceAtLeast(0) } == 0 && !isChangingConfigurations) {
+            settingsContainer = null
+        }
         (findViewById<android.view.View>(android.R.id.content) as? android.view.ViewGroup)?.let { root ->
             for (i in 0 until root.childCount) {
                 val child = root.getChildAt(i)

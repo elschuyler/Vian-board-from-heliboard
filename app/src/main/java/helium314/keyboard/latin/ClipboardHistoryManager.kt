@@ -7,6 +7,7 @@ import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
 import android.net.Uri
+import android.os.Build
 import android.provider.OpenableColumns
 import android.text.InputType
 import android.text.TextUtils
@@ -81,6 +82,15 @@ class ClipboardHistoryManager(
         if (clipData.itemCount == 0) return
         val clipItem = clipData.getItemAt(0) ?: return
         val description = clipData.description ?: return
+        val isSensitive = description.extras?.let { extras ->
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                extras.getBoolean(ClipDescription.EXTRA_IS_SENSITIVE, false)
+            } else {
+                extras.getBoolean("android.content.extra.IS_SENSITIVE", false)
+            }
+        } == true
+        if (isSensitive) return
+
         val timeStamp = ClipboardManagerCompat.getClipTimestamp(clipData)
 
         if (description.hasMimeType("text/*")) {

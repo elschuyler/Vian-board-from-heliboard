@@ -3,12 +3,14 @@ package helium314.keyboard.security.vault.ui
 
 import android.annotation.SuppressLint
 import android.content.ClipData
+import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
+import android.os.PersistableBundle
 import android.util.AttributeSet
 import android.view.Gravity
 import android.view.View
@@ -47,6 +49,8 @@ import helium314.keyboard.security.vault.totp.TotpGenerator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -83,11 +87,41 @@ class ChosenEntryView @JvmOverloads constructor(
     private var currentEntry: VaultEntryEntity? = null
     private var entryAttachments: List<VaultAttachmentEntity> = emptyList()
 
-    private val scope = CoroutineScope(Dispatchers.Main + Job())
+    private var scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var totpTickerJob: Job? = null
     private var sessionTickerJob: Job? = null
     private var activePopupWindow: PopupWindow? = null
     private var navBarBottomInset: Int = 0
+
+    private fun ensureScope(): CoroutineScope {
+        if (!scope.isActive) {
+            scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+        }
+        return scope
+    }
+
+    private fun cancelScope() {
+        totpTickerJob?.cancel()
+        totpTickerJob = null
+        sessionTickerJob?.cancel()
+        sessionTickerJob = null
+        scope.cancel()
+    }
+
+    private fun copySensitiveClip(label: String, text: String) {
+        val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText(label, text).apply {
+            description.extras = PersistableBundle().apply {
+                val extraKey = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    ClipDescription.EXTRA_IS_SENSITIVE
+                } else {
+                    "android.content.extra.IS_SENSITIVE"
+                }
+                putBoolean(extraKey, true)
+            }
+        }
+        cm.setPrimaryClip(clip)
+    }
 
     companion object {
         private const val TAG = "ChosenEntryView"
@@ -197,7 +231,7 @@ class ChosenEntryView @JvmOverloads constructor(
         }
 
         // Query attachments asynchronously
-        scope.launch {
+        ensureScope().launch {
             val attachments = withContext(Dispatchers.IO) {
                 SecurityVaultDao.getInstance(context).getAttachmentsForEntry(entry.entryUuid)
             }
@@ -233,14 +267,12 @@ class ChosenEntryView @JvmOverloads constructor(
         super.onDetachedFromWindow()
         activePopupWindow?.dismiss()
         activePopupWindow = null
-        stopSessionTicker()
-        totpTickerJob?.cancel()
-        totpTickerJob = null
+        cancelScope()
     }
 
     private fun startSessionTicker() {
         sessionTickerJob?.cancel()
-        sessionTickerJob = scope.launch {
+        sessionTickerJob = ensureScope().launch {
             while (isActive) {
                 val remainingMs = VaultSessionManager.getSecuritySessionRemainingMs()
                 if (remainingMs <= 0L) {
@@ -270,9 +302,7 @@ class ChosenEntryView @JvmOverloads constructor(
     fun stopChosenEntry() {
         activePopupWindow?.dismiss()
         activePopupWindow = null
-        stopSessionTicker()
-        totpTickerJob?.cancel()
-        totpTickerJob = null
+        cancelScope()
         currentEntry = null
         visibility = View.GONE
     }
@@ -369,7 +399,7 @@ class ChosenEntryView @JvmOverloads constructor(
         val entry = currentEntry ?: return
         val totpSecret = VaultCryptoManager.decryptToString(entry.totpSecretEncrypted) ?: return
 
-        totpTickerJob = scope.launch {
+        totpTickerJob = ensureScope().launch {
             val config = TotpGenerator.parseConfig(totpSecret) ?: return@launch
             while (isActive) {
                 val res = TotpGenerator.generate(config)
@@ -474,8 +504,7 @@ class ChosenEntryView @JvmOverloads constructor(
                 }
                 background = btnBg
                 setOnClickListener {
-                    val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    cm.setPrimaryClip(ClipData.newPlainText("Vault Note", notes))
+                    copySensitiveClip("Vault Note", notes)
                     Toast.makeText(context, "Note copied to clipboard", Toast.LENGTH_SHORT).show()
                     popupWindow?.dismiss()
                 }
@@ -597,8 +626,7 @@ class ChosenEntryView @JvmOverloads constructor(
                         addView(infoCol)
 
                         setOnClickListener {
-                            val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            cm.setPrimaryClip(ClipData.newPlainText("Attachment Filename", att.filename))
+                            copySensitiveClip("Attachment Filename", att.filename)
                             Toast.makeText(context, "Copied filename: ${att.filename}", Toast.LENGTH_SHORT).show()
                             popupWindow?.dismiss()
                         }

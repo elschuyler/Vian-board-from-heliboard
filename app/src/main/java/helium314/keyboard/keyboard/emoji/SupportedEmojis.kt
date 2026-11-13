@@ -10,18 +10,32 @@ import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.prefs
 
 object SupportedEmojis {
-    private val unsupportedEmojis = hashSetOf<String>()
+    @Volatile
+    private var loaded = false
+    @Volatile
+    private var unsupportedEmojis: Set<String> = emptySet()
 
+    fun ensureLoaded(context: Context) {
+        if (!loaded) {
+            load(context.applicationContext ?: context)
+        }
+    }
+
+    @Synchronized
     fun load(context: Context) {
         determineMaxSdk(context)
         val maxSdk = context.prefs().getInt(Settings.PREF_EMOJI_MAX_SDK, 0)
-        unsupportedEmojis.clear()
-        context.assets.open("emoji/minApi.txt").reader().readLines().forEach {
-            val s = it.split(" ")
-            val minApi = s.first().toInt()
-            if (minApi > maxSdk)
-                unsupportedEmojis.addAll(s.drop(1))
+        val nextUnsupported = hashSetOf<String>()
+        context.assets.open("emoji/minApi.txt").reader().use { reader ->
+            reader.readLines().forEach {
+                val s = it.split(" ")
+                val minApi = s.first().toInt()
+                if (minApi > maxSdk)
+                    nextUnsupported.addAll(s.drop(1))
+            }
         }
+        unsupportedEmojis = nextUnsupported
+        loaded = true
     }
 
     private fun determineMaxSdk(context: Context) {
@@ -30,10 +44,12 @@ object SupportedEmojis {
         val paint = Paint()
         (KeyboardTypeface.emojiTypeface() ?: KeyboardTypeface.customTypeface())
             ?.let { paint.setTypeface(it) }
-        val maxApi = context.assets.open("emoji/minApi.txt").reader().readLines().maxOf {
-            val s = it.split(" ")
-            val supported = paint.hasGlyph(s[1])
-            if (supported) s.first().toInt() else 0
+        val maxApi = context.assets.open("emoji/minApi.txt").reader().use { reader ->
+            reader.readLines().maxOf {
+                val s = it.split(" ")
+                val supported = paint.hasGlyph(s[1])
+                if (supported) s.first().toInt() else 0
+            }
         }
         val newMax = maxApi.coerceAtLeast(Build.VERSION.SDK_INT)
         context.prefs().edit { putInt(Settings.PREF_EMOJI_MAX_SDK, newMax) }

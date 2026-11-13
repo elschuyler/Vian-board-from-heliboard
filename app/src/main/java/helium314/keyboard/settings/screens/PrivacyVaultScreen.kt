@@ -260,6 +260,7 @@ private fun VaultListScreen(
 ) {
     val context = LocalContext.current
     var entries by remember { mutableStateOf(vaultDao.getAll()) }
+    var unDecryptableCount by remember { mutableStateOf(vaultDao.unDecryptableCount) }
     var selectedEntry by remember { mutableStateOf<VaultEntry?>(null) }
     var revealedIds by remember { mutableStateOf(setOf<Long>()) }
 
@@ -267,6 +268,7 @@ private fun VaultListScreen(
         val listener = object : VaultDao.Listener {
             override fun onVaultEntriesChanged() {
                 entries = vaultDao.getAll()
+                unDecryptableCount = vaultDao.unDecryptableCount
             }
         }
         vaultDao.listener = listener
@@ -284,9 +286,12 @@ private fun VaultListScreen(
             Column(modifier = Modifier.fillMaxWidth().padding(end = 4.dp)) {
                 Text("Privacy Vault")
                 Text(
-                    text = "${entries.size} protected phrases",
+                    text = if (unDecryptableCount > 0)
+                        "${entries.size} protected phrases ($unDecryptableCount unreadable)"
+                    else
+                        "${entries.size} protected phrases",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (unDecryptableCount > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         },

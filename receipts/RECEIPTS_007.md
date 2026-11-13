@@ -356,7 +356,48 @@ This log file tracks all development steps, modifications, fixes, and build veri
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: Ready for on-device verification; pre-Phase-104 backups containing `🔒enc:` entries exported under `shura.keyboard.rsvjjk` cannot be decrypted on `shura.keyboard` due to AndroidKeyStore per-app isolation.
 
+---
 
+### Receipt 007-12
+- **Timestamp**: 2026-11-12T14:49:33-08:00
+- **Requested**:
+  - Make app launcher icon `V` and `D` thicker using a bolder font and sync repo/APK launcher icons.
+- **Files touched**:
+  - `app/src/main/res/drawable/ic_launcher_foreground.xml`
+  - `app/src/main/res/mipmap-mdpi/ic_launcher.png`, `ic_launcher_round.png`
+  - `app/src/main/res/mipmap-hdpi/ic_launcher.png`, `ic_launcher_round.png`
+  - `app/src/main/res/mipmap-xhdpi/ic_launcher.png`, `ic_launcher_round.png`
+  - `app/src/main/res/mipmap-xxhdpi/ic_launcher.png`, `ic_launcher_round.png`
+  - `app/src/main/res/mipmap-xxxhdpi/ic_launcher.png`, `ic_launcher_round.png`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_007.md`
+- **What was actually done**:
+  1. Extracted exact TrueType glyph outlines for `V` and `D` from `Rubik Black` (`wght=900`), scaled to `392` units height in the `4320×4320` adaptive viewport, centered on `x=1440.0` (`V`) and `x=2880.0` (`D`), achieving ~`130–142`-unit stem/wall thickness.
+  2. Replaced the thin/misaligned `V` and `D` paths in `ic_launcher_foreground.xml` and removed unused transparent `strokeWidth` attributes.
+  3. Rendered matching sky-blue gradient (`#38BDF8` → `#0284C7`) square and circular PNGs across all 5 density directories (`mdpi`–`xxxhdpi`), replacing the leftover pink-purple HeliBoard `H`/`B` bitmaps.
+  4. Visually inspected the rendered `mipmap-xxxhdpi/ic_launcher.png` and `ic_launcher_round.png` images, removed temporary `/tmp` scripts/fonts, purged `./debug.keystore` and `./debug.keystore.base64`, and verified clean compilation via `compile_applet`.
+- **How it was verified**: local build only (`compile_applet` succeeded) plus visual inspection of rendered `xxxhdpi` PNG outputs; not yet verified on physical launcher home screen.
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Reinstall APK on device (clear launcher icon cache if OEM launcher caches old adaptive drawable).
 
+---
 
-
+### Receipt 007-13
+- **Timestamp**: 2026-11-13T14:01:00-08:00
+- **Requested**:
+  - Execute 5-phase stabilization, security, Privacy Vault, Half Board layout, and lightweight RAM overhaul (keeping 3-char vault shortcuts across Normal/Lite modes, password-protected AES-GCM vault backups without encrypting non-vault backups, disabling Security Vault context pills without removing Explorer/ChosenEntry/DB, deferring Settings `:settings` process split, and removing stale plan/bloat files).
+- **Exact files touched**:
+  - Deleted: 13 stale `*PLAN*.md` files, `HeliBoard_TextKeyData.kt`, `sidelined_features/`, `.build-outputs/`, `./debug.keystore*`
+  - Privacy Vault & Half Board: `app/src/main/java/helium314/keyboard/latin/database/VaultDao.kt`, `app/src/main/java/helium314/keyboard/settings/screens/PrivacyVaultScreen.kt`, `app/src/main/java/helium314/keyboard/latin/LatinIME.java`, `app/src/main/java/helium314/keyboard/latin/inputlogic/InputLogic.java`, `app/src/main/java/helium314/keyboard/security/vault/context/SecurityVaultContextSniffer.kt`, `app/src/main/java/helium314/keyboard/latin/utils/Ktx.kt`, `app/src/main/java/helium314/keyboard/latin/utils/FloatingKeyboardUtils.kt`
+  - Encrypted Backup & Batched Restore: `app/src/main/java/helium314/keyboard/settings/backup/BackupManifest.kt`, `ModularBackupEngine.kt`, `ModularBackupDialogs.kt`, `app/src/main/java/helium314/keyboard/settings/screens/BackupRestoreScreen.kt`, `app/src/main/java/helium314/keyboard/settings/preferences/BackupRestorePreference.kt`, `app/src/main/res/values/strings.xml`, `app/src/test/java/helium314/keyboard/BackupCryptoTest.kt`
+  - Security, Voice & Lifecycle: `app/src/main/java/helium314/keyboard/keyboard/KeyboardSwitcher.java`, `app/src/main/java/helium314/keyboard/security/vault/ui/ChosenEntryView.kt`, `SecurityVaultExplorerView.kt`, `app/src/main/java/helium314/keyboard/latin/ClipboardHistoryManager.kt`, `app/src/main/java/helium314/keyboard/latin/voice/VoiceInputService.kt`, `VoiceInputView.kt`
+  - Memory, Lazy Init & Release R8: `app/src/main/java/helium314/keyboard/latin/App.kt`, `app/src/main/java/helium314/keyboard/keyboard/emoji/SupportedEmojis.kt`, `EmojiPalettesView.java`, `EmojiSearchActivity.kt`, `app/src/main/java/helium314/keyboard/keyboard/internal/keyboard_parser/EmojiParser.kt`, `app/src/main/java/helium314/keyboard/settings/SettingsContainer.kt`, `SettingsActivity.kt`, `SearchScreen.kt`, `app/src/main/res/layout/main_keyboard_frame.xml`, `app/src/main/java/helium314/keyboard/keyboard/KeyboardLayoutSet.kt`, `app/build.gradle.kts`, `app/proguard-rules.pro`, `BLUEPRINT.md`, `receipts/RECEIPTS_007.md`
+- **What was actually done**:
+  1. **Workspace Cleanup**: Removed 13 obsolete plan docs, unused `HeliBoard_TextKeyData.kt`, `sidelined_features/`, `.build-outputs/`, and keystores.
+  2. **Privacy Vault, Half Board & Context Pills**: Preserved intentional spaces on 3+ char vault shortcuts across Normal and Lite Mode; moved initial `VaultDao` load off the main thread (`preloadAsync()`); exposed un-decryptable row warning in `PrivacyVaultScreen`; prioritized `tryShowVaultSuggestion()` before `mAutoShowToolbar` and post-space clipboard predictions; stopped suspending `VaultDao` in `onTrimMemory()`; disabled Security Vault context pills (`CONTEXT_PILLS_ENABLED = false`) without removing Explorer/DB; fixed Half Board (`MATCH_PARENT` `inputArea`/`InputView` + 50% `Gravity.BOTTOM | Gravity.END` `main_keyboard_frame`).
+  3. **AES-256-GCM Backup & SQLite Batching**: Encrypted `database/privacy_vault.enc` + unlock patterns via PBKDF2WithHmacSHA256 (`120,000` iterations) + AES-256-GCM when `PRIVACY_VAULT` is selected (non-vault backups remain unencrypted without prompt); removed plaintext `heliboard.db` and pattern keys from vault archives; pre-validated decryption before local mutation; wrapped Clipboard, Prompts, Word Improvement, and Privacy Vault restores in transactions; added `VaultBackupPassphraseDialog` across all 3 backup/restore entry points.
+  4. **Security & Voice Hardening**: Fixed ignored `lock` boolean in `closeSecurityVaultExplorer`/`closeChosenEntry`; keyed `packageMatchCache` by `(pkg, isPasswordField, isSelfContained)` and removed unmatched `getAllEntries()` fallback dump; tagged Vault copies `EXTRA_IS_SENSITIVE` and skipped persisting sensitive clips in `ClipboardHistoryManager`; canceled `SupervisorJob` scopes on view stop/detach; switched `VoiceInputService` to lazy primitive `FloatArray?`, off-thread `whisperEngine.release()`, and synced `ServiceState.PAUSED` resume UI.
+  5. **Idle RAM & R8 Release**: Deferred `SupportedEmojis` loading lazily out of `App.onCreate()`; cleared nullable `SettingsActivity.settingsContainer` (with `applicationContext`) on last Settings destroy; replaced 6 optional modal `<ViewStub>`s with dynamic inflate/detach in Lite Mode / `trimMemory()` / `deallocateMemory()` while keeping `KeyboardView` & `ClipboardHistoryView` warm; trimmed `forcibleKeyboardCache`, `uniqueKeysCache`, and `LayoutParser` cache on `trimMemory`; restored `testImplementation` deps and enabled R8 `isMinifyEnabled = true` + `isShrinkResources = true` in `release`.
+- **How it was verified**: Local build (`compile_applet` passed), release R8 check (`gradle :app:minifyReleaseWithR8` BUILD SUCCESSFUL), and targeted unit/Robolectric tests (`BackupCryptoTest`, `KeySpecParserTest`, `KeyboardParserTest`, `LayoutTest`, `SubtypeTest`, `InputTest` BUILD SUCCESSFUL). Full suite noted pre-existing baseline failures in `ParserTest` (`$` vs `₹`), `XLinkTest` (`../layouts.md`/HTTP), `InputLogicTest` (1 Hangul test on EN/FR build), `StringUtilsTest` (`detectEmojisAtEndFails` annotated pre-existing), and `SuggestTest` (upstream word dedup/emoji removal). Not yet tested on physical device.
+- **Deviation from requested**: None (Settings `:settings` process split remains deferred as instructed).
+- **Known issue or follow-up needed**: Physical on-device verification of Privacy Vault 3-char shortcuts (`"pin"`, `"eml"`, `"sh "`), encrypted `.zip` round-trip, Half Board bottom-right placement, and Lite Mode RAM usage in Running Services.

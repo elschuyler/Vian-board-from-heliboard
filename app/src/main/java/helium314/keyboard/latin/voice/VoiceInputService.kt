@@ -47,7 +47,8 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
     private val isTranscribing = AtomicBoolean(false)
     private var lastInterimInferenceTime = 0L
 
-    private val audioBuffer = ArrayList<Float>(MAX_SPEECH_SAMPLES)
+    private var audioBuffer: FloatArray? = null
+    private var audioSampleCount = 0
     private val bufferLock = Any()
 
     private val autoShutdownRunnable = Runnable {
@@ -79,23 +80,45 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
         clientMessenger = null
         pauseRecording()
         releaseAudioPipeline()
-        whisperEngine.release()
+        releaseWhisperAsync()
         stopSelf()
         return false
+    }
+
+    private fun releaseWhisperAsync() {
+        if (!inferenceExecutor.isShutdown) {
+            try {
+                inferenceExecutor.execute {
+                    whisperEngine.release()
+                }
+            } catch (_: Throwable) {
+            }
+        }
     }
 
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
         if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW || level == ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN || level >= ComponentCallbacks2.TRIM_MEMORY_MODERATE) {
-            LogCatcher.i(TAG, "Releasing native Whisper model context onTrimMemory (level=$level)")
+            LogCatcher.i(TAG, "Pausing voice & releasing Whisper model off-thread onTrimMemory (level=$level)")
             if (currentState == VoiceIpcProtocol.ServiceState.RECORDING) {
-                pauseRecording()
-            }
-            whisperEngine.release()
-            if (currentState != VoiceIpcProtocol.ServiceState.PAUSED) {
+                audioPipeline?.pause()
                 currentState = VoiceIpcProtocol.ServiceState.PAUSED
                 notifyStateChanged(currentState)
+                LogCatcher.markComponentActive(COMPONENT_NAME, "IPC Service", "Paused (Memory Trim)")
+            } else if (currentState == VoiceIpcProtocol.ServiceState.IDLE) {
+                synchronized(bufferLock) {
+                    audioBuffer = null
+                    audioSampleCount = 0
+                }
             }
+            if (level >= ComponentCallbacks2.TRIM_MEMORY_MODERATE) {
+                synchronized(bufferLock) {
+                    audioBuffer = null
+                    audioSampleCount = 0
+                }
+            }
+            // Release off main thread to avoid JNI monitor contention ANR; do NOT trigger inference/reload here.
+            releaseWhisperAsync()
         }
     }
 
@@ -105,11 +128,18 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
         LogCatcher.markComponentInactive(COMPONENT_NAME, "Destroyed")
         serviceHandler.removeCallbacks(autoShutdownRunnable)
         releaseAudioPipeline()
-        whisperEngine.release()
-        try {
-            inferenceExecutor.shutdown()
-        } catch (e: Exception) {
-            // Ignore shutdown errors
+        if (!inferenceExecutor.isShutdown) {
+            try {
+                inferenceExecutor.execute {
+                    try {
+                        whisperEngine.release()
+                    } finally {
+                        inferenceExecutor.shutdown()
+                    }
+                }
+            } catch (_: Throwable) {
+                inferenceExecutor.shutdown()
+            }
         }
     }
 
@@ -144,7 +174,7 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
             }
             VoiceIpcProtocol.CMD_FORCE_RELEASE -> {
                 releaseAudioPipeline()
-                whisperEngine.release()
+                releaseWhisperAsync()
                 stopSelf()
             }
         }
@@ -157,7 +187,10 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
         }
         audioPipeline?.gainMultiplier = gain
         synchronized(bufferLock) {
-            audioBuffer.clear()
+            if (audioBuffer == null) {
+                audioBuffer = FloatArray(MAX_SPEECH_SAMPLES)
+            }
+            audioSampleCount = 0
         }
         val success = audioPipeline?.start() ?: false
         if (success) {
@@ -165,6 +198,10 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
             notifyStateChanged(currentState)
             LogCatcher.markComponentActive(COMPONENT_NAME, "IPC Service", "Recording (Gain: ${gain}x)")
         } else {
+            synchronized(bufferLock) {
+                audioBuffer = null
+                audioSampleCount = 0
+            }
             currentState = VoiceIpcProtocol.ServiceState.ERROR
             notifyStateChanged(currentState)
             LogCatcher.markComponentActive(COMPONENT_NAME, "IPC Service", "Error Starting Recording")
@@ -180,6 +217,12 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
     }
 
     private fun resumeRecording() {
+        synchronized(bufferLock) {
+            if (audioBuffer == null) {
+                audioBuffer = FloatArray(MAX_SPEECH_SAMPLES)
+                audioSampleCount = 0
+            }
+        }
         audioPipeline?.resume()
         currentState = VoiceIpcProtocol.ServiceState.RECORDING
         notifyStateChanged(currentState)
@@ -191,14 +234,15 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
         currentState = VoiceIpcProtocol.ServiceState.IDLE
         notifyStateChanged(currentState)
         LogCatcher.markComponentActive(COMPONENT_NAME, "IPC Service", "Idle (Processing Final Audio)")
-        triggerInference()
+        triggerInference(releaseBufferAfter = true)
     }
 
     private fun releaseAudioPipeline() {
         audioPipeline?.release()
         audioPipeline = null
         synchronized(bufferLock) {
-            audioBuffer.clear()
+            audioBuffer = null
+            audioSampleCount = 0
         }
         currentState = VoiceIpcProtocol.ServiceState.IDLE
         notifyStateChanged(currentState)
@@ -256,8 +300,9 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
 
         val samples: FloatArray
         synchronized(bufferLock) {
-            if (audioBuffer.size < MIN_SPEECH_SAMPLES) return
-            samples = audioBuffer.toFloatArray()
+            val buf = audioBuffer ?: return
+            if (audioSampleCount < MIN_SPEECH_SAMPLES) return
+            samples = buf.copyOf(audioSampleCount)
         }
 
         lastInterimInferenceTime = now
@@ -297,19 +342,27 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
         }
     }
 
-    private fun triggerInference() {
+    private fun triggerInference(releaseBufferAfter: Boolean = false) {
         lastInterimInferenceTime = 0L
         val samples: FloatArray
         synchronized(bufferLock) {
-            if (audioBuffer.size < MIN_SPEECH_SAMPLES) {
+            val buf = audioBuffer
+            if (buf == null || audioSampleCount < MIN_SPEECH_SAMPLES) {
                 // Ignore audio clips shorter than 0.5s to avoid transcribing clicks
-                audioBuffer.clear()
+                audioSampleCount = 0
+                if (releaseBufferAfter) {
+                    audioBuffer = null
+                }
                 return
             }
-            samples = audioBuffer.toFloatArray()
-            audioBuffer.clear()
+            samples = buf.copyOf(audioSampleCount)
+            audioSampleCount = 0
+            if (releaseBufferAfter) {
+                audioBuffer = null
+            }
         }
 
+        if (inferenceExecutor.isShutdown) return
         inferenceExecutor.execute {
             if (isTranscribing.compareAndSet(false, true)) {
                 try {
@@ -407,11 +460,12 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
     override fun onAudioChunkAvailable(buffer: ShortArray, readSize: Int) {
         var bufferFull = false
         synchronized(bufferLock) {
-            val maxToAdd = minOf(readSize, MAX_SPEECH_SAMPLES - audioBuffer.size)
+            val buf = audioBuffer ?: FloatArray(MAX_SPEECH_SAMPLES).also { audioBuffer = it }
+            val maxToAdd = minOf(readSize, MAX_SPEECH_SAMPLES - audioSampleCount)
             for (i in 0 until maxToAdd) {
-                audioBuffer.add(buffer[i] / 32768.0f)
+                buf[audioSampleCount++] = buffer[i] / 32768.0f
             }
-            if (audioBuffer.size >= MAX_SPEECH_SAMPLES) {
+            if (audioSampleCount >= MAX_SPEECH_SAMPLES) {
                 bufferFull = true
             }
         }

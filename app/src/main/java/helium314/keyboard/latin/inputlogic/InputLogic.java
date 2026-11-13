@@ -1854,9 +1854,10 @@ public final class InputLogic {
         final SuggestedWords suggestedWords = holder.get(null,
                 Constants.GET_SUGGESTED_WORDS_TIMEOUT);
         if (suggestedWords != null) {
-            // Prefer clipboard suggestions (if available and setting is enabled) over beginning of sentence predictions.
-            if (!(suggestedWords.mInputStyle == SuggestedWords.INPUT_STYLE_BEGINNING_OF_SENTENCE_PREDICTION
-                    && mLatinIME.tryShowClipboardSuggestion())) {
+            // Prefer Privacy Vault triggers (including space-suffix shortcuts like "sh ") over clipboard/prediction overrides,
+            // then prefer clipboard suggestions over beginning of sentence predictions.
+            final boolean isBeginningOfSentence = suggestedWords.mInputStyle == SuggestedWords.INPUT_STYLE_BEGINNING_OF_SENTENCE_PREDICTION;
+            if (!(isBeginningOfSentence && (mLatinIME.tryShowVaultSuggestion() || mLatinIME.tryShowClipboardSuggestion()))) {
                 mSuggestionStripViewAccessor.setSuggestions(suggestedWords);
             }
             if (!suggestedWords.isEmpty() && settingsValues.mSuggestionsEnabled && isInlineEmojiSearchAction()) {

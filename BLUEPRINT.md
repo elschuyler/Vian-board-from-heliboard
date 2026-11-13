@@ -1432,6 +1432,38 @@ Vianboard is a fully customizable, privacy-conscious offline Android keyboard ap
       - Purged build-generated `./debug.keystore` and `./debug.keystore.base64` per Mandate 2 Credential Immunity.
       - Verified 100% clean compilation via `compile_applet`.
 
+- **2026-11-12**: Completed Phase 107 (App Launcher Icon Ultra-Heavy `Rubik 900 Black` `V` & `D` Glyphs + Mipmap Bitmap Sync):
+    - **Component 1: Authentic `Rubik 900 Black` Vector Outlines (`app/src/main/res/drawable/ic_launcher_foreground.xml`)**:
+      - Replaced the thin, misaligned `V` path (previously off-center at `x=1525` with uneven diagonals) and narrow/thin `D` path (previously `77`-unit right wall) with exact mathematical TrueType outlines extracted from `Rubik Black (wght=900)` scaled to `392` units height inside the `4320×4320` adaptive viewport.
+      - Centered **`V`** strictly on column `x=1440.0` (`1245.1..1634.9`, `y=1616.6..2008.6`) and **`D`** strictly on column `x=2880.0` (`2697.7..3062.3`, `y=2176.6..2568.6`, ~`137–142`-unit stem/wall thickness), matching the bold visual weight of the circular key icons.
+      - Removed non-functional transparent `strokeWidth` attributes from both glyph paths.
+    - **Component 2: Legacy/Fallback Mipmap PNG Synchronization (`app/src/main/res/mipmap-{mdpi,hdpi,xhdpi,xxhdpi,xxxhdpi}/ic_launcher*.png`)**:
+      - Replaced all stale pink/purple HeliBoard `H`/`B` raster PNGs across `mdpi` (`48px`), `hdpi` (`72px`), `xhdpi` (`96px`), `xxhdpi` (`144px`), and `xxxhdpi` (`192px`) with matching sky-blue (`#38BDF8` → `#0284C7`) square and round-masked PNGs featuring the updated `Rubik 900 Black` `V` and `D` foreground.
+      - Visually inspected rendered `xxxhdpi` square and round PNGs and verified clean compilation via `compile_applet`.
+    - **Component 3: Credential Immunity & Temporary File Cleanup**:
+      - Removed temporary `/tmp` font/rendering files and purged build-generated `./debug.keystore` and `./debug.keystore.base64` per Mandate 2 Credential Immunity.
+
+- **2026-11-13**: Completed Phase 108 (Workspace Cleanup, Privacy Vault & Half Board Fixes, AES-256-GCM Backups, Security Hardening, Lightweight Idle RAM & Release R8):
+    - **Component 1: Workspace Cleanup (Phase 0)**:
+      - Removed 13 stale `*PLAN*.md` files (retaining `BLUEPRINT.md`, `README.md`, and `/receipts/`), unused `/HeliBoard_TextKeyData.kt`, `/sidelined_features/`, `./.build-outputs/`, and `./debug.keystore*`.
+    - **Component 2: Privacy Vault Pills, Half Board Placement & Security Vault Pill Disable (Phase 1)**:
+      - `VaultDao.kt` & `PrivacyVaultScreen.kt`: Preserved intentional spaces in 3+ character shortcuts (e.g., `"pin"`, `"eml"`, `"sh "`), moved initial vault DB load off the UI thread (`preloadAsync()`), and exposed `unDecryptableCount` warning in Privacy Vault subtitle.
+      - `LatinIME.java` & `InputLogic.java`: Removed `!mLiteMode` gating so Privacy Vault pills work in both Normal and Lite Mode, prioritized `tryShowVaultSuggestion()` before `mAutoShowToolbar` and clipboard suggestions on post-space prediction, and stopped suspending `VaultDao` during `onTrimMemory()`.
+      - `SecurityVaultContextSniffer.kt` & `LatinIME.java`: Disabled Security Vault context pills (`CONTEXT_PILLS_ENABLED = false`) to save resources while retaining Explorer/ChosenEntry/DB intact.
+      - `Ktx.kt` & `FloatingKeyboardUtils.kt`: Kept `inputArea` & `InputView` `MATCH_PARENT` and docked `main_keyboard_frame` at 50% width with `Gravity.BOTTOM or Gravity.END`, fixing Half Board top-half displacement.
+    - **Component 3: AES-256-GCM Password-Protected `.zip` Backups & Batched Restore (Phase 2)**:
+      - `BackupManifest.kt`, `ModularBackupEngine.kt`, `VaultDao.kt`, `ModularBackupDialogs.kt`, `BackupRestoreScreen.kt`, `BackupRestorePreference.kt`: Added PBKDF2WithHmacSHA256 (`120,000` iterations) + AES-256-GCM encryption for `database/privacy_vault.enc` when `BackupModule.PRIVACY_VAULT` is backed up (unencrypted backups without vault prompt no passphrase), stripped all 4 pattern keys from plaintext settings JSONs, excluded raw `heliboard.db` from vault backups, validated passphrase decryption before mutating local data, and wrapped Clipboard, Prompts, Word Improvement, and Privacy Vault restores in SQLite transactions.
+    - **Component 4: Security, Lock State, Voice Trim & Lifecycle Hardening (Phase 3)**:
+      - `KeyboardSwitcher.java`: Respected `if (lock)` in `closeSecurityVaultExplorer(boolean)` and `closeChosenEntry(boolean)`.
+      - `SecurityVaultContextSniffer.kt`: Removed `dao.getAllEntries()` unmatched password-field dump and keyed `packageMatchCache` by `(pkg, isPasswordField, isSelfContained)`.
+      - `ChosenEntryView.kt`, `ClipboardHistoryManager.kt`, `SecurityVaultExplorerView.kt`: Marked sensitive vault copies with `EXTRA_IS_SENSITIVE`, skipped saving sensitive clips in clipboard history, and canceled/recreated `SupervisorJob` coroutine scopes on stop and detach.
+      - `VoiceInputService.kt` & `VoiceInputView.kt`: Replaced eager `ArrayList<Float>` with lazily allocated `FloatArray?` freed on stop/trim, paused without auto-reloading Whisper on `onTrimMemory()`, released native Whisper off-thread, and synced `ServiceState.PAUSED` so users can tap Resume.
+    - **Component 5: Lightweight Idle RAM, Dynamic Modal Detach & Release R8 (Phase 4)**:
+      - `App.kt`, `SupportedEmojis.kt`, `EmojiPalettesView.java`, `EmojiSearchActivity.kt`, `EmojiParser.kt`: Deferred `SupportedEmojis` initialization lazily on first Emoji use instead of `App.onCreate()`.
+      - `SettingsContainer.kt`, `SettingsActivity.kt`, `SearchScreen.kt`: Passed `applicationContext` into `SettingsContainer`, made `settingsContainer` nullable, and cleared it on `onDestroy()` when the last Settings activity closes.
+      - `main_keyboard_frame.xml` & `KeyboardSwitcher.java`: Kept `KeyboardView` and `ClipboardHistoryView` warm while dynamically inflating/detaching all 6 optional modals (`EmojiPalettesView`, `DesktopShortcutsView`, `PatternUnlockView`, `SecurityVaultExplorerView`, `ChosenEntryView`, `VoiceInputView`) in Lite Mode / `trimMemory()` / `deallocateMemory()`.
+      - `KeyboardLayoutSet.kt` & `LatinIME.java`: Added Lite Mode / `trimMemory()` pruning for `forcibleKeyboardCache`, `uniqueKeysCache`, and `LayoutParser` cache.
+      - `app/build.gradle.kts` & `app/proguard-rules.pro`: Restored JVM `testImplementation` dependencies, enabled `isMinifyEnabled = true` and `isShrinkResources = true` in `release`, and added Whisper JNI, custom View, Kotpass, and Kotlinx Serialization keep rules.
 
 
 
