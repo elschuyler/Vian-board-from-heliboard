@@ -129,3 +129,25 @@ jobs:
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: ignore
           retention-days: 14
+
+      # [TEMPORARY: Remove once GitHub Release signing secrets are configured]
+      - name: Build Minified Debug APK (Fallback when Release Secrets Missing)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -n "$STORE_PASSWORD" ] && [ -n "$KEY_PASSWORD" ] && [ -n "$KEYSTORE_BASE64" ]; then
+            echo "Release signing secrets configured. Skipping minifiedDebug fallback build."
+            exit 0
+          fi
+          ./gradlew assembleMinifiedDebug --stacktrace
+
+      # [TEMPORARY: Remove once GitHub Release signing secrets are configured]
+      - name: Upload Minified Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: VianBoard-MinifiedDebug-APK
+          path: app/build/outputs/apk/minifiedDebug/*.apk
+          if-no-files-found: ignore
+          retention-days: 14

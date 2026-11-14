@@ -63,6 +63,13 @@ android {
         signingConfig = customDebug
       }
     }
+    // [TEMPORARY: Remove once GitHub Release signing secrets are configured]
+    create("minifiedDebug") {
+      initWith(getByName("release"))
+      signingConfig = signingConfigs.getByName("debug")
+      matchingFallbacks += listOf("release", "debug")
+      isDebuggable = false
+    }
   }
   compileOptions {
     isCoreLibraryDesugaringEnabled = true
