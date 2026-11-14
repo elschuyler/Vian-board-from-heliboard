@@ -24,10 +24,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,8 +45,69 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import helium314.keyboard.latin.R
+import org.json.JSONArray
+import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Locale
+
+val BackupModuleSetSaver: Saver<Set<BackupModule>, String> = Saver(
+    save = { modules -> modules.joinToString(",") { it.name } },
+    restore = { raw ->
+        if (raw.isEmpty()) emptySet()
+        else raw.split(",").mapNotNull { runCatching { BackupModule.valueOf(it) }.getOrNull() }.toSet()
+    }
+)
+
+val NullableUriSaver: Saver<Uri?, String> = Saver(
+    save = { it?.toString() ?: "" },
+    restore = { if (it.isEmpty()) null else Uri.parse(it) }
+)
+
+val NullableBackupArchiveInfoSaver: Saver<BackupArchiveInfo?, String> = Saver(
+    save = { info ->
+        if (info == null) "" else JSONObject().apply {
+            put("sv", info.schemaVersion)
+            put("av", info.appVersion)
+            put("ts", info.timestamp)
+            put("mods", JSONArray(info.availableModules.map { it.name }))
+            put("stats", JSONObject().apply {
+                info.stats.forEach { (k, v) -> put(k, v) }
+            })
+            put("leg", info.isLegacy)
+            put("req", info.requiresPassphrase)
+        }.toString()
+    },
+    restore = { raw ->
+        if (raw.isEmpty()) null else runCatching {
+            val obj = JSONObject(raw)
+            val modsArr = obj.optJSONArray("mods")
+            val mods = mutableSetOf<BackupModule>()
+            if (modsArr != null) {
+                for (i in 0 until modsArr.length()) {
+                    runCatching { BackupModule.valueOf(modsArr.getString(i)) }.getOrNull()?.let { mods.add(it) }
+                }
+            }
+            val statsObj = obj.optJSONObject("stats")
+            val stats = mutableMapOf<String, Int>()
+            if (statsObj != null) {
+                val keys = statsObj.keys()
+                while (keys.hasNext()) {
+                    val k = keys.next()
+                    stats[k] = statsObj.optInt(k, 0)
+                }
+            }
+            BackupArchiveInfo(
+                schemaVersion = obj.optInt("sv", BackupManifest.CURRENT_SCHEMA_VERSION),
+                appVersion = obj.optString("av", ""),
+                timestamp = obj.optLong("ts", 0L),
+                availableModules = mods,
+                stats = stats,
+                isLegacy = obj.optBoolean("leg", false),
+                requiresPassphrase = obj.optBoolean("req", false)
+            )
+        }.getOrNull()
+    }
+)
 
 @Composable
 fun ModularExportDialog(

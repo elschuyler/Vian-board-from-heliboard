@@ -515,14 +515,15 @@ class VaultDao private constructor(private val db: Database) {
         val encryptedPhrase = try {
             ENCRYPTED_PREFIX + VaultCryptoManager.encryptStringToBase64(trimmedPhrase)
         } catch (t: Throwable) {
-            LogCatcher.e("VaultDao", "Failed to encrypt phrase, saving plaintext fallback: ${t.message}", t)
-            trimmedPhrase
+            LogCatcher.e("VaultDao", "Failed to encrypt phrase, aborting save: ${t.message}", t)
+            return -1L
         }
         val encryptedNotes = if (trimmedNotes.isNotEmpty()) {
             try {
                 ENCRYPTED_PREFIX + VaultCryptoManager.encryptStringToBase64(trimmedNotes)
-            } catch (_: Throwable) {
-                trimmedNotes
+            } catch (t: Throwable) {
+                LogCatcher.e("VaultDao", "Failed to encrypt notes, aborting save: ${t.message}", t)
+                return -1L
             }
         } else ""
 
@@ -611,13 +612,14 @@ class VaultDao private constructor(private val db: Database) {
                     ENCRYPTED_PREFIX + VaultCryptoManager.encryptStringToBase64(trimmedPhrase)
                 } catch (t: Throwable) {
                     LogCatcher.e("VaultDao", "Failed to encrypt phrase during batch restore: ${t.message}", t)
-                    trimmedPhrase
+                    throw IllegalStateException("Vault encryption unavailable during batch restore", t)
                 }
                 val encryptedNotes = if (trimmedNotes.isNotEmpty()) {
                     try {
                         ENCRYPTED_PREFIX + VaultCryptoManager.encryptStringToBase64(trimmedNotes)
-                    } catch (_: Throwable) {
-                        trimmedNotes
+                    } catch (t: Throwable) {
+                        LogCatcher.e("VaultDao", "Failed to encrypt notes during batch restore: ${t.message}", t)
+                        throw IllegalStateException("Vault encryption unavailable during batch restore", t)
                     }
                 } else ""
                 val cv = ContentValues().apply {

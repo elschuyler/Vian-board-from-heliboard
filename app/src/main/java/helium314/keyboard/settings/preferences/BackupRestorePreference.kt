@@ -52,11 +52,14 @@ import helium314.keyboard.latin.utils.getActivity
 import helium314.keyboard.settings.Setting
 import helium314.keyboard.settings.SettingsActivity
 import helium314.keyboard.settings.backup.BackupArchiveInfo
+import helium314.keyboard.settings.backup.BackupModuleSetSaver
 import helium314.keyboard.settings.backup.ModularExportDialog
 import helium314.keyboard.settings.backup.ModularRestoreDialog
 import helium314.keyboard.settings.backup.ModuleCheckboxRow
 import helium314.keyboard.settings.backup.BackupModule
 import helium314.keyboard.settings.backup.ModularBackupEngine
+import helium314.keyboard.settings.backup.NullableBackupArchiveInfoSaver
+import helium314.keyboard.settings.backup.NullableUriSaver
 import helium314.keyboard.settings.backup.VaultBackupPassphraseDialog
 import helium314.keyboard.settings.dialogs.ConfirmationDialog
 import helium314.keyboard.settings.dialogs.InfoDialog
@@ -72,24 +75,24 @@ fun BackupRestorePreference(setting: Setting) {
     var showExportDialog by rememberSaveable { mutableStateOf(false) }
     var showRestoreDialog by rememberSaveable { mutableStateOf(false) }
 
-    var selectedExportModules by remember {
+    var selectedExportModules by rememberSaveable(stateSaver = BackupModuleSetSaver) {
         mutableStateOf(BackupModule.entries.toSet())
     }
-    var selectedRestoreModules by remember {
+    var selectedRestoreModules by rememberSaveable(stateSaver = BackupModuleSetSaver) {
         mutableStateOf(emptySet<BackupModule>())
     }
-    var pendingArchiveInfo by remember {
+    var pendingArchiveInfo by rememberSaveable(stateSaver = NullableBackupArchiveInfoSaver) {
         mutableStateOf<BackupArchiveInfo?>(null)
     }
-    var pendingRestoreUri by remember {
+    var pendingRestoreUri by rememberSaveable(stateSaver = NullableUriSaver) {
         mutableStateOf<Uri?>(null)
     }
     var error: String? by rememberSaveable { mutableStateOf(null) }
     var pendingExportPassphrase by remember { mutableStateOf<String?>(null) }
     var showExportPassphraseDialog by rememberSaveable { mutableStateOf(false) }
     var showRestorePassphraseDialog by rememberSaveable { mutableStateOf(false) }
-    var pendingRestorePassphraseUri by remember { mutableStateOf<Uri?>(null) }
-    var pendingRestorePassphraseModules by remember { mutableStateOf<Set<BackupModule>>(emptySet()) }
+    var pendingRestorePassphraseUri by rememberSaveable(stateSaver = NullableUriSaver) { mutableStateOf<Uri?>(null) }
+    var pendingRestorePassphraseModules by rememberSaveable(stateSaver = BackupModuleSetSaver) { mutableStateOf<Set<BackupModule>>(emptySet()) }
 
     // Launcher for creating backup zip
     val backupLauncher = filePicker { uri ->

@@ -20,6 +20,7 @@ class SecurityVaultDatabase private constructor(
     override fun onConfigure(db: SQLiteDatabase) {
         super.onConfigure(db)
         db.setForeignKeyConstraintsEnabled(true)
+        db.enableWriteAheadLogging()
     }
 
     override fun onCreate(db: SQLiteDatabase) {

@@ -33,10 +33,14 @@ import helium314.keyboard.settings.SearchSettingsScreen
 import helium314.keyboard.settings.SettingsActivity
 import helium314.keyboard.settings.backup.BackupArchiveInfo
 import helium314.keyboard.settings.backup.BackupModule
+import helium314.keyboard.settings.backup.BackupModuleSetSaver
 import helium314.keyboard.settings.backup.ModularBackupEngine
 import helium314.keyboard.settings.backup.ModularExportDialog
 import helium314.keyboard.settings.backup.ModularRestoreDialog
+import helium314.keyboard.settings.backup.NullableBackupArchiveInfoSaver
+import helium314.keyboard.settings.backup.NullableUriSaver
 import helium314.keyboard.settings.backup.VaultBackupPassphraseDialog
+import helium314.keyboard.security.vault.crypto.VaultCryptoManager
 import helium314.keyboard.settings.dialogs.ConfirmationDialog
 import helium314.keyboard.settings.dialogs.InfoDialog
 import helium314.keyboard.settings.filePicker
@@ -77,24 +81,24 @@ fun BackupRestoreScreen(
     var showRestoreDialog by rememberSaveable { mutableStateOf(false) }
     var showHeliBoardConfirm by rememberSaveable { mutableStateOf(false) }
 
-    var selectedExportModules by remember {
+    var selectedExportModules by rememberSaveable(stateSaver = BackupModuleSetSaver) {
         mutableStateOf(BackupModule.entries.toSet())
     }
-    var selectedRestoreModules by remember {
+    var selectedRestoreModules by rememberSaveable(stateSaver = BackupModuleSetSaver) {
         mutableStateOf(emptySet<BackupModule>())
     }
-    var pendingArchiveInfo by remember {
+    var pendingArchiveInfo by rememberSaveable(stateSaver = NullableBackupArchiveInfoSaver) {
         mutableStateOf<BackupArchiveInfo?>(null)
     }
-    var pendingRestoreUri by remember {
+    var pendingRestoreUri by rememberSaveable(stateSaver = NullableUriSaver) {
         mutableStateOf<Uri?>(null)
     }
 
     var showKdbxExportPasswordDialog by rememberSaveable { mutableStateOf(false) }
     var showKdbxImportPasswordDialog by rememberSaveable { mutableStateOf(false) }
-    var pendingKdbxExportUri by remember { mutableStateOf<Uri?>(null) }
-    var pendingKdbxImportUri by remember { mutableStateOf<Uri?>(null) }
-    var pendingKdbxKeyFileUri by remember { mutableStateOf<Uri?>(null) }
+    var pendingKdbxExportUri by rememberSaveable(stateSaver = NullableUriSaver) { mutableStateOf<Uri?>(null) }
+    var pendingKdbxImportUri by rememberSaveable(stateSaver = NullableUriSaver) { mutableStateOf<Uri?>(null) }
+    var pendingKdbxKeyFileUri by rememberSaveable(stateSaver = NullableUriSaver) { mutableStateOf<Uri?>(null) }
     var kdbxMasterPasswordInput by remember { mutableStateOf("") }
     var kdbxConfirmPasswordInput by remember { mutableStateOf("") }
     var isKdbxPasswordVisible by remember { mutableStateOf(false) }
@@ -104,8 +108,8 @@ fun BackupRestoreScreen(
     var pendingExportPassphrase by remember { mutableStateOf<String?>(null) }
     var showExportPassphraseDialog by rememberSaveable { mutableStateOf(false) }
     var showRestorePassphraseDialog by rememberSaveable { mutableStateOf(false) }
-    var pendingRestorePassphraseUri by remember { mutableStateOf<Uri?>(null) }
-    var pendingRestorePassphraseModules by remember { mutableStateOf<Set<BackupModule>>(emptySet()) }
+    var pendingRestorePassphraseUri by rememberSaveable(stateSaver = NullableUriSaver) { mutableStateOf<Uri?>(null) }
+    var pendingRestorePassphraseModules by rememberSaveable(stateSaver = BackupModuleSetSaver) { mutableStateOf<Set<BackupModule>>(emptySet()) }
 
     val backupLauncher = filePicker { uri ->
         val passphraseToUse = pendingExportPassphrase
@@ -146,6 +150,7 @@ fun BackupRestoreScreen(
 
     val kdbxExportLauncher = filePicker { uri ->
         pendingKdbxExportUri = uri
+        pendingKdbxKeyFileUri = null
         kdbxMasterPasswordInput = ""
         kdbxConfirmPasswordInput = ""
         kdbxDialogError = null
@@ -373,6 +378,7 @@ fun BackupRestoreScreen(
                 if (!isKdbxProcessing) {
                     showKdbxExportPasswordDialog = false
                     pendingKdbxExportUri = null
+                    pendingKdbxKeyFileUri = null
                     kdbxMasterPasswordInput = ""
                     kdbxConfirmPasswordInput = ""
                     kdbxDialogError = null
@@ -416,6 +422,35 @@ fun BackupRestoreScreen(
                         visualTransformation = if (isKdbxPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done)
                     )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Key File (Optional)", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = pendingKdbxKeyFileUri?.lastPathSegment ?: "None selected",
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 1
+                            )
+                        }
+                        if (pendingKdbxKeyFileUri != null) {
+                            TextButton(onClick = { pendingKdbxKeyFileUri = null }) {
+                                Text("Clear")
+                            }
+                        } else {
+                            TextButton(onClick = {
+                                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
+                                    .addCategory(Intent.CATEGORY_OPENABLE)
+                                    .setType("*/*")
+                                kdbxKeyFileLauncher.launch(intent)
+                            }) {
+                                Text("Browse")
+                            }
+                        }
+                    }
                     if (kdbxDialogError != null) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(kdbxDialogError!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
@@ -429,20 +464,22 @@ fun BackupRestoreScreen(
                             kdbxDialogError = "Passwords do not match"
                             return@Button
                         }
-                        if (kdbxMasterPasswordInput.isEmpty()) {
-                            kdbxDialogError = "Password cannot be empty"
+                        if (kdbxMasterPasswordInput.isEmpty() && pendingKdbxKeyFileUri == null) {
+                            kdbxDialogError = "Password or key file is required"
                             return@Button
                         }
                         isKdbxProcessing = true
                         val pwdChars = kdbxMasterPasswordInput.toCharArray()
+                        val keyFileUri = pendingKdbxKeyFileUri
                         ExecutorUtils.getBackgroundExecutor(ExecutorUtils.KEYBOARD).execute {
                             try {
-                                val success = KdbxRepository.exportToUri(ctx, exportUri, pwdChars)
+                                val success = KdbxRepository.exportToUri(ctx, exportUri, pwdChars, keyFileUri)
                                 Handler(Looper.getMainLooper()).post {
                                     isKdbxProcessing = false
                                     if (success) {
                                         showKdbxExportPasswordDialog = false
                                         pendingKdbxExportUri = null
+                                        pendingKdbxKeyFileUri = null
                                         kdbxMasterPasswordInput = ""
                                         kdbxConfirmPasswordInput = ""
                                         Toast.makeText(ctx, "Security Vault exported to KeePass (.kdbx) successfully", Toast.LENGTH_LONG).show()
@@ -456,10 +493,12 @@ fun BackupRestoreScreen(
                                     isKdbxProcessing = false
                                     kdbxDialogError = t.message ?: "Export failed"
                                 }
+                            } finally {
+                                VaultCryptoManager.zeroize(pwdChars)
                             }
                         }
                     },
-                    enabled = kdbxMasterPasswordInput.isNotBlank() && !isKdbxProcessing
+                    enabled = (kdbxMasterPasswordInput.isNotBlank() || pendingKdbxKeyFileUri != null) && !isKdbxProcessing
                 ) {
                     Text(if (isKdbxProcessing) "Exporting..." else "Export .kdbx")
                 }
@@ -470,6 +509,7 @@ fun BackupRestoreScreen(
                         if (!isKdbxProcessing) {
                             showKdbxExportPasswordDialog = false
                             pendingKdbxExportUri = null
+                            pendingKdbxKeyFileUri = null
                             kdbxMasterPasswordInput = ""
                             kdbxConfirmPasswordInput = ""
                             kdbxDialogError = null
@@ -586,6 +626,8 @@ fun BackupRestoreScreen(
                                     isKdbxProcessing = false
                                     kdbxDialogError = t.message ?: "Import failed"
                                 }
+                            } finally {
+                                VaultCryptoManager.zeroize(pwdChars)
                             }
                         }
                     },

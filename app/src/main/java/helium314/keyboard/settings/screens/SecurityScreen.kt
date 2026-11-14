@@ -57,6 +57,8 @@ import helium314.keyboard.security.VaultSessionManager
 import helium314.keyboard.settings.SearchSettingsScreen
 import helium314.keyboard.settings.preferences.Preference
 import helium314.keyboard.settings.preferences.PreferenceCategory
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 @Composable
 fun SecurityScreen(
@@ -90,7 +92,7 @@ fun SecurityScreen(
         SecurityGatekeeperUnlockScreen(
             onClickBack = onClickBack,
             onUnlocked = {
-                VaultSessionManager.startSettingsSession()
+                VaultSessionManager.startSettingsSession(context)
                 isUnlocked = true
                 Toast.makeText(context, "Security Settings Unlocked", Toast.LENGTH_SHORT).show()
             }
@@ -210,15 +212,37 @@ private fun SecurityGatekeeperUnlockScreen(
 ) {
     val context = LocalContext.current
     val primaryMethod = remember { VaultSessionManager.getPrimaryUnlockMethod(context) }
+    val defaultStatusText = remember(primaryMethod) {
+        when (primaryMethod) {
+            VaultSessionManager.UnlockMethod.BIOMETRIC -> "Biometric challenge ready. Use sensor or draw pattern below."
+            VaultSessionManager.UnlockMethod.DEVICE_PIN -> "Device PIN ready. Tap unlock or draw pattern below."
+            else -> "Draw pattern to access Security Settings"
+        }
+    }
+    var isLockedOut by remember { mutableStateOf(VaultSessionManager.isLockedOut(context)) }
     var statusText by remember {
         mutableStateOf(
-            if (primaryMethod == VaultSessionManager.UnlockMethod.BIOMETRIC)
-                "Biometric challenge ready. Use sensor or draw pattern below."
-            else if (primaryMethod == VaultSessionManager.UnlockMethod.DEVICE_PIN)
-                "Device PIN ready. Tap unlock or draw pattern below."
-            else
-                "Draw pattern to access Security Settings"
+            if (isLockedOut) {
+                val secs = ((VaultSessionManager.getLockoutRemainingMs(context) + 999L) / 1000L).toInt().coerceAtLeast(1)
+                context.getString(R.string.pattern_locked_out, secs)
+            } else {
+                defaultStatusText
+            }
         )
+    }
+
+    LaunchedEffect(isLockedOut) {
+        while (isActive && isLockedOut) {
+            val remainingMs = VaultSessionManager.getLockoutRemainingMs(context)
+            if (remainingMs <= 0L) {
+                isLockedOut = false
+                statusText = defaultStatusText
+                break
+            }
+            val secs = ((remainingMs + 999L) / 1000L).toInt().coerceAtLeast(1)
+            statusText = context.getString(R.string.pattern_locked_out, secs)
+            delay(500L)
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -302,20 +326,37 @@ private fun SecurityGatekeeperUnlockScreen(
                         factory = { ctx ->
                             PatternGridView(ctx).apply {
                                 onPatternCompleted = { pattern ->
-                                    val valid = VaultSessionManager.verifySecurityPattern(ctx, pattern)
-                                    if (valid) {
-                                        statusText = "Verification successful!"
-                                        postDelayed({
-                                            clearPattern()
-                                            onUnlocked()
-                                        }, 400)
+                                    if (VaultSessionManager.isLockedOut(ctx)) {
+                                        isLockedOut = true
+                                        val secs = ((VaultSessionManager.getLockoutRemainingMs(ctx) + 999L) / 1000L).toInt().coerceAtLeast(1)
+                                        statusText = ctx.getString(R.string.pattern_locked_out, secs)
+                                        clearPattern()
                                     } else {
-                                        statusText = "Incorrect pattern. Try again."
-                                        setErrorState()
-                                        postDelayed({
-                                            clearPattern()
-                                            statusText = "Draw pattern to access Security Settings"
-                                        }, 700)
+                                        val valid = VaultSessionManager.verifySecurityPattern(ctx, pattern)
+                                        if (valid) {
+                                            statusText = "Verification successful!"
+                                            postDelayed({
+                                                clearPattern()
+                                                onUnlocked()
+                                            }, 400)
+                                        } else {
+                                            val lockoutMs = VaultSessionManager.getLockoutRemainingMs(ctx)
+                                            setErrorState()
+                                            if (lockoutMs > 0L) {
+                                                isLockedOut = true
+                                                val secs = ((lockoutMs + 999L) / 1000L).toInt().coerceAtLeast(1)
+                                                statusText = ctx.getString(R.string.pattern_locked_out, secs)
+                                                postDelayed({ clearPattern() }, 400)
+                                            } else {
+                                                statusText = "Incorrect pattern. Try again."
+                                                postDelayed({
+                                                    clearPattern()
+                                                    if (!VaultSessionManager.isLockedOut(ctx)) {
+                                                        statusText = defaultStatusText
+                                                    }
+                                                }, 600)
+                                            }
+                                        }
                                     }
                                 }
                             }

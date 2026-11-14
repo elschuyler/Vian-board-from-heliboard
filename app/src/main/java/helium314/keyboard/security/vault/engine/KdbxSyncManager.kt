@@ -70,6 +70,7 @@ object KdbxSyncManager {
         keyFileUri: Uri? = null
     ): SyncDiffResult {
         var inputStream: InputStream? = null
+        var keyFileBytes: ByteArray? = null
         try {
             val dao = SecurityVaultDao.getInstance(context)
             val localEntries = dao.getAllEntries().associateBy { it.entryUuid }
@@ -77,7 +78,7 @@ object KdbxSyncManager {
             inputStream = context.contentResolver.openInputStream(uri)
                 ?: return SyncDiffResult(false, emptyList(), "Could not open external file")
 
-            val keyFileBytes = KdbxRepository.readKeyFileBytes(context, keyFileUri)
+            keyFileBytes = KdbxRepository.readKeyFileBytes(context, keyFileUri)
             val credentials = KdbxRepository.createCredentials(masterPassword, keyFileBytes)
             val externalDb = KeePassDatabase.decode(inputStream, credentials)
 
@@ -184,6 +185,7 @@ object KdbxSyncManager {
             LogCatcher.log('E', TAG, "computeDiff error: ${t.message}", t)
             return SyncDiffResult(false, emptyList(), t.message ?: "Failed to compute diff")
         } finally {
+            VaultCryptoManager.zeroize(keyFileBytes)
             try {
                 inputStream?.close()
             } catch (_: Throwable) {}

@@ -122,19 +122,56 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
 
     override fun usesSameSettings(locales: List<Locale>, contacts: Boolean, apps: Boolean, personalization: Boolean): Boolean {
         val dictGroup = dictionaryGroups[0] // settings are the same for all groups
-        return personalization == dictGroup.hasDict(Dictionary.TYPE_USER_HISTORY)
-                && locales.size == dictionaryGroups.size
+        if (personalization != dictGroup.hasDict(Dictionary.TYPE_USER_HISTORY)) return false
+        if (isSecondaryDropped) {
+            // While secondary groups are intentionally dropped in Lite Mode, keep primary group intact
+            // as long as the primary locale itself has not changed.
+            return locales.firstOrNull() == dictGroup.locale
+        }
+        return locales.size == dictionaryGroups.size
                 && locales.none { findDictionaryGroupWithLocale(dictionaryGroups, it) == null }
     }
 
     override fun isSecondaryDropped(): Boolean = isSecondaryDropped
 
     override fun dropSecondaryDictionaries() {
-        // In Lite Mode, keep dictionary groups active so suggestion quality and multilingual typing remain full strength
+        val groupsToClose: List<DictionaryGroup>
+        synchronized(this) {
+            if (dictionaryGroups.size <= 1) return
+            groupsToClose = dictionaryGroups.subList(1, dictionaryGroups.size).toList()
+            dictionaryGroups = listOf(dictionaryGroups[0])
+            isSecondaryDropped = true
+            lastDropTimestamp = System.currentTimeMillis()
+        }
+        for (group in groupsToClose) {
+            for (dictType in DictionaryFacilitator.ALL_DICTIONARY_TYPES) {
+                group.closeDict(dictType)
+            }
+        }
+        mValidSpellingWordReadCache?.evictAll()
+        mValidSpellingWordWriteCache?.evictAll()
+        Log.i(TAG, "Dropped ${groupsToClose.size} secondary dictionary group(s) to reduce RAM")
     }
 
     override fun restoreSecondaryDictionaries(context: Context, listener: DictionaryInitializationListener?) {
-        // Secondary dictionaries are kept active; no-op
+        val primaryLocale: Locale
+        synchronized(this) {
+            if (!isSecondaryDropped) return
+            isSecondaryDropped = false
+            primaryLocale = dictionaryGroups[0].locale
+        }
+        if (primaryLocale.language.isEmpty()) return
+        val sv = Settings.getValues()
+        resetDictionaries(
+            context = context,
+            newLocale = primaryLocale,
+            useContactsDict = sv.mUseContactsDictionary,
+            useAppsDict = sv.mUseAppsDictionary,
+            usePersonalizedDicts = sv.mUsePersonalizedDicts,
+            forceReloadMainDictionary = false,
+            dictNamePrefix = "",
+            listener = listener
+        )
     }
 
     override fun shouldAutoRestoreSecondary(): Boolean = false
@@ -169,6 +206,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         synchronized(this) {
             oldDictionaryGroups = dictionaryGroups
             dictionaryGroups = newDictionaryGroups
+            isSecondaryDropped = false
             if (hasAtLeastOneUninitializedMainDictionary()) {
                 asyncReloadUninitializedMainDictionaries(context, locales, listener)
             }
@@ -284,6 +322,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         synchronized(this) {
             dictionaryGroupsToClose = dictionaryGroups
             dictionaryGroups = listOf(DictionaryGroup())
+            isSecondaryDropped = false
         }
         for (dictionaryGroup in dictionaryGroupsToClose) {
             for (dictType in DictionaryFacilitator.ALL_DICTIONARY_TYPES) {
@@ -697,7 +736,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         }
 
         private fun getUsedLocales(mainLocale: Locale, context: Context): Collection<Locale> {
-            val locales = hashSetOf(mainLocale)
+            val locales = linkedSetOf(mainLocale)
             // adding secondary locales is a bit tricky since they depend on the subtype
             // but usually this is called with the selected subtype locale
             val selectedSubtype = SubtypeSettings.getSelectedSubtype(context.prefs())
@@ -903,7 +942,7 @@ private class DictionaryGroup(
 
     fun closeDict(dictType: String) {
         val dict = if (Dictionary.TYPE_MAIN == dictType) {
-            mainDict
+            mainDict.also { mainDict = null }
         } else {
             subDicts.remove(dictType)
         }

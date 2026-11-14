@@ -53,6 +53,19 @@ class PatternUnlockView @JvmOverloads constructor(
         private set
 
     private var navBarBottomInset: Int = 0
+    private val lockoutTickRunnable = object : Runnable {
+        override fun run() {
+            if (!isShowingPattern || isUnlocked || isStealth) return
+            val remainingMs = VaultSessionManager.getLockoutRemainingMs(context)
+            if (remainingMs > 0L) {
+                val secs = ((remainingMs + 999L) / 1000L).toInt().coerceAtLeast(1)
+                statusTextView?.text = context.getString(R.string.pattern_locked_out, secs)
+                postDelayed(this, 1000L)
+            } else {
+                statusTextView?.text = context.getString(R.string.pattern_draw_to_unlock)
+            }
+        }
+    }
 
     init {
         fitsSystemWindows = false
@@ -169,7 +182,15 @@ class PatternUnlockView @JvmOverloads constructor(
                 chevronButton?.visibility = View.GONE
                 pinnedKeysContainer?.visibility = View.GONE
                 statusTextView?.visibility = View.VISIBLE
-                statusTextView?.text = context.getString(R.string.pattern_draw_to_unlock)
+                val initialLockoutMs = VaultSessionManager.getLockoutRemainingMs(context)
+                if (initialLockoutMs > 0L) {
+                    val secs = ((initialLockoutMs + 999L) / 1000L).toInt().coerceAtLeast(1)
+                    statusTextView?.text = context.getString(R.string.pattern_locked_out, secs)
+                    removeCallbacks(lockoutTickRunnable)
+                    postDelayed(lockoutTickRunnable, 1000L)
+                } else {
+                    statusTextView?.text = context.getString(R.string.pattern_draw_to_unlock)
+                }
                 closeButton?.visibility = View.VISIBLE
                 closeButton?.setOnClickListener {
                     stopPatternUnlock()
@@ -186,6 +207,7 @@ class PatternUnlockView @JvmOverloads constructor(
     }
 
     fun stopPatternUnlock() {
+        removeCallbacks(lockoutTickRunnable)
         visibility = View.GONE
         isShowingPattern = false
         gridView.clearPattern()
@@ -194,12 +216,24 @@ class PatternUnlockView @JvmOverloads constructor(
     }
 
     private fun handlePatternEntered(pattern: List<Int>) {
+        if (VaultSessionManager.isLockedOut(context)) {
+            gridView.clearPattern()
+            if (!isStealth) {
+                val remainingMs = VaultSessionManager.getLockoutRemainingMs(context)
+                val secs = ((remainingMs + 999L) / 1000L).toInt().coerceAtLeast(1)
+                statusTextView?.text = context.getString(R.string.pattern_locked_out, secs)
+                removeCallbacks(lockoutTickRunnable)
+                postDelayed(lockoutTickRunnable, 1000L)
+            }
+            return
+        }
         val matches = if (isSecurityVaultTarget && VaultSessionManager.isSeparatePatternsEnabled(context)) {
             VaultSessionManager.verifySecurityPattern(context, pattern)
         } else {
             VaultSessionManager.verifyPattern(context, pattern)
         }
         if (matches) {
+            removeCallbacks(lockoutTickRunnable)
             isUnlocked = true
             if (isSecurityVaultTarget) {
                 VaultSessionManager.startSecuritySession(context)
@@ -215,16 +249,27 @@ class PatternUnlockView @JvmOverloads constructor(
                 cb?.invoke()
             }, 80)
         } else {
-
+            val lockoutMs = VaultSessionManager.getLockoutRemainingMs(context)
             if (isStealth) {
                 // Stealth mode: silently clear pattern with zero error banners or visual tells
                 gridView.clearPattern()
+            } else if (lockoutMs > 0L) {
+                gridView.setErrorState()
+                val secs = ((lockoutMs + 999L) / 1000L).toInt().coerceAtLeast(1)
+                statusTextView?.text = context.getString(R.string.pattern_locked_out, secs)
+                removeCallbacks(lockoutTickRunnable)
+                postDelayed({
+                    if (isShowingPattern && !isUnlocked) {
+                        gridView.clearPattern()
+                    }
+                }, 400)
+                postDelayed(lockoutTickRunnable, 1000L)
             } else {
                 // Normal mode: visual error feedback and timed reset
                 gridView.setErrorState()
                 statusTextView?.text = context.getString(R.string.pattern_incorrect)
                 postDelayed({
-                    if (isShowingPattern && !isUnlocked) {
+                    if (isShowingPattern && !isUnlocked && !VaultSessionManager.isLockedOut(context)) {
                         gridView.clearPattern()
                         statusTextView?.text = context.getString(R.string.pattern_draw_to_unlock)
                     }

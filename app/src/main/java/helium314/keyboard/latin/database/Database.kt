@@ -13,6 +13,11 @@ import helium314.keyboard.latin.utils.LogCatcher
 import java.io.File
 
 class Database internal constructor(context: Context, name: String = NAME) : SQLiteOpenHelper(context, name, null, VERSION) {
+    override fun onConfigure(db: SQLiteDatabase) {
+        super.onConfigure(db)
+        db.enableWriteAheadLogging()
+    }
+
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(ClipboardDao.CREATE_TABLE)
         PromptDao.ensureTableExists(db)
@@ -44,20 +49,22 @@ class Database internal constructor(context: Context, name: String = NAME) : SQL
         private val TAG = Database::class.java.simpleName
         private const val VERSION = 6
         const val NAME = "heliboard.db"
+        @Volatile
         private var instance: Database? = null
         fun getInstance(context: Context): Database {
-            if (instance == null)
-                instance = Database(context)
-            return instance!!
+            return instance ?: synchronized(this) {
+                instance ?: Database(context.applicationContext).also { instance = it }
+            }
         }
 
         // needs to be in sync with db version
         fun copyFromDb(file: File, context: Context) {
             if (!file.exists())
                 return
-            val otherDb = Database(context, file.name) // this upgrades the DB if necessary
-            val clipDao = ClipboardDao.getInstance(context) // insert to dao because of cache
-            val db = getInstance(context)
+            val appCtx = context.applicationContext
+            val otherDb = Database(appCtx, file.name) // this upgrades the DB if necessary
+            val clipDao = ClipboardDao.getInstance(appCtx) // insert to dao because of cache
+            val db = getInstance(appCtx)
 
             try {
                 db.writableDatabase.transaction {

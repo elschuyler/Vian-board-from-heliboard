@@ -3,12 +3,18 @@ package helium314.keyboard.security.vault.engine
 
 import android.content.Context
 import android.net.Uri
+import android.webkit.MimeTypeMap
 import app.keemobile.kotpass.constants.PredefinedIcon
 import app.keemobile.kotpass.cryptography.EncryptedValue
 import app.keemobile.kotpass.database.Credentials
 import app.keemobile.kotpass.database.KeePassDatabase
 import app.keemobile.kotpass.database.decode
 import app.keemobile.kotpass.database.encode
+import app.keemobile.kotpass.database.modifiers.binaries
+import app.keemobile.kotpass.database.modifiers.modifyBinaries
+import app.keemobile.kotpass.database.modifiers.removeUnusedBinaries
+import app.keemobile.kotpass.models.BinaryData
+import app.keemobile.kotpass.models.BinaryReference
 import app.keemobile.kotpass.models.Entry
 import app.keemobile.kotpass.models.EntryFields
 import app.keemobile.kotpass.models.EntryValue
@@ -24,6 +30,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
+import okio.ByteString
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.UUID
@@ -95,17 +102,19 @@ object KdbxRepository {
         keyFileUri: Uri? = null
     ): ImportResult {
         var inputStream: InputStream? = null
+        var keyFileBytes: ByteArray? = null
         try {
             inputStream = context.contentResolver.openInputStream(uri)
                 ?: return ImportResult(false, errorMessage = "Failed to open database file stream")
 
-            val keyFileBytes = readKeyFileBytes(context, keyFileUri)
+            keyFileBytes = readKeyFileBytes(context, keyFileUri)
             if (keyFileUri != null && keyFileBytes == null) {
                 return ImportResult(false, errorMessage = "Failed to read selected key file")
             }
 
             val credentials = createCredentials(masterPassword, keyFileBytes)
             val db = KeePassDatabase.decode(inputStream, credentials)
+            val dbBinaries = db.binaries
 
             val groups = mutableListOf<VaultGroupEntity>()
             val entries = mutableListOf<VaultEntryEntity>()
@@ -113,14 +122,14 @@ object KdbxRepository {
 
             // Traverse the tree recursively starting from root group
             val rootGroup = db.content.group
-            traverseGroup(rootGroup, parentUuid = null, groups, entries, attachments)
+            traverseGroup(rootGroup, parentUuid = null, dbBinaries, groups, entries, attachments)
 
             // Atomically replace sandbox database
             val dao = SecurityVaultDao.getInstance(context)
             val replaced = dao.replaceAllWith(groups, entries, attachments)
 
             if (replaced) {
-                LogCatcher.log('I', TAG, "KDBX import successful: ${groups.size} groups, ${entries.size} entries")
+                LogCatcher.log('I', TAG, "KDBX import successful: ${groups.size} groups, ${entries.size} entries, ${attachments.size} attachments")
                 return ImportResult(
                     success = true,
                     groupCount = groups.size,
@@ -133,6 +142,7 @@ object KdbxRepository {
             LogCatcher.log('E', TAG, "KDBX import error: ${t.message}", t)
             return ImportResult(false, errorMessage = t.message ?: "Invalid master password / key file or corrupted database")
         } finally {
+            VaultCryptoManager.zeroize(keyFileBytes)
             try {
                 inputStream?.close()
             } catch (_: Throwable) {}
@@ -142,6 +152,7 @@ object KdbxRepository {
     private fun traverseGroup(
         group: Group,
         parentUuid: String?,
+        dbBinaries: Map<ByteString, BinaryData>,
         groupsList: MutableList<VaultGroupEntity>,
         entriesList: MutableList<VaultEntryEntity>,
         attachmentsList: MutableList<VaultAttachmentEntity>
@@ -179,7 +190,7 @@ object KdbxRepository {
                 VaultCryptoManager.encryptString(notes)
             } else null
 
-            // Extract all custom string fields outside standard 5 fields
+            // Extract all custom string fields outside standard fields
             val customFieldsMap = mutableMapOf<String, String>()
             for ((key, value) in entry.fields) {
                 if (key !in STANDARD_FIELDS && value.content.isNotEmpty()) {
@@ -210,11 +221,40 @@ object KdbxRepository {
                     updatedAt = System.currentTimeMillis()
                 )
             )
+
+            // Import entry binary attachments encrypted via hardware AES-256-GCM
+            for (binRef in entry.binaries) {
+                val binData = dbBinaries[binRef.hash] ?: continue
+                val rawBytes = try {
+                    binData.getContent()
+                } catch (t: Throwable) {
+                    LogCatcher.log('W', TAG, "Failed to read attachment '${binRef.name}': ${t.message}")
+                    null
+                } ?: continue
+                try {
+                    val encryptedBlob = VaultCryptoManager.encrypt(rawBytes)
+                    val ext = binRef.name.substringAfterLast('.', "").lowercase()
+                    val mimeType = if (ext.isNotEmpty()) MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) else null
+                    attachmentsList.add(
+                        VaultAttachmentEntity(
+                            attachmentUuid = UUID.randomUUID().toString(),
+                            entryUuid = entryUuid,
+                            filename = binRef.name,
+                            mimeType = mimeType,
+                            dataBlobEncrypted = encryptedBlob
+                        )
+                    )
+                } catch (t: Throwable) {
+                    LogCatcher.log('E', TAG, "Failed to encrypt attachment '${binRef.name}': ${t.message}", t)
+                } finally {
+                    VaultCryptoManager.zeroize(rawBytes)
+                }
+            }
         }
 
         // Recursively traverse child groups
         for (childGroup in group.groups) {
-            traverseGroup(childGroup, groupUuid, groupsList, entriesList, attachmentsList)
+            traverseGroup(childGroup, groupUuid, dbBinaries, groupsList, entriesList, attachmentsList)
         }
     }
 
@@ -229,6 +269,8 @@ object KdbxRepository {
         keyFileUri: Uri? = null
     ): Boolean {
         var outputStream: OutputStream? = null
+        var keyFileBytes: ByteArray? = null
+        val sensitiveByteBuffers = mutableListOf<ByteArray>()
         try {
             val dao = SecurityVaultDao.getInstance(context)
             val groups = dao.getAllGroups()
@@ -239,12 +281,24 @@ object KdbxRepository {
                 return false
             }
 
-            val keyFileBytes = readKeyFileBytes(context, keyFileUri)
+            keyFileBytes = readKeyFileBytes(context, keyFileUri)
+            if (keyFileUri != null && keyFileBytes == null) {
+                LogCatcher.log('E', TAG, "Failed to read selected key file for export")
+                return false
+            }
             val credentials = createCredentials(masterPassword, keyFileBytes)
+            val binariesToAttach = mutableMapOf<ByteString, BinaryData>()
 
             // Build Kotpass database structure from local SQLite entities
             val rootGroupEntity = groups.firstOrNull { it.parentGroupUuid == null } ?: groups.first()
-            val kotpassRootGroup = buildKotpassGroup(rootGroupEntity, groups, allEntries)
+            val kotpassRootGroup = buildKotpassGroup(
+                groupEntity = rootGroupEntity,
+                allGroups = groups,
+                allEntries = allEntries,
+                dao = dao,
+                binariesOut = binariesToAttach,
+                sensitiveByteBuffers = sensitiveByteBuffers
+            )
 
             // Non-destructive export: attempt to decode existing database first to preserve metadata
             val existingDb = try {
@@ -255,7 +309,7 @@ object KdbxRepository {
                 null
             }
 
-            val db = when (existingDb) {
+            var db: KeePassDatabase = when (existingDb) {
                 is KeePassDatabase.Ver4x -> existingDb.copy(content = existingDb.content.copy(group = kotpassRootGroup))
                 is KeePassDatabase.Ver3x -> existingDb.copy(content = existingDb.content.copy(group = kotpassRootGroup))
                 else -> {
@@ -268,16 +322,24 @@ object KdbxRepository {
                 }
             }
 
+            if (binariesToAttach.isNotEmpty() || existingDb != null) {
+                db = db.modifyBinaries { current -> current + binariesToAttach }.removeUnusedBinaries()
+            }
+
             outputStream = context.contentResolver.openOutputStream(uri, "wt")
                 ?: return false
 
             db.encode(outputStream)
-            LogCatcher.log('I', TAG, "Exported ${allEntries.size} entries back to KDBX successfully (non-destructive=${existingDb != null})")
+            LogCatcher.log('I', TAG, "Exported ${allEntries.size} entries and ${binariesToAttach.size} attachments to KDBX (non-destructive=${existingDb != null})")
             return true
         } catch (t: Throwable) {
             LogCatcher.log('E', TAG, "KDBX export error: ${t.message}", t)
             return false
         } finally {
+            VaultCryptoManager.zeroize(keyFileBytes)
+            for (buf in sensitiveByteBuffers) {
+                VaultCryptoManager.zeroize(buf)
+            }
             try {
                 outputStream?.close()
             } catch (_: Throwable) {}
@@ -288,7 +350,10 @@ object KdbxRepository {
     private fun buildKotpassGroup(
         groupEntity: VaultGroupEntity,
         allGroups: List<VaultGroupEntity>,
-        allEntries: List<VaultEntryEntity>
+        allEntries: List<VaultEntryEntity>,
+        dao: SecurityVaultDao,
+        binariesOut: MutableMap<ByteString, BinaryData>,
+        sensitiveByteBuffers: MutableList<ByteArray>
     ): Group {
         val groupEntries = allEntries.filter { it.groupUuid == groupEntity.groupUuid }
         val kotpassEntries = groupEntries.map { e ->
@@ -330,6 +395,16 @@ object KdbxRepository {
                 }
             }
 
+            // Attach decrypted binary attachments for this entry
+            val binaryRefs = mutableListOf<BinaryReference>()
+            for (att in dao.getAttachmentsForEntry(e.entryUuid)) {
+                val decryptedBytes = VaultCryptoManager.decryptOrNull(att.dataBlobEncrypted) ?: continue
+                sensitiveByteBuffers.add(decryptedBytes)
+                val binaryData = BinaryData.Uncompressed(memoryProtection = false, rawContent = decryptedBytes)
+                val hash = binaryData.hash
+                binariesOut[hash] = binaryData
+                binaryRefs.add(BinaryReference(hash = hash, name = att.filename))
+            }
 
             val entryUuid = try {
                 UUID.fromString(e.entryUuid)
@@ -339,13 +414,14 @@ object KdbxRepository {
 
             Entry(
                 uuid = entryUuid,
-                fields = EntryFields(fieldsMap)
+                fields = EntryFields(fieldsMap),
+                binaries = binaryRefs
             )
         }
 
         val childGroupEntities = allGroups.filter { it.parentGroupUuid == groupEntity.groupUuid }
         val childGroups = childGroupEntities.map { child ->
-            buildKotpassGroup(child, allGroups, allEntries)
+            buildKotpassGroup(child, allGroups, allEntries, dao, binariesOut, sensitiveByteBuffers)
         }
 
         val groupUuid = try {

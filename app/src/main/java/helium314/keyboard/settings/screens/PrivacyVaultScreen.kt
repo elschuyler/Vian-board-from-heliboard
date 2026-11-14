@@ -127,15 +127,37 @@ private fun VaultUnlockScreen(
 ) {
     val context = LocalContext.current
     val primaryMethod = remember { VaultSessionManager.getPrimaryUnlockMethod(context) }
+    val defaultStatusText = remember(primaryMethod) {
+        when (primaryMethod) {
+            VaultSessionManager.UnlockMethod.BIOMETRIC -> "Biometric challenge ready. Use sensor or draw pattern below."
+            VaultSessionManager.UnlockMethod.DEVICE_PIN -> "Device PIN ready. Tap unlock or draw pattern below."
+            else -> "Draw master pattern to unlock Privacy Vault"
+        }
+    }
+    var isLockedOut by remember { mutableStateOf(VaultSessionManager.isLockedOut(context)) }
     var statusText by remember {
         mutableStateOf(
-            if (primaryMethod == VaultSessionManager.UnlockMethod.BIOMETRIC)
-                "Biometric challenge ready. Use sensor or draw pattern below."
-            else if (primaryMethod == VaultSessionManager.UnlockMethod.DEVICE_PIN)
-                "Device PIN ready. Tap unlock or draw pattern below."
-            else
-                "Draw master pattern to unlock Privacy Vault"
+            if (isLockedOut) {
+                val secs = ((VaultSessionManager.getLockoutRemainingMs(context) + 999L) / 1000L).toInt().coerceAtLeast(1)
+                context.getString(R.string.pattern_locked_out, secs)
+            } else {
+                defaultStatusText
+            }
         )
+    }
+
+    LaunchedEffect(isLockedOut) {
+        while (isActive && isLockedOut) {
+            val remainingMs = VaultSessionManager.getLockoutRemainingMs(context)
+            if (remainingMs <= 0L) {
+                isLockedOut = false
+                statusText = defaultStatusText
+                break
+            }
+            val secs = ((remainingMs + 999L) / 1000L).toInt().coerceAtLeast(1)
+            statusText = context.getString(R.string.pattern_locked_out, secs)
+            delay(500L)
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -218,19 +240,37 @@ private fun VaultUnlockScreen(
                         factory = { ctx ->
                             PatternGridView(ctx).apply {
                                 onPatternCompleted = { pattern ->
-                                    val valid = VaultSessionManager.verifyPattern(ctx, pattern)
-                                    if (valid) {
-                                        statusText = "Pattern verified!"
-                                        postDelayed({
-                                            clearPattern()
-                                            onUnlocked()
-                                        }, 300)
+                                    if (VaultSessionManager.isLockedOut(ctx)) {
+                                        isLockedOut = true
+                                        val secs = ((VaultSessionManager.getLockoutRemainingMs(ctx) + 999L) / 1000L).toInt().coerceAtLeast(1)
+                                        statusText = ctx.getString(R.string.pattern_locked_out, secs)
+                                        clearPattern()
                                     } else {
-                                        statusText = "Incorrect pattern. Try again."
-                                        setErrorState()
-                                        postDelayed({
-                                            clearPattern()
-                                        }, 600)
+                                        val valid = VaultSessionManager.verifyPattern(ctx, pattern)
+                                        if (valid) {
+                                            statusText = "Pattern verified!"
+                                            postDelayed({
+                                                clearPattern()
+                                                onUnlocked()
+                                            }, 300)
+                                        } else {
+                                            val lockoutMs = VaultSessionManager.getLockoutRemainingMs(ctx)
+                                            setErrorState()
+                                            if (lockoutMs > 0L) {
+                                                isLockedOut = true
+                                                val secs = ((lockoutMs + 999L) / 1000L).toInt().coerceAtLeast(1)
+                                                statusText = ctx.getString(R.string.pattern_locked_out, secs)
+                                                postDelayed({ clearPattern() }, 400)
+                                            } else {
+                                                statusText = "Incorrect pattern. Try again."
+                                                postDelayed({
+                                                    clearPattern()
+                                                    if (!VaultSessionManager.isLockedOut(ctx)) {
+                                                        statusText = defaultStatusText
+                                                    }
+                                                }, 600)
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -432,9 +472,13 @@ private fun EditVaultEntryDialog(
 
     fun save() {
         if (isValid) {
-            vaultDao.addOrUpdate(id = if (isNew) null else entry.id, shortcut = shortcut, phrase = phrase, notes = notes)
-            Toast.makeText(context, if (isNew) "Phrase added" else "Phrase updated", Toast.LENGTH_SHORT).show()
-            onDismiss()
+            val savedId = vaultDao.addOrUpdate(id = if (isNew) null else entry.id, shortcut = shortcut, phrase = phrase, notes = notes)
+            if (savedId != -1L) {
+                Toast.makeText(context, if (isNew) "Phrase added" else "Phrase updated", Toast.LENGTH_SHORT).show()
+                onDismiss()
+            } else {
+                Toast.makeText(context, "Encryption failed; phrase was not saved", Toast.LENGTH_LONG).show()
+            }
         }
     }
 

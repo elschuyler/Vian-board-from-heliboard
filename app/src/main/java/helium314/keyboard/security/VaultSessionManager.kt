@@ -60,6 +60,12 @@ object VaultSessionManager {
     const val PRIVACY_SESSION_DURATION_MS = DEFAULT_PRIVACY_SESSION_DURATION_MS
     const val SECURITY_SESSION_DURATION_MS = DEFAULT_SECURITY_SESSION_DURATION_MS
 
+    private const val PREF_FAILED_ATTEMPTS = "pref_vault_failed_attempts"
+    private const val PREF_LOCKOUT_UNTIL_MS = "pref_vault_lockout_until_ms"
+
+    const val MAX_FAILED_ATTEMPTS = 5
+    const val LOCKOUT_DURATION_MS = 30_000L // 30 seconds
+
     @Volatile
     private var privacySessionExpiryMs: Long = 0L
 
@@ -69,6 +75,79 @@ object VaultSessionManager {
     @Volatile
     private var settingsSessionExpiryMs: Long = 0L
 
+    private val lockoutLock = Any()
+    private var cachedFailedAttempts: Int = -1
+    private var cachedLockoutUntilMs: Long = -1L
+
+    private fun ensureLockoutLoadedLocked(context: Context) {
+        if (cachedFailedAttempts < 0 || cachedLockoutUntilMs < 0L) {
+            val sp = context.prefs()
+            cachedFailedAttempts = sp.getInt(PREF_FAILED_ATTEMPTS, 0).coerceAtLeast(0)
+            cachedLockoutUntilMs = sp.getLong(PREF_LOCKOUT_UNTIL_MS, 0L).coerceAtLeast(0L)
+        }
+    }
+
+    private fun normalizeLockoutStateLocked(context: Context, nowMs: Long = System.currentTimeMillis()) {
+        ensureLockoutLoadedLocked(context)
+        if (cachedLockoutUntilMs > 0L) {
+            if (nowMs >= cachedLockoutUntilMs) {
+                // Cooldown expired: clear lockout and grant a fresh batch of attempts
+                cachedLockoutUntilMs = 0L
+                cachedFailedAttempts = 0
+                context.prefs().edit {
+                    remove(PREF_LOCKOUT_UNTIL_MS)
+                    remove(PREF_FAILED_ATTEMPTS)
+                }
+            } else if (cachedLockoutUntilMs - nowMs > LOCKOUT_DURATION_MS) {
+                // Clamp against backwards system clock adjustments
+                cachedLockoutUntilMs = nowMs + LOCKOUT_DURATION_MS
+                context.prefs().edit {
+                    putLong(PREF_LOCKOUT_UNTIL_MS, cachedLockoutUntilMs)
+                }
+            }
+        }
+    }
+
+    fun getLockoutRemainingMs(context: Context): Long = synchronized(lockoutLock) {
+        val now = System.currentTimeMillis()
+        normalizeLockoutStateLocked(context, now)
+        if (cachedLockoutUntilMs <= 0L) return 0L
+        return (cachedLockoutUntilMs - now).coerceIn(0L, LOCKOUT_DURATION_MS)
+    }
+
+    fun isLockedOut(context: Context): Boolean = getLockoutRemainingMs(context) > 0L
+
+    fun getFailedAttemptCount(context: Context): Int = synchronized(lockoutLock) {
+        normalizeLockoutStateLocked(context)
+        return cachedFailedAttempts
+    }
+
+    fun resetLockout(context: Context? = null) = synchronized(lockoutLock) {
+        cachedFailedAttempts = 0
+        cachedLockoutUntilMs = 0L
+        context?.prefs()?.edit {
+            remove(PREF_FAILED_ATTEMPTS)
+            remove(PREF_LOCKOUT_UNTIL_MS)
+        }
+    }
+
+    private fun recordFailedAttemptLocked(context: Context): Boolean = synchronized(lockoutLock) {
+        val now = System.currentTimeMillis()
+        normalizeLockoutStateLocked(context, now)
+        cachedFailedAttempts += 1
+        var triggeredLockout = false
+        if (cachedFailedAttempts >= MAX_FAILED_ATTEMPTS) {
+            cachedLockoutUntilMs = now + LOCKOUT_DURATION_MS
+            triggeredLockout = true
+        }
+        context.prefs().edit {
+            putInt(PREF_FAILED_ATTEMPTS, cachedFailedAttempts)
+            if (triggeredLockout) {
+                putLong(PREF_LOCKOUT_UNTIL_MS, cachedLockoutUntilMs)
+            }
+        }
+        return triggeredLockout
+    }
 
     /** Checks if a master pattern is currently configured */
     fun isPatternSet(context: Context): Boolean {
@@ -210,6 +289,7 @@ object VaultSessionManager {
                 putString(PREF_SECURITY_PATTERN_SALT, salt.toHexString())
                 putString(PREF_SECURITY_PATTERN_HASH, HASH_PREFIX_PBKDF2 + hash.toHexString())
             }
+            resetLockout(context)
             LogCatcher.log('I', TAG, "saveSecurityPattern: Dedicated security vault pattern configured (PBKDF2-HMAC-SHA256)")
             return true
         } catch (t: Throwable) {
@@ -219,6 +299,10 @@ object VaultSessionManager {
     }
 
     fun verifySecurityPattern(context: Context, pattern: List<Int>): Boolean {
+        if (isLockedOut(context)) {
+            LogCatcher.log('W', TAG, "verifySecurityPattern: Blocked by 30s brute-force lockout")
+            return false
+        }
         if (!isSeparatePatternsEnabled(context) || !isSecurityPatternSet(context)) {
             return verifyPattern(context, pattern)
         }
@@ -248,9 +332,16 @@ object VaultSessionManager {
             }
 
             if (matches) {
+                resetLockout(context)
                 LogCatcher.log('I', TAG, "verifySecurityPattern: Security verification succeeded")
             } else {
-                LogCatcher.log('W', TAG, "verifySecurityPattern: Security verification failed")
+                val lockedNow = recordFailedAttemptLocked(context)
+                LogCatcher.log(
+                    'W',
+                    TAG,
+                    if (lockedNow) "verifySecurityPattern: Security verification failed (30s lockout triggered)"
+                    else "verifySecurityPattern: Security verification failed"
+                )
             }
             return matches
         } catch (t: Throwable) {
@@ -273,6 +364,7 @@ object VaultSessionManager {
                 putString(PREF_PATTERN_SALT, salt.toHexString())
                 putString(PREF_PATTERN_HASH, HASH_PREFIX_PBKDF2 + hash.toHexString())
             }
+            resetLockout(context)
             LogCatcher.log('I', TAG, "savePattern: Master unlock pattern successfully configured (PBKDF2-HMAC-SHA256)")
             return true
         } catch (t: Throwable) {
@@ -283,6 +375,10 @@ object VaultSessionManager {
 
     /** Verifies an input pattern against the stored hash with automatic PBKDF2 upgrade */
     fun verifyPattern(context: Context, pattern: List<Int>): Boolean {
+        if (isLockedOut(context)) {
+            LogCatcher.log('W', TAG, "verifyPattern: Blocked by 30s brute-force lockout")
+            return false
+        }
         val sp = context.prefs()
         val saltHex = sp.getString(PREF_PATTERN_SALT, null)
         val storedHashHex = sp.getString(PREF_PATTERN_HASH, null)
@@ -310,9 +406,16 @@ object VaultSessionManager {
             }
 
             if (matches) {
+                resetLockout(context)
                 LogCatcher.log('I', TAG, "verifyPattern: Verification succeeded")
             } else {
-                LogCatcher.log('W', TAG, "verifyPattern: Verification failed (mismatch)")
+                val lockedNow = recordFailedAttemptLocked(context)
+                LogCatcher.log(
+                    'W',
+                    TAG,
+                    if (lockedNow) "verifyPattern: Verification failed (30s lockout triggered)"
+                    else "verifyPattern: Verification failed (mismatch)"
+                )
             }
             return matches
         } catch (t: Throwable) {
@@ -328,6 +431,7 @@ object VaultSessionManager {
             remove(PREF_PATTERN_SALT)
             remove(PREF_PATTERN_HASH)
         }
+        resetLockout(context)
         lockAll()
         LogCatcher.log('I', TAG, "clearPattern: Master pattern removed, all sessions purged")
     }
@@ -372,6 +476,7 @@ object VaultSessionManager {
 
     @JvmOverloads
     fun startPrivacySession(context: Context? = null) {
+        resetLockout(context)
         val duration = getPrivacyTimeoutMs(context)
         privacySessionExpiryMs = System.currentTimeMillis() + duration
         LogCatcher.markComponentActive("VaultSessionManager", "Security", "Privacy Active")
@@ -380,13 +485,16 @@ object VaultSessionManager {
 
     @JvmOverloads
     fun startSecuritySession(context: Context? = null) {
+        resetLockout(context)
         val duration = getSecurityTimeoutMs(context)
         securitySessionExpiryMs = System.currentTimeMillis() + duration
         LogCatcher.markComponentActive("VaultSessionManager", "Security", "Security Active")
         LogCatcher.log('I', TAG, "startSecuritySession: ${duration / 60000}m session started (expires at $securitySessionExpiryMs)")
     }
 
-    fun startSettingsSession() {
+    @JvmOverloads
+    fun startSettingsSession(context: Context? = null) {
+        resetLockout(context)
         settingsSessionExpiryMs = System.currentTimeMillis() + SETTINGS_SESSION_DURATION_MS
         LogCatcher.markComponentActive("VaultSessionManager", "Security", "Settings Active")
         LogCatcher.log('I', TAG, "startSettingsSession: 3-minute settings session started")

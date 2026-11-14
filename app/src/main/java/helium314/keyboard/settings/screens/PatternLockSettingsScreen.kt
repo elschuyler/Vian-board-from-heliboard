@@ -28,6 +28,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,11 +40,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import helium314.keyboard.latin.R
 import helium314.keyboard.latin.utils.LogCatcher
 import helium314.keyboard.security.PatternGridView
 import helium314.keyboard.security.VaultSessionManager
 import helium314.keyboard.settings.SearchSettingsScreen
 import helium314.keyboard.settings.preferences.PreferenceCategory
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 @Composable
 fun PatternLockSettingsScreen(
@@ -68,16 +72,34 @@ fun PatternLockSettingsScreen(
             VaultSessionManager.lockSecurity()
         }
     }
+    var isLockedOut by remember { mutableStateOf(VaultSessionManager.isLockedOut(context)) }
+    val activeInstruction = if (forSecurityVault) "Dedicated security unlock pattern is active" else "Master unlock pattern is active"
     var instructionText by remember {
         mutableStateOf(
-            if (!isPatternSet) {
+            if (isLockedOut && !isSettingNewPattern) {
+                val secs = ((VaultSessionManager.getLockoutRemainingMs(context) + 999L) / 1000L).toInt().coerceAtLeast(1)
+                context.getString(R.string.pattern_locked_out, secs)
+            } else if (!isPatternSet) {
                 if (forSecurityVault) "Draw dedicated security pattern (connect at least 4 dots)"
                 else "Draw master pattern to configure (connect at least 4 dots)"
             } else {
-                if (forSecurityVault) "Dedicated security unlock pattern is active"
-                else "Master unlock pattern is active"
+                activeInstruction
             }
         )
+    }
+
+    LaunchedEffect(isLockedOut, isSettingNewPattern) {
+        while (isActive && isLockedOut && !isSettingNewPattern) {
+            val remainingMs = VaultSessionManager.getLockoutRemainingMs(context)
+            if (remainingMs <= 0L) {
+                isLockedOut = false
+                instructionText = if (isPatternSet) activeInstruction else "Draw pattern to configure (connect at least 4 dots)"
+                break
+            }
+            val secs = ((remainingMs + 999L) / 1000L).toInt().coerceAtLeast(1)
+            instructionText = context.getString(R.string.pattern_locked_out, secs)
+            delay(500L)
+        }
     }
 
     SearchSettingsScreen(
@@ -207,26 +229,43 @@ fun PatternLockSettingsScreen(
                                             }
                                         }
                                     } else {
-                                        // Pattern is set, test verification
-                                        val valid = if (forSecurityVault) {
-                                            VaultSessionManager.verifySecurityPattern(ctx, pattern)
+                                        if (VaultSessionManager.isLockedOut(ctx)) {
+                                            isLockedOut = true
+                                            val secs = ((VaultSessionManager.getLockoutRemainingMs(ctx) + 999L) / 1000L).toInt().coerceAtLeast(1)
+                                            instructionText = ctx.getString(R.string.pattern_locked_out, secs)
+                                            clearPattern()
                                         } else {
-                                            VaultSessionManager.verifyPattern(ctx, pattern)
-                                        }
-                                        if (valid) {
-                                            instructionText = "Pattern verified successfully!"
-                                            Toast.makeText(ctx, "Pattern Verified", Toast.LENGTH_SHORT).show()
-                                            postDelayed({
-                                                clearPattern()
-                                                instructionText = if (forSecurityVault) "Dedicated security unlock pattern is active" else "Master unlock pattern is active"
-                                            }, 800)
-                                        } else {
-                                            instructionText = "Incorrect pattern. Try again."
-                                            setErrorState()
-                                            postDelayed({
-                                                clearPattern()
-                                                instructionText = if (forSecurityVault) "Dedicated security unlock pattern is active" else "Master unlock pattern is active"
-                                            }, 600)
+                                            // Pattern is set, test verification
+                                            val valid = if (forSecurityVault) {
+                                                VaultSessionManager.verifySecurityPattern(ctx, pattern)
+                                            } else {
+                                                VaultSessionManager.verifyPattern(ctx, pattern)
+                                            }
+                                            if (valid) {
+                                                instructionText = "Pattern verified successfully!"
+                                                Toast.makeText(ctx, "Pattern Verified", Toast.LENGTH_SHORT).show()
+                                                postDelayed({
+                                                    clearPattern()
+                                                    instructionText = activeInstruction
+                                                }, 800)
+                                            } else {
+                                                val lockoutMs = VaultSessionManager.getLockoutRemainingMs(ctx)
+                                                setErrorState()
+                                                if (lockoutMs > 0L) {
+                                                    isLockedOut = true
+                                                    val secs = ((lockoutMs + 999L) / 1000L).toInt().coerceAtLeast(1)
+                                                    instructionText = ctx.getString(R.string.pattern_locked_out, secs)
+                                                    postDelayed({ clearPattern() }, 400)
+                                                } else {
+                                                    instructionText = "Incorrect pattern. Try again."
+                                                    postDelayed({
+                                                        clearPattern()
+                                                        if (!VaultSessionManager.isLockedOut(ctx)) {
+                                                            instructionText = activeInstruction
+                                                        }
+                                                    }, 600)
+                                                }
+                                            }
                                         }
                                     }
                                 }

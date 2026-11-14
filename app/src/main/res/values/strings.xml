@@ -283,6 +283,7 @@
     <string name="pattern_verifying">Verifying…</string>
     <string name="pattern_unlocked">Unlocked</string>
     <string name="pattern_incorrect">Incorrect pattern, try again</string>
+    <string name="pattern_locked_out">Too many failed attempts. Try again in %1$ds</string>
     <!-- Preferences item for format for timestamp keycode -->
     <string name="timestamp_format_title">Format for timestamp key</string>
     <!-- Message in preferences how to get timestamp key -->

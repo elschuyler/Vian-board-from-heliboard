@@ -122,9 +122,9 @@ class BiometricAuthTrampolineActivity : ComponentActivity() {
 
     private fun startVaultSession(targetVault: String) {
         when (targetVault) {
-            VAULT_PRIVACY -> VaultSessionManager.startPrivacySession()
-            VAULT_SETTINGS -> VaultSessionManager.startSettingsSession()
-            else -> VaultSessionManager.startSecuritySession()
+            VAULT_PRIVACY -> VaultSessionManager.startPrivacySession(this)
+            VAULT_SETTINGS -> VaultSessionManager.startSettingsSession(this)
+            else -> VaultSessionManager.startSecuritySession(this)
         }
     }
 

@@ -61,6 +61,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -90,6 +91,7 @@ import helium314.keyboard.security.vault.engine.KdbxSyncManager
 import helium314.keyboard.security.vault.generator.PasswordGenerator
 import helium314.keyboard.security.vault.totp.TotpGenerator
 import helium314.keyboard.settings.SearchSettingsScreen
+import helium314.keyboard.settings.backup.NullableUriSaver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -136,14 +138,14 @@ fun SecurityVaultScreen(
     var lastSyncTime by remember { mutableStateOf(context.prefs().getLong(KdbxSyncManager.PREF_LAST_SYNC_TIME, 0L)) }
 
     // Dialog & Sheet States
-    var showPasswordDialog by remember { mutableStateOf(false) }
-    var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
-    var pendingKeyFileUri by remember { mutableStateOf<Uri?>(null) }
+    var showPasswordDialog by rememberSaveable { mutableStateOf(false) }
+    var pendingImportUri by rememberSaveable(stateSaver = NullableUriSaver) { mutableStateOf<Uri?>(null) }
+    var pendingKeyFileUri by rememberSaveable(stateSaver = NullableUriSaver) { mutableStateOf<Uri?>(null) }
     var masterPasswordInput by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
     var isProcessing by remember { mutableStateOf(false) }
 
-    var showSyncDiffSheet by remember { mutableStateOf(false) }
+    var showSyncDiffSheet by rememberSaveable { mutableStateOf(false) }
 
     // Session Rules Preferences
     var autofillPillsEnabled by remember {
@@ -694,7 +696,11 @@ fun SecurityVaultScreen(
                         val activeKeyUri = pendingKeyFileUri
                         isProcessing = true
                         scope.launch(Dispatchers.IO) {
-                            val result = KdbxRepository.importFromUri(context, uri, pwdChars, activeKeyUri)
+                            val result = try {
+                                KdbxRepository.importFromUri(context, uri, pwdChars, activeKeyUri)
+                            } finally {
+                                VaultCryptoManager.zeroize(pwdChars)
+                            }
                             withContext(Dispatchers.Main) {
                                 isProcessing = false
                                 if (result.success) {
@@ -831,7 +837,11 @@ private fun VisualDiffBottomSheet(
                     onClick = {
                         val pwd = masterPassword.toCharArray()
                         scope.launch(Dispatchers.IO) {
-                            val res = KdbxSyncManager.computeDiff(context, uri, pwd, keyFileUri)
+                            val res = try {
+                                KdbxSyncManager.computeDiff(context, uri, pwd, keyFileUri)
+                            } finally {
+                                VaultCryptoManager.zeroize(pwd)
+                            }
                             withContext(Dispatchers.Main) {
                                 diffResult = res
                                 isDiffComputed = true
@@ -893,7 +903,11 @@ private fun VisualDiffBottomSheet(
                                 val pwd = masterPassword.toCharArray()
                                 isSyncing = true
                                 scope.launch(Dispatchers.IO) {
-                                    val success = KdbxSyncManager.executeSync(context, uri, pwd, keyFileUri)
+                                    val success = try {
+                                        KdbxSyncManager.executeSync(context, uri, pwd, keyFileUri)
+                                    } finally {
+                                        VaultCryptoManager.zeroize(pwd)
+                                    }
                                     withContext(Dispatchers.Main) {
                                         isSyncing = false
                                         if (success) {

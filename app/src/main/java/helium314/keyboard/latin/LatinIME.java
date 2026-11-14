@@ -1113,6 +1113,7 @@ public class LatinIME extends InputMethodService implements
         clearNavigationBarColor();
         if (mSettings.getCurrent().mLiteMode) {
             mKeyboardSwitcher.trimMemory();
+            mDictionaryFacilitator.dropSecondaryDictionaries();
         }
     }
 
@@ -1234,6 +1235,7 @@ public class LatinIME extends InputMethodService implements
         VaultSessionManager.INSTANCE.lockVaults();
         if (mSettings.getCurrent().mLiteMode) {
             mKeyboardSwitcher.trimMemory();
+            mDictionaryFacilitator.dropSecondaryDictionaries();
         }
         super.hideWindow();
     }
@@ -2387,6 +2389,7 @@ public class LatinIME extends InputMethodService implements
         LogCatcher.flushPendingLogs();
         if (mSettings.getCurrent().mLiteMode) {
             mKeyboardSwitcher.trimMemory();
+            mDictionaryFacilitator.dropSecondaryDictionaries();
         }
         switch (level) {
             case TRIM_MEMORY_UI_HIDDEN -> {
@@ -2395,6 +2398,7 @@ public class LatinIME extends InputMethodService implements
             case TRIM_MEMORY_RUNNING_LOW, TRIM_MEMORY_RUNNING_CRITICAL, TRIM_MEMORY_COMPLETE -> {
                 KeyboardLayoutSet.Companion.trimMemory(true);
                 mKeyboardSwitcher.trimMemory();
+                mDictionaryFacilitator.dropSecondaryDictionaries();
             }
             // deallocateMemory always called on hiding, and should not be called when showing
         }

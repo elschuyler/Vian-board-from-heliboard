@@ -178,7 +178,7 @@ class AudioRecordPipeline(
 
                 // 4. Dispatch raw PCM frame for transcription pipeline
                 listener.onAudioChunkAvailable(buffer, read)
-            } else if (read < 0) {
+            } else if (read < 0 && isRunning) {
                 if (read == AudioRecord.ERROR_INVALID_OPERATION) {
                     LogCatcher.e(TAG, "AudioRecord ERROR_INVALID_OPERATION")
                     listener.onError("Audio recording error: Invalid operation")
@@ -211,14 +211,6 @@ class AudioRecordPipeline(
         isRunning = false
         isPaused = false
         try {
-            workerThread?.interrupt()
-            workerThread?.join(500)
-        } catch (e: Exception) {
-            // Ignore interruption
-        }
-        workerThread = null
-
-        try {
             audioRecord?.let {
                 if (it.state == AudioRecord.STATE_INITIALIZED && it.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
                     it.stop()
@@ -229,6 +221,14 @@ class AudioRecordPipeline(
             LogCatcher.w(TAG, "Error stopping AudioRecord: ${e.message}")
         }
         audioRecord = null
+
+        try {
+            workerThread?.interrupt()
+            workerThread?.join(500)
+        } catch (e: Exception) {
+            // Ignore interruption
+        }
+        workerThread = null
         listener.onRmsChanged(0f)
         listener.onSpeechActivityChanged(false)
         LogCatcher.markComponentInactive(COMPONENT_NAME, "Stopped")

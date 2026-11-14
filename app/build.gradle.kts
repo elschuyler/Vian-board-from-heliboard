@@ -102,6 +102,7 @@ dependencies {
   implementation(libs.reorderable)
   implementation(libs.colorpicker.compose)
   implementation(libs.kotpass)
+  implementation("com.squareup.okio:okio:3.15.0")
   debugImplementation(libs.androidx.compose.ui.tooling)
   debugImplementation(libs.androidx.compose.ui.test.manifest)
   testImplementation(libs.junit)

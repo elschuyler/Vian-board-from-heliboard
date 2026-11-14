@@ -126,7 +126,7 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
         super.onDestroy()
         LogCatcher.i(TAG, "VoiceInputService onDestroy")
         LogCatcher.markComponentInactive(COMPONENT_NAME, "Destroyed")
-        serviceHandler.removeCallbacks(autoShutdownRunnable)
+        serviceHandler.removeCallbacksAndMessages(null)
         releaseAudioPipeline()
         if (!inferenceExecutor.isShutdown) {
             try {
@@ -305,6 +305,7 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
             samples = buf.copyOf(audioSampleCount)
         }
 
+        if (inferenceExecutor.isShutdown) return
         lastInterimInferenceTime = now
         inferenceExecutor.execute {
             if (isTranscribing.compareAndSet(false, true)) {
