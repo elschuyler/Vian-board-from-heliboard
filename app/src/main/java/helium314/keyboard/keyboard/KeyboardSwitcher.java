@@ -433,12 +433,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         if (mSecurityVaultExplorerView != null && mSecurityVaultExplorerView.getVisibility() == View.VISIBLE) {
             mSecurityVaultExplorerView.setVisibility(View.GONE);
             mSecurityVaultExplorerView.stopExplorer();
-            VaultSessionManager.INSTANCE.lockSecurity();
         }
         if (mChosenEntryView != null && mChosenEntryView.getVisibility() == View.VISIBLE) {
             mChosenEntryView.setVisibility(View.GONE);
             mChosenEntryView.stopChosenEntry();
-            VaultSessionManager.INSTANCE.lockSecurity();
         }
         if (settingsValues.mLiteMode) {
             enforceLiteModeSingleModal(null);
@@ -504,22 +502,14 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mVoiceInputView = null;
         }
         if (activeModalView != mSecurityVaultExplorerView && mSecurityVaultExplorerView != null) {
-            final boolean wasVisible = mSecurityVaultExplorerView.getVisibility() == View.VISIBLE;
             mSecurityVaultExplorerView.stopExplorer();
             mSecurityVaultExplorerView.setVisibility(View.GONE);
-            if (wasVisible) {
-                VaultSessionManager.INSTANCE.lockSecurity();
-            }
             detachOptionalModal(mSecurityVaultExplorerView);
             mSecurityVaultExplorerView = null;
         }
         if (activeModalView != mChosenEntryView && mChosenEntryView != null) {
-            final boolean wasVisible = mChosenEntryView.getVisibility() == View.VISIBLE;
             mChosenEntryView.stopChosenEntry();
             mChosenEntryView.setVisibility(View.GONE);
-            if (wasVisible) {
-                VaultSessionManager.INSTANCE.lockSecurity();
-            }
             detachOptionalModal(mChosenEntryView);
             mChosenEntryView = null;
         }
@@ -760,7 +750,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         }
         final VaultSessionManager.UnlockMethod primaryMethod = VaultSessionManager.INSTANCE.getPrimaryUnlockMethod(mLatinIME);
         final Runnable onUnlock = () -> {
-            VaultSessionManager.INSTANCE.startSecuritySession();
+            VaultSessionManager.INSTANCE.startSecuritySession(mLatinIME);
             setSecurityVaultExplorerKeyboard();
         };
 
@@ -814,7 +804,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
 
     public void showStealthPatternUnlock(@NonNull final Runnable onUnlockSuccess, @Nullable final Runnable onCancel) {
         setAlphabetKeyboard(ShiftMode.UNSHIFT);
-        showPatternUnlockView(onUnlockSuccess, true);
+        showPatternUnlockView(onUnlockSuccess, true, false);
     }
 
     public void stopStealthPatternUnlock() {

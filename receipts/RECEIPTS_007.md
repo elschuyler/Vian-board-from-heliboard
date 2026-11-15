@@ -401,3 +401,56 @@ This log file tracks all development steps, modifications, fixes, and build veri
 - **How it was verified**: Local build (`compile_applet` passed), release R8 check (`gradle :app:minifyReleaseWithR8` BUILD SUCCESSFUL), and targeted unit/Robolectric tests (`BackupCryptoTest`, `KeySpecParserTest`, `KeyboardParserTest`, `LayoutTest`, `SubtypeTest`, `InputTest` BUILD SUCCESSFUL). Full suite noted pre-existing baseline failures in `ParserTest` (`$` vs `₹`), `XLinkTest` (`../layouts.md`/HTTP), `InputLogicTest` (1 Hangul test on EN/FR build), `StringUtilsTest` (`detectEmojisAtEndFails` annotated pre-existing), and `SuggestTest` (upstream word dedup/emoji removal). Not yet tested on physical device.
 - **Deviation from requested**: None (Settings `:settings` process split remains deferred as instructed).
 - **Known issue or follow-up needed**: Physical on-device verification of Privacy Vault 3-char shortcuts (`"pin"`, `"eml"`, `"sh "`), encrypted `.zip` round-trip, Half Board bottom-right placement, and Lite Mode RAM usage in Running Services.
+
+---
+
+### Receipt 007-14
+- **Timestamp**: 2026-11-15T09:38:00-08:00
+- **Requested**:
+  - Complete Phase 109 hardening (fail-closed `VaultDao`, WAL SQLite concurrency, 5-attempt/30s brute-force pattern lockout, `.kdbx` binary attachments & keyfile export, `rememberSaveable` backup state, Lite Mode secondary dictionary drop/restore, voice shutdown polish), add removable `minifiedDebug` CI R8 fallback, and fix the 136-error `:app:lintVitalMinifiedDebug` (`InvalidFragmentVersionForActivityResult`) CI failure via Option 1 (`androidx.fragment` upgrade).
+- **Exact files touched**:
+  - `gradle/libs.versions.toml`, `app/build.gradle.kts`, `.github/workflows/build-apk.yml`
+  - `app/src/main/java/helium314/keyboard/latin/database/VaultDao.kt`, `Database.kt`
+  - `app/src/main/java/helium314/keyboard/security/vault/data/SecurityVaultDatabase.kt`
+  - `app/src/main/java/helium314/keyboard/security/VaultSessionManager.kt`, `PatternUnlockView.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/SecurityScreen.kt`, `PrivacyVaultScreen.kt`, `PatternLockSettingsScreen.kt`, `BackupRestoreScreen.kt`, `SecurityVaultScreen.kt`
+  - `app/src/main/java/helium314/keyboard/settings/preferences/BackupRestorePreference.kt`
+  - `app/src/main/java/helium314/keyboard/security/vault/engine/KdbxRepository.kt`
+  - `app/src/main/java/helium314/keyboard/latin/DictionaryFacilitatorImpl.kt`, `LatinIME.java`, `InputMethodPicker.kt`
+  - `app/src/main/java/helium314/keyboard/latin/voice/VoiceInputService.kt`, `AudioRecordPipeline.kt`
+  - `app/src/test/java/helium314/keyboard/VaultLockoutTest.kt`, `KdbxAttachmentTest.kt`, `LiteDictionaryDropTest.kt`
+  - `BLUEPRINT.md`, `receipts/RECEIPTS_007.md`
+- **What was actually done**:
+  1. Completed Phase 109 security, vault, dictionary, and voice lifecycle fixes plus corresponding unit/Robolectric tests (`VaultLockoutTest`, `KdbxAttachmentTest`, `LiteDictionaryDropTest`).
+  2. Added `# [TEMPORARY: Remove once GitHub Release signing secrets are configured]` `minifiedDebug` build type (`app/build.gradle.kts`) and conditional CI workflow job step (`.github/workflows/build-apk.yml`) to validate R8 builds before release keystore secrets are configured.
+  3. Diagnosed 1.44 MB CI `job-logs.txt` failure: R8 (`minifyMinifiedDebugWithR8`) passed, and all 136 failures in `:app:lintVitalMinifiedDebug` were `InvalidFragmentVersionForActivityResult` caused by `androidx.viewpager2:1.1.0` pulling `androidx.fragment:1.1.0`. Added `fragment = "1.8.9"` (`androidx-fragment`) to `gradle/libs.versions.toml` and `constraints { implementation(libs.androidx.fragment) }` to `app/build.gradle.kts`.
+  4. Verified `lint-results-minifiedDebug.txt` (`No issues found.`, return value `0`) and `lint-results-release.txt` (`No issues found.`, return value `0`).
+- **How it was verified**: Local Gradle & Robolectric JVM verification only (`gradle :app:lintVitalMinifiedDebug :app:lintVitalRelease :app:assembleMinifiedDebug :app:minifyReleaseWithR8` BUILD SUCCESSFUL, `compile_applet` succeeded, and 20/20 targeted tests across `VaultLockoutTest` [5], `KdbxAttachmentTest` [1], `LiteDictionaryDropTest` [1], `BackupCryptoTest` [5], `InputTest` [6], `SubtypeTest` [2] passed with 0 failures/errors/skipped). Not yet verified on CI runner or physical device.
+- **Deviation from requested**: None (Settings `:settings` process split remains deferred; temporary `minifiedDebug` fallback intentionally isolated with `# [TEMPORARY]` markers for 2-block removal once release secrets are added).
+- **Known issue or follow-up needed**: Push changes and re-run GitHub Actions (`Build APK`) to confirm `VianBoard-MinifiedDebug-APK` uploads cleanly; remove the two `[TEMPORARY]` `minifiedDebug` blocks once `KEYSTORE_BASE64`, `STORE_PASSWORD`, and `KEY_PASSWORD` are set in GitHub Secrets; run on-device verification for 5-attempt pattern lockout, `.kdbx` attachment/keyfile round-trip, and Lite Mode RAM behavior.
+
+---
+
+### Receipt 007-15
+- **Timestamp**: 2026-11-15T11:36:00-08:00
+- **Requested**:
+  - Restore keyboard-open-only vault session timers (3 minutes for Security Vault Explorer/ChosenEntry, 4 minutes for Privacy Vault pills) with zero background baggage when closed, preserving active timers across same-screen input switches and multiple Privacy Pill pastes.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/security/VaultSessionManager.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/UnlockMethodsScreen.kt`
+  - `app/src/main/java/helium314/keyboard/latin/LatinIME.java`
+  - `app/src/main/java/helium314/keyboard/keyboard/KeyboardSwitcher.java`
+  - `app/src/main/java/helium314/keyboard/security/vault/ui/SecurityVaultExplorerView.kt`
+  - `app/src/main/java/helium314/keyboard/security/vault/ui/StealthPatternKeyboardOverlay.kt`
+  - `app/src/test/java/helium314/keyboard/VaultLockoutTest.kt`
+  - `BLUEPRINT.md`, `receipts/RECEIPTS_007.md`
+- **What was actually done**:
+  1. Set `DEFAULT_PRIVACY_SESSION_DURATION_MS = 4 * 60 * 1000L` (4m) alongside 3m Security Vault in `VaultSessionManager.kt` and updated `UnlockMethodsScreen.kt` Privacy timeout options (`1m | 2m | 4m (Default) | 10m | 15m`) and descriptions.
+  2. Passed `context` to `startSecuritySession(context)` / `startPrivacySession(context)` in `KeyboardSwitcher.showSecurityVaultExplorerWithAuth()`, `LatinIME.pickSuggestionManually()`, and `StealthPatternKeyboardOverlay.verifyPattern()`.
+  3. Fixed `KeyboardSwitcher.showStealthPatternUnlock()` to pass `isSecurityVault = false` so Privacy Pill stealth unlock validates the Privacy pattern and starts the 4-minute Privacy Vault session.
+  4. Removed `VaultSessionManager.INSTANCE.lockVaults()` from `LatinIME.cleanupInternalStateForFinishInput()` (preserving timers when switching input fields on the same screen while keyboard remains open) while keeping `lockVaults()` in `onWindowHidden()` and `hideWindow()` (locking immediately when keyboard closes with zero background services/timers).
+  5. Updated `SecurityVaultExplorerView.btnClose`/`closeWithoutLock()` and `KeyboardSwitcher.setMainKeyboardFrame()`/`enforceLiteModeSingleModal()` so closing Explorer/ChosenEntry back to QWERTY preserves the active 3m timer while `btnLock`, timer expiry, and keyboard close still lock immediately.
+  6. Added unit tests in `VaultLockoutTest.kt` for 3m/4m defaults, preference overrides, and `lockVaults()` isolation from Settings sessions.
+- **How it was verified**: Local build (`compile_applet` succeeded) and targeted Robolectric/JVM unit tests (`VaultLockoutTest` 7/7, `BackupCryptoTest` 5/5, `InputTest` 6/6, `SubtypeTest` 2/2 passed; 0 skipped, 0 failures, 0 errors). Not yet tested on physical device.
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Verify on physical device: (a) unlocking Security Explorer -> switching between Username/Password fields on the same screen stays unlocked for 3m and locks when keyboard closes; (b) unlocking a Privacy Pill -> typing multiple shortcuts/pasting multiple pills stays unlocked for 4m while keyboard stays open. Note: in rare WebView apps that force Android to dismiss/reopen the IME window between fields, `hideWindow()` fires and locks immediately per the closed-keyboard zero-baggage rule.

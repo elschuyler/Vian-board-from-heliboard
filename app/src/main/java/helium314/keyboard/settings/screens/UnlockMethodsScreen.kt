@@ -326,14 +326,14 @@ fun UnlockMethodsScreen(
 
                 Preference(
                     name = "Security Vault Auto-Lock Timeout",
-                    description = "In-memory session idle timeout before KeePass vault locks (${securityTimeoutMs / 60000} minutes)",
+                    description = "KeePass modals stay unlocked for ${securityTimeoutMs / 60000} minutes while keyboard remains open",
                     onClick = { showSecurityTimeoutDialog = true },
                     icon = R.drawable.ic_timer
                 ) { NextScreenIcon() }
 
                 Preference(
                     name = "Privacy Vault Auto-Lock Timeout",
-                    description = "In-memory session idle timeout before protected phrases vault locks (${privacyTimeoutMs / 60000} minutes)",
+                    description = "Privacy pills stay unlocked for ${privacyTimeoutMs / 60000} minutes while keyboard remains open",
                     onClick = { showPrivacyTimeoutDialog = true },
                     icon = R.drawable.ic_timer
                 ) { NextScreenIcon() }
@@ -533,7 +533,7 @@ fun UnlockMethodsScreen(
                 text = {
                     Column(Modifier.fillMaxWidth()) {
                         Text(
-                            "KeePass database will automatically lock after this duration of inactivity while active on screen.",
+                            "KeePass vault modals stay unlocked for this duration while the keyboard remains open (including switching fields on the same screen), and lock immediately when the keyboard closes.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -572,9 +572,10 @@ fun UnlockMethodsScreen(
         if (showPrivacyTimeoutDialog) {
             val options = listOf(
                 60_000L to "1 minute",
-                300_000L to "5 minutes (Default)",
-                900_000L to "15 minutes",
-                1_800_000L to "30 minutes"
+                120_000L to "2 minutes",
+                240_000L to "4 minutes (Default)",
+                600_000L to "10 minutes",
+                900_000L to "15 minutes"
             )
             AlertDialog(
                 onDismissRequest = { showPrivacyTimeoutDialog = false },
@@ -582,7 +583,7 @@ fun UnlockMethodsScreen(
                 text = {
                     Column(Modifier.fillMaxWidth()) {
                         Text(
-                            "Privacy Vault phrases will automatically lock after this duration of inactivity while active on screen.",
+                            "Privacy Vault pills stay unlocked for this duration while the keyboard remains open (including switching fields on the same screen), and lock immediately when the keyboard closes.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

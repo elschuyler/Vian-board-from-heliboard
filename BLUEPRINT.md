@@ -1465,6 +1465,38 @@ Vianboard is a fully customizable, privacy-conscious offline Android keyboard ap
       - `KeyboardLayoutSet.kt` & `LatinIME.java`: Added Lite Mode / `trimMemory()` pruning for `forcibleKeyboardCache`, `uniqueKeysCache`, and `LayoutParser` cache.
       - `app/build.gradle.kts` & `app/proguard-rules.pro`: Restored JVM `testImplementation` dependencies, enabled `isMinifyEnabled = true` and `isShrinkResources = true` in `release`, and added Whisper JNI, custom View, Kotpass, and Kotlinx Serialization keep rules.
 
+- **2026-11-15**: Completed Phase 109 (Encryption Fail-Closed, 5-Attempt Brute-Force Lockout, KDBX Attachments & KeyFile Export, Lite Dictionary Unload, Voice Lifecycle, Temporary `minifiedDebug` CI Fallback & `lintVital` Fix):
+    - **Component 1: Fail-Closed Privacy Vault & SQLite WAL Concurrency (`VaultDao.kt`, `PrivacyVaultScreen.kt`, `Database.kt`, `SecurityVaultDatabase.kt`)**:
+      - Removed plaintext write fallback in `VaultDao.addOrUpdate()` (returns `-1L` on encryption failure) and `replaceAllInTransaction()` (aborts transaction without wiping or writing plaintext); updated `EditVaultEntryDialog` to surface an error Toast instead of dismissing on `-1L`.
+      - Hardened `Database.getInstance(context)` with `@Volatile` double-checked locking storing `applicationContext` and enabled WAL (`enableWriteAheadLogging()`) in `onConfigure(db)` for both `Database` and `SecurityVaultDatabase`.
+    - **Component 2: 5-Attempt -> 30s Brute-Force Pattern Lockout (`VaultSessionManager.kt`, `PatternUnlockView.kt`, `SecurityScreen.kt`, `PrivacyVaultScreen.kt`, `PatternLockSettingsScreen.kt`)**:
+      - Added persisted + in-memory lockout tracking (`MAX_FAILED_ATTEMPTS = 5`, `LOCKOUT_DURATION_MS = 30_000L`, clamped against clock shifts, reset on valid pattern/biometric/PIN unlock) and short-circuited PBKDF2 hashing while locked out.
+      - Enforced cooldown countdowns across normal unlock views while keeping `isStealth` visually silent.
+    - **Component 3: KDBX Binary Attachments, Key File Export & `rememberSaveable` Resilience (`KdbxRepository.kt`, `BackupRestoreScreen.kt`, `BackupRestorePreference.kt`, `SecurityVaultScreen.kt`, `app/build.gradle.kts`)**:
+      - Implemented full `.kdbx` attachment round-trip (`BinaryData.Uncompressed`, `BinaryReference`, `modifyBinaries` / `removeUnusedBinaries`) with `com.squareup.okio:okio:3.15.0` and hardware AES-256-GCM sealing + byte zeroization.
+      - Added optional Key File (`Browse`/`Clear`) picker to `.kdbx` export, zeroized password buffers in `finally` blocks, and migrated backup/restore dialog URIs and module selections to `rememberSaveable`.
+    - **Component 4: Lite Mode Secondary Dictionary Unload & Voice Lifecycle (`DictionaryFacilitatorImpl.kt`, `LatinIME.java`, `InputMethodPicker.kt`, `VoiceInputService.kt`, `AudioRecordPipeline.kt`)**:
+      - Added synchronized `dropSecondaryDictionaries()` / `restoreSecondaryDictionaries()` keeping `dictionaryGroups[0]` warm and trimming secondary groups in Lite Mode (`onTrimMemory`, `hideWindow`, `cleanupInternalStateForFinishInput`).
+      - Guarded `VoiceInputService.triggerInterimPreviewInference()` against shutdown executors, cleared handler callbacks in `onDestroy()`, and moved `AudioRecord` stop/release ahead of `workerThread?.join(500)` in `AudioRecordPipeline.stop()`.
+    - **Component 5: Temporary `minifiedDebug` CI Fallback & `lintVital` Transitive Fix (`app/build.gradle.kts`, `gradle/libs.versions.toml`, `.github/workflows/build-apk.yml`)**:
+      - Added temporary `minifiedDebug` build type (`initWith(release)` signed with debug key) and conditional GitHub Actions fallback step (`VianBoard-MinifiedDebug-APK`) to test R8 builds in CI until release signing secrets (`KEYSTORE_BASE64`, `STORE_PASSWORD`, `KEY_PASSWORD`, optional `KEY_ALIAS`) are configured.
+      - Resolved 136 CI `:app:lintVitalMinifiedDebug` / `:app:lintVitalRelease` `InvalidFragmentVersionForActivityResult` errors by adding `androidx-fragment = "1.8.9"` (`gradle/libs.versions.toml`) and a Gradle `constraints { implementation(libs.androidx.fragment) }` entry (`app/build.gradle.kts`) overriding the stale `androidx.fragment:1.1.0` pulled transitively by `androidx.viewpager2:1.1.0`.
+    - **Component 6: Verification & Clean Security Scan**:
+      - Verified `gradle :app:lintVitalMinifiedDebug :app:lintVitalRelease :app:assembleMinifiedDebug :app:minifyReleaseWithR8`, `compile_applet`, and 20/20 targeted unit/Robolectric tests (`VaultLockoutTest`, `KdbxAttachmentTest`, `LiteDictionaryDropTest`, `BackupCryptoTest`, `InputTest`, `SubtypeTest`).
+
+- **2026-11-15**: Completed Phase 110 (Keyboard-Open Vault Session Timers: 3m Security Vault & 4m Privacy Vault Pills, Zero Closed-Keyboard Baggage):
+    - **Component 1: 3m Security / 4m Privacy Defaults & Settings Sync (`VaultSessionManager.kt`, `UnlockMethodsScreen.kt`, `StealthPatternKeyboardOverlay.kt`)**:
+      - Updated `VaultSessionManager.DEFAULT_PRIVACY_SESSION_DURATION_MS` from 5m to 4m (`240_000L`), keeping `DEFAULT_SECURITY_SESSION_DURATION_MS` at 3m (`180_000L`).
+      - Updated `UnlockMethodsScreen.kt` Privacy Vault timeout picker options to `1m | 2m | 4m (Default) | 10m | 15m` and clarified that both sessions remain active while the keyboard stays open (including same-screen field switches) and lock immediately when the keyboard closes.
+      - Updated `KeyboardSwitcher.showSecurityVaultExplorerWithAuth()`, `LatinIME.pickSuggestionManually()`, and `StealthPatternKeyboardOverlay.verifyPattern()` to pass `context` to `startSecuritySession(context)` / `startPrivacySession(context)` so configured timeout preferences are always honored.
+    - **Component 2: Privacy Pill Stealth Unlock Target Fix (`KeyboardSwitcher.java`)**:
+      - Updated `KeyboardSwitcher.showStealthPatternUnlock()` to pass `isSecurityVault = false` into `showPatternUnlockView(onUnlockSuccess, true, false)`, ensuring Privacy Pill stealth unlock validates the Privacy pattern and starts the 4-minute Privacy Vault timer instead of starting the Security Vault session.
+    - **Component 3: Preserve Timers While Keyboard Open & Across Same-Screen Input Switches (`LatinIME.java`, `KeyboardSwitcher.java`, `SecurityVaultExplorerView.kt`)**:
+      - Removed `VaultSessionManager.INSTANCE.lockVaults()` from `LatinIME.cleanupInternalStateForFinishInput()` (`onFinishInputView`) so switching input fields on the same screen while the keyboard stays open preserves active timers; retained `lockVaults()` in `onWindowHidden()` and `hideWindow()` so closing the keyboard locks both vaults immediately with zero background timers/services when closed.
+      - Updated `SecurityVaultExplorerView.btnClose` / `closeWithoutLock()` and `KeyboardSwitcher.setMainKeyboardFrame()` / `enforceLiteModeSingleModal()` to stop/detach modals without calling `lockSecurity()`, reserving immediate lock for explicit `btnLock`, timer expiry, or keyboard close.
+    - **Component 4: Verification**:
+      - Added Robolectric tests in `VaultLockoutTest.kt` verifying 3m Security & 4m Privacy defaults, custom preference overrides, and `lockVaults()` isolation from Settings sessions; verified `compile_applet` and unit test suites (`VaultLockoutTest` 7/7, `BackupCryptoTest` 5/5, `InputTest` 6/6, `SubtypeTest` 2/2).
+
 
 
 

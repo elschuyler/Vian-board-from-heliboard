@@ -12,7 +12,7 @@ import javax.crypto.spec.PBEKeySpec
 
 /**
  * VaultSessionManager handles secure pattern storage (salted SHA-256 hash)
- * and in-memory session timers for Privacy Vault (5m) and Security Vault (3m).
+ * and in-memory session timers for Privacy Vault (4m) and Security Vault (3m).
  *
  * All telemetry sent to LogCatcher is strictly sanitized: zero PII, zero credentials,
  * zero pattern coordinates.
@@ -52,7 +52,7 @@ object VaultSessionManager {
     const val PREF_PRIVACY_VAULT_TIMEOUT = "pref_privacy_vault_timeout"
 
     // Default session durations
-    const val DEFAULT_PRIVACY_SESSION_DURATION_MS = 5 * 60 * 1000L  // 5 minutes
+    const val DEFAULT_PRIVACY_SESSION_DURATION_MS = 4 * 60 * 1000L  // 4 minutes
     const val DEFAULT_SECURITY_SESSION_DURATION_MS = 3 * 60 * 1000L // 3 minutes
     const val SETTINGS_SESSION_DURATION_MS = 3 * 60 * 1000L         // 3 minutes (isolated to Security Settings UI)
 
