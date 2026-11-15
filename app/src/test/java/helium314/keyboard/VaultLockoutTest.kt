@@ -111,4 +111,39 @@ class VaultLockoutTest {
         assertEquals(-1L, result)
         assertTrue(dao.getAll().isEmpty())
     }
+
+    @Test
+    fun defaultSessionTimeouts_areThreeMinutesSecurityAndFourMinutesPrivacy() {
+        assertEquals(3 * 60 * 1000L, VaultSessionManager.DEFAULT_SECURITY_SESSION_DURATION_MS)
+        assertEquals(4 * 60 * 1000L, VaultSessionManager.DEFAULT_PRIVACY_SESSION_DURATION_MS)
+        assertEquals(3 * 60 * 1000L, VaultSessionManager.getSecurityTimeoutMs(context))
+        assertEquals(4 * 60 * 1000L, VaultSessionManager.getPrivacyTimeoutMs(context))
+
+        VaultSessionManager.startSecuritySession(context)
+        VaultSessionManager.startPrivacySession(context)
+        assertTrue(VaultSessionManager.isSecuritySessionValid())
+        assertTrue(VaultSessionManager.isPrivacySessionValid())
+        assertTrue(VaultSessionManager.getSecuritySessionRemainingMs() in (2 * 60 * 1000L)..(3 * 60 * 1000L))
+        assertTrue(VaultSessionManager.getPrivacySessionRemainingMs() in (3 * 60 * 1000L)..(4 * 60 * 1000L))
+    }
+
+    @Test
+    fun configuredTimeoutsAndLockVaults_respectPrefsAndIsolateSettingsSession() {
+        VaultSessionManager.setSecurityTimeoutMs(context, 10 * 60 * 1000L)
+        VaultSessionManager.setPrivacyTimeoutMs(context, 2 * 60 * 1000L)
+        VaultSessionManager.startSecuritySession(context)
+        VaultSessionManager.startPrivacySession(context)
+        VaultSessionManager.startSettingsSession(context)
+
+        assertTrue(VaultSessionManager.getSecuritySessionRemainingMs() > 5 * 60 * 1000L)
+        assertTrue(VaultSessionManager.getPrivacySessionRemainingMs() <= 2 * 60 * 1000L)
+
+        // Closing the keyboard calls lockVaults(), wiping both keyboard vaults with zero effect on settings session
+        VaultSessionManager.lockVaults()
+        assertFalse(VaultSessionManager.isSecuritySessionValid())
+        assertFalse(VaultSessionManager.isPrivacySessionValid())
+        assertEquals(0L, VaultSessionManager.getSecuritySessionRemainingMs())
+        assertEquals(0L, VaultSessionManager.getPrivacySessionRemainingMs())
+        assertTrue(VaultSessionManager.isSettingsSessionValid())
+    }
 }

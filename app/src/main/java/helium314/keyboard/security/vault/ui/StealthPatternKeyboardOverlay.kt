@@ -246,7 +246,7 @@ class StealthPatternKeyboardOverlay @JvmOverloads constructor(
         val isMatch = VaultSessionManager.verifySecurityPattern(context, pattern)
         if (isMatch) {
             LogCatcher.log('I', TAG, "Stealth pattern authentication successful")
-            VaultSessionManager.startSecuritySession()
+            VaultSessionManager.startSecuritySession(context)
             val cb = onUnlockSuccessCallback
             stopStealthUnlock()
             failureCount = 0

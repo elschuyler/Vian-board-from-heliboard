@@ -99,6 +99,11 @@ dependencies {
   implementation(libs.androidx.recyclerview)
   implementation(libs.androidx.autofill)
   implementation(libs.androidx.viewpager2)
+  constraints {
+    implementation(libs.androidx.fragment) {
+      because("viewpager2 1.1.0 pulls fragment 1.1.0 (< 1.3.0), which triggers InvalidFragmentVersionForActivityResult in lintVital")
+    }
+  }
   implementation(libs.kotlinx.serialization.json)
   implementation(platform(libs.androidx.compose.bom))
   implementation(libs.androidx.compose.material3)

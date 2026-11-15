@@ -144,9 +144,9 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
         }
         updateChipHighlight(chipAll)
 
-        // Zero-Trust Lock: Closing modal or pressing lock always immediately locks session
+        // Closing returns to keyboard keeping the active timer while keyboard stays open; btnLock locks immediately
         btnClose.setOnClickListener {
-            closeAndLock()
+            closeWithoutLock()
         }
 
         btnLock.setOnClickListener {
@@ -259,8 +259,9 @@ class SecurityVaultExplorerView @JvmOverloads constructor(
     }
 
     fun closeWithoutLock() {
-        // Enforce Interpretation 1: close the security gap on modal exit
-        closeAndLock()
+        LogCatcher.log('I', TAG, "Closing Security Vault Explorer while keeping active timer until expiry or keyboard close")
+        stopExplorer()
+        KeyboardSwitcher.getInstance().closeSecurityVaultExplorer(false)
     }
 
     fun closeAndLock() {
