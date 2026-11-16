@@ -1,0 +1,185 @@
+// SPDX-License-Identifier: GPL-3.0-only
+package helium314.keyboard.latin.database
+
+import android.content.ContentValues
+import android.content.Context
+import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteOpenHelper
+import androidx.core.database.getStringOrNull
+import androidx.core.database.sqlite.transaction
+import helium314.keyboard.latin.utils.GestureDataDao
+import helium314.keyboard.latin.utils.Log
+import helium314.keyboard.latin.utils.LogCatcher
+import java.io.File
+
+class Database internal constructor(context: Context, name: String = NAME) : SQLiteOpenHelper(context, name, null, VERSION) {
+    override fun onConfigure(db: SQLiteDatabase) {
+        super.onConfigure(db)
+        db.enableWriteAheadLogging()
+    }
+
+    override fun onCreate(db: SQLiteDatabase) {
+        db.execSQL(ClipboardDao.CREATE_TABLE)
+        PromptDao.ensureTableExists(db)
+        VoiceReplacementDao.ensureTableExists(db)
+        VaultDao.ensureTableExists(db)
+        onUpgrade(db, 0, VERSION)
+    }
+
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        if (oldVersion <= 1) {
+            db.execSQL(GestureDataDao.CREATE_TABLE)
+        }
+        if (oldVersion <= 2) {
+            db.execSQL(ClipboardDao.ADD_FILE_COLUMN)
+            db.execSQL(ClipboardDao.ADD_MIME_TYPE_COLUMN)
+        }
+        if (oldVersion <= 3) {
+            PromptDao.ensureTableExists(db)
+        }
+        if (oldVersion <= 4) {
+            VoiceReplacementDao.ensureTableExists(db)
+        }
+        if (oldVersion <= 5) {
+            VaultDao.ensureTableExists(db)
+        }
+    }
+
+    companion object {
+        private val TAG = Database::class.java.simpleName
+        private const val VERSION = 6
+        const val NAME = "heliboard.db"
+        @Volatile
+        private var instance: Database? = null
+        fun getInstance(context: Context): Database {
+            return instance ?: synchronized(this) {
+                instance ?: Database(context.applicationContext).also { instance = it }
+            }
+        }
+
+        // needs to be in sync with db version
+        fun copyFromDb(file: File, context: Context) {
+            if (!file.exists())
+                return
+            val appCtx = context.applicationContext
+            val otherDb = Database(appCtx, file.name) // this upgrades the DB if necessary
+            val clipDao = ClipboardDao.getInstance(appCtx) // insert to dao because of cache
+            val db = getInstance(appCtx)
+
+            try {
+                db.writableDatabase.transaction {
+                    if (clipDao == null) {
+                        Log.e(TAG, "can't transfer clipboard data because ClipboardDao is null")
+                    } else {
+                        otherDb.readableDatabase.rawQuery("SELECT TIMESTAMP, PINNED, TEXT, FILE, MIME_TYPE FROM CLIPBOARD", null)
+                            .use {
+                                clipDao.clear()
+                                while (it.moveToNext()) {
+                                    clipDao.insertNewEntry(
+                                        it.getLong(0),
+                                        it.getInt(1) != 0,
+                                        it.getStringOrNull(2),
+                                        it.getStringOrNull(3),
+                                        it.getStringOrNull(4)?.split("§"),
+                                        null
+                                    )
+                                }
+                            }
+                    }
+                    db.writableDatabase.execSQL("DELETE FROM GESTURE_DATA")
+                    otherDb.readableDatabase.rawQuery("SELECT TIMESTAMP, WORD, EXPORTED, SOURCE_ACTIVE, DATA FROM GESTURE_DATA", null)
+                        .use { c ->
+                            while (c.moveToNext()) {
+                                execSQL("INSERT INTO GESTURE_DATA (TIMESTAMP, WORD, EXPORTED, SOURCE_ACTIVE, DATA) " +
+                                    "VALUES (${c.getLong(0)},?,${c.getInt(2)},${c.getInt(3)},?)", arrayOf(c.getString(1), c.getString(4)))
+                            }
+                        }
+
+                    // Restore Prompts table if present in otherDb
+                    try {
+                        PromptDao.ensureTableExists(db.writableDatabase)
+                        val hasPrompts = otherDb.readableDatabase.rawQuery(
+                            "SELECT name FROM sqlite_master WHERE type='table' AND name='${PromptDao.TABLE}'", null
+                        ).use { it.moveToFirst() }
+                        if (hasPrompts) {
+                            otherDb.readableDatabase.rawQuery(
+                                "SELECT TIMESTAMP, PINNED, TITLE, TEXT FROM ${PromptDao.TABLE}", null
+                            ).use { c ->
+                                db.writableDatabase.execSQL("DELETE FROM ${PromptDao.TABLE}")
+                                while (c.moveToNext()) {
+                                    val cv = ContentValues().apply {
+                                        put(PromptDao.COLUMN_TIMESTAMP, c.getLong(0))
+                                        put(PromptDao.COLUMN_PINNED, c.getInt(1))
+                                        put(PromptDao.COLUMN_TITLE, c.getStringOrNull(2))
+                                        put(PromptDao.COLUMN_TEXT, c.getStringOrNull(3))
+                                    }
+                                    db.writableDatabase.insert(PromptDao.TABLE, null, cv)
+                                }
+                            }
+                        }
+                    } catch (t: Throwable) {
+                        LogCatcher.log('W', TAG, "Restore prompts skipped: ${t.message}")
+                    }
+
+                    // Restore Voice Replacements table if present in otherDb
+                    try {
+                        VoiceReplacementDao.ensureTableExists(db.writableDatabase)
+                        val hasVoiceTable = otherDb.readableDatabase.rawQuery(
+                            "SELECT name FROM sqlite_master WHERE type='table' AND name='${VoiceReplacementDao.TABLE}'", null
+                        ).use { it.moveToFirst() }
+                        if (hasVoiceTable) {
+                            val voiceDao = VoiceReplacementDao.getInstance(context)
+                            otherDb.readableDatabase.rawQuery(
+                                "SELECT _id, ORIGINAL_WORD, REPLACEMENT_WORD, IS_WHOLE_WORD, TIMESTAMP FROM ${VoiceReplacementDao.TABLE}", null
+                            ).use { c ->
+                                voiceDao.clear()
+                                while (c.moveToNext()) {
+                                    voiceDao.addOrUpdate(
+                                        originalWord = c.getString(1) ?: "",
+                                        replacementWord = c.getString(2) ?: "",
+                                        isWholeWord = c.getInt(3) != 0
+                                    )
+                                }
+                            }
+                            LogCatcher.i(TAG, "Restored ${voiceDao.count} voice replacement rules")
+                        }
+                    } catch (t: Throwable) {
+                        LogCatcher.log('W', TAG, "Restore voice replacements skipped: ${t.message}")
+                    }
+
+                    // Restore Privacy Vault table if present in otherDb
+                    try {
+                        VaultDao.ensureTableExists(db.writableDatabase)
+                        val hasVaultTable = otherDb.readableDatabase.rawQuery(
+                            "SELECT name FROM sqlite_master WHERE type='table' AND name='${VaultDao.TABLE}'", null
+                        ).use { it.moveToFirst() }
+                        if (hasVaultTable) {
+                            val vaultDao = VaultDao.getInstance(context)
+                            otherDb.readableDatabase.rawQuery(
+                                "SELECT _id, SHORTCUT, PHRASE, NOTES, TIMESTAMP FROM ${VaultDao.TABLE}", null
+                            ).use { c ->
+                                vaultDao.clear()
+                                while (c.moveToNext()) {
+                                    vaultDao.addOrUpdate(
+                                        shortcut = c.getString(1) ?: "",
+                                        phrase = c.getString(2) ?: "",
+                                        notes = c.getStringOrNull(3) ?: ""
+                                    )
+                                }
+                            }
+                            LogCatcher.i(TAG, "Restored ${vaultDao.count} vault entries")
+                        }
+                    } catch (t: Throwable) {
+                        LogCatcher.log('W', TAG, "Restore vault entries skipped: ${t.message}")
+                    }
+                }
+                // Reload in-memory PromptDao and VaultDao cache
+                PromptDao.getInstance(context).reload()
+                VaultDao.getInstance(context).reload()
+            } finally {
+                otherDb.close()
+                file.delete()
+            }
+        }
+    }
+}

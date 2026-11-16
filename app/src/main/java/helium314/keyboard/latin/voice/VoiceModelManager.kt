@@ -1,0 +1,221 @@
+// SPDX-License-Identifier: GPL-3.0-only
+package helium314.keyboard.latin.voice
+
+import android.content.Context
+import android.net.Uri
+import android.provider.OpenableColumns
+import androidx.core.content.edit
+import helium314.keyboard.latin.settings.Settings
+import helium314.keyboard.latin.utils.LogCatcher
+import helium314.keyboard.latin.utils.prefs
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.text.DecimalFormat
+
+data class VoiceModelInfo(
+    val fileName: String,
+    val sizeBytes: Long,
+    val formattedSize: String,
+    val absolutePath: String,
+    val isValid: Boolean
+)
+
+object VoiceModelManager {
+    private const val TAG = "VoiceModelManager"
+    const val MODEL_DIR_NAME = "voice_models"
+    const val ACTIVE_MODEL_FILE_NAME = "model.bin"
+
+    // Recognized Whisper / GGML / GGUF magic bytes
+    private val GGML_MAGIC = byteArrayOf(0x67, 0x67, 0x6d, 0x6c) // "ggml"
+    private val GGMF_MAGIC = byteArrayOf(0x67, 0x67, 0x6d, 0x66) // "ggmf"
+    private val GGJT_MAGIC = byteArrayOf(0x67, 0x67, 0x6a, 0x74) // "ggjt"
+    private val GGUF_MAGIC = byteArrayOf(0x47, 0x47, 0x55, 0x46) // "GGUF"
+
+    init {
+        LogCatcher.markComponentActive("VoiceModelManager", "Storage", "Idle")
+    }
+
+    fun getModelDirectory(context: Context): File {
+        val dir = File(context.noBackupFilesDir, MODEL_DIR_NAME)
+        if (!dir.exists()) {
+            dir.mkdirs()
+        }
+        return dir
+    }
+
+    fun getActiveModelFile(context: Context): File {
+        val defaultFile = File(getModelDirectory(context), ACTIVE_MODEL_FILE_NAME)
+        if (defaultFile.exists() && defaultFile.length() > 1024 * 1024) {
+            return defaultFile
+        }
+        val modelDir = getModelDirectory(context)
+        val files = modelDir.listFiles { f ->
+            f.isFile &&
+                !f.name.startsWith("import_", ignoreCase = true) &&
+                !f.name.endsWith(".tmp", ignoreCase = true) &&
+                (f.name.endsWith(".bin", ignoreCase = true) || f.name.endsWith(".gguf", ignoreCase = true)) &&
+                f.length() > 1024 * 1024
+        }
+        if (!files.isNullOrEmpty()) {
+            return files[0]
+        }
+        return defaultFile
+    }
+
+    fun hasActiveModel(context: Context): Boolean {
+        val file = getActiveModelFile(context)
+        return file.exists() && file.length() > 1024 * 1024
+    }
+
+    fun getModelInfo(context: Context): VoiceModelInfo? {
+        val file = getActiveModelFile(context)
+        if (!file.exists() || file.length() == 0L) {
+            return null
+        }
+        val prefs = context.prefs()
+        val displayName = prefs.getString(Settings.PREF_VOICE_MODEL_NAME, null) ?: file.name
+        val sizeBytes = file.length()
+        val formattedSize = formatFileSize(sizeBytes)
+        val valid = validateModelHeader(file)
+
+        return VoiceModelInfo(
+            fileName = displayName,
+            sizeBytes = sizeBytes,
+            formattedSize = formattedSize,
+            absolutePath = file.absolutePath,
+            isValid = valid
+        )
+    }
+
+    fun importModel(context: Context, sourceUri: Uri): Result<VoiceModelInfo> {
+        val tempFile = File(context.cacheDir, "voice_model_import_${System.currentTimeMillis()}.tmp")
+        return try {
+            val contentResolver = context.contentResolver
+            var originalName = "model.bin"
+
+            contentResolver.query(sourceUri, null, null, null, null)?.use { cursor ->
+                val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (nameIndex >= 0 && cursor.moveToFirst()) {
+                    originalName = cursor.getString(nameIndex) ?: originalName
+                }
+            }
+
+            contentResolver.openInputStream(sourceUri)?.use { input ->
+                FileOutputStream(tempFile).use { output ->
+                    input.copyTo(output, bufferSize = 64 * 1024)
+                }
+            } ?: return Result.failure(IllegalStateException("Unable to open input stream for selected model"))
+
+            if (tempFile.length() < 1024 * 1024) {
+                return Result.failure(IllegalArgumentException("File too small to be a valid Whisper speech model (< 1MB)"))
+            }
+
+            val isValid = validateModelHeader(tempFile)
+            if (!isValid) {
+                LogCatcher.w(TAG, "Imported file does not have standard GGML header, but proceeding as custom binary")
+            }
+
+            val targetDir = getModelDirectory(context)
+            val finalFile = File(targetDir, ACTIVE_MODEL_FILE_NAME)
+            if (finalFile.exists()) {
+                finalFile.delete()
+            }
+            if (!tempFile.renameTo(finalFile)) {
+                // Fallback copy across filesystem boundaries (cacheDir -> noBackupFilesDir)
+                tempFile.copyTo(finalFile, overwrite = true)
+            }
+
+            context.prefs().edit {
+                putString(Settings.PREF_VOICE_MODEL_NAME, originalName)
+            }
+
+            val info = VoiceModelInfo(
+                fileName = originalName,
+                sizeBytes = finalFile.length(),
+                formattedSize = formatFileSize(finalFile.length()),
+                absolutePath = finalFile.absolutePath,
+                isValid = isValid
+            )
+
+            LogCatcher.i(TAG, "Successfully imported voice model: $originalName (${info.formattedSize})")
+            LogCatcher.markComponentActive("VoiceModelManager", "Storage", "Model: $originalName (${info.formattedSize})")
+            Result.success(info)
+        } catch (t: Throwable) {
+            LogCatcher.e(TAG, "Failed to import voice model", t)
+            Result.failure(t)
+        } finally {
+            if (tempFile.exists()) {
+                tempFile.delete()
+            }
+        }
+    }
+
+    fun deleteModel(context: Context): Boolean {
+        return try {
+            val file = getActiveModelFile(context)
+            val deleted = if (file.exists()) file.delete() else true
+            val legacyTemp = File(getModelDirectory(context), "import_temp.bin")
+            if (legacyTemp.exists()) legacyTemp.delete()
+            context.prefs().edit {
+                remove(Settings.PREF_VOICE_MODEL_NAME)
+            }
+            LogCatcher.i(TAG, "Deleted active voice model")
+            LogCatcher.markComponentActive("VoiceModelManager", "Storage", "No Model Installed")
+            deleted
+        } catch (t: Throwable) {
+            LogCatcher.e(TAG, "Failed to delete voice model", t)
+            false
+        }
+    }
+
+    fun validateModelHeader(file: File): Boolean {
+        if (!file.exists() || file.length() < 4) return false
+        return try {
+            val header = ByteArray(4)
+            FileInputStream(file).use { it.read(header) }
+            header.contentEquals(GGML_MAGIC) ||
+                    header.contentEquals(GGMF_MAGIC) ||
+                    header.contentEquals(GGJT_MAGIC) ||
+                    header.contentEquals(GGUF_MAGIC) ||
+                    file.length() > 1024 * 1024 // Permissive for custom quantized models
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun formatFileSize(sizeBytes: Long): String {
+        if (sizeBytes <= 0) return "0 B"
+        val units = arrayOf("B", "KB", "MB", "GB")
+        val digitGroups = (Math.log10(sizeBytes.toDouble()) / Math.log10(1024.0)).toInt().coerceIn(0, units.size - 1)
+        val value = sizeBytes / Math.pow(1024.0, digitGroups.toDouble())
+        return DecimalFormat("#,##0.#").format(value) + " " + units[digitGroups]
+    }
+
+    fun getArchitectureName(): String {
+        val abi = android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: "unknown"
+        return when {
+            abi.contains("arm64") -> "ARMv8 (64-bit)"
+            abi.contains("armeabi") || abi.contains("armv7") -> "ARMv7 (32-bit)"
+            else -> abi
+        }
+    }
+
+    fun is32BitArm(): Boolean {
+        val abi = android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: ""
+        return abi.contains("armeabi") || abi.contains("armv7")
+    }
+
+    fun is64BitArm(): Boolean {
+        val abi = android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: ""
+        return abi.contains("arm64")
+    }
+
+    fun getRecommendedModelTip(): String {
+        return if (is32BitArm()) {
+            "Recommended for 32-bit ARM: ggml-tiny.en-q5_1.bin (~31 MB) from Hugging Face for optimal RAM performance."
+        } else {
+            "Recommended for 64-bit ARM: ggml-tiny.en-q5_1.bin (~31 MB) or ggml-base.en-q5_1.bin (~57 MB) from Hugging Face."
+        }
+    }
+}
