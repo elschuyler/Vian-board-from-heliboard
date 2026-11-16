@@ -1,6 +1,6 @@
 {
-  "name": "Remix Vianboard",
-  "description": "A streamlined task management tool and visual dashboard designed to organize projects and improve personal productivity.",
+  "name": "Vianboard",
+  "description": "Viabhron series keyboard app",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
