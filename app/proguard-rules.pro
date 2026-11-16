@@ -1,7 +1,8 @@
-# Keep native methods and Whisper JNI bridge classes
--keepclassmembers class * {
+# Keep native methods, enclosing classes, and JNI bridge classes
+-keepclasseswithmembernames,includedescriptorclasses class * {
     native <methods>;
 }
+-keep class com.android.inputmethod.latin.utils.WordInputEventForPersonalization { *; }
 -keep class org.futo.voiceinput.whisper.** { *; }
 -keep class helium314.keyboard.latin.voice.WhisperEngine { *; }
 -keep class helium314.keyboard.latin.utils.JniUtils { *; }
@@ -31,8 +32,18 @@
 -keepclassmembers class helium314.keyboard.** {
     *** Companion;
 }
+-keepclassmembers class helium314.keyboard.**$Companion {
+    kotlinx.serialization.KSerializer serializer(...);
+}
 -keepclasseswithmembers class helium314.keyboard.** {
     kotlinx.serialization.KSerializer serializer(...);
+}
+-keep class helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyTypeSerializer { *; }
+
+# Keep enum values()/valueOf() for persisted preference/layout/theme string parsing
+-keepclassmembers enum helium314.keyboard.** {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
 }
 
 # Kotpass (.kdbx) XML & crypto models
