@@ -126,27 +126,108 @@ class VoiceReplacementDao private constructor(private val db: Database) {
         listener?.onReplacementsChanged()
     }
 
+    data class ReplacementResult(
+        val text: String,
+        val protectedMask: BooleanArray
+    )
+
     /**
      * Applies configured phonetic replacements onto recognized speech text.
-     * Respects whole-word boundaries when enabled.
+     * Rules run longest-first, respect whole-word boundaries, tolerate Whisper's
+     * spelled-letter punctuation/hyphens (e.g. "S, K, P." -> "skp"), and track
+     * replaced spans so downstream Voice Actions do not overwrite custom words.
      */
-    fun applyReplacements(inputText: String): String = synchronized(this) {
-        if (cache.isEmpty() || inputText.isEmpty()) return inputText
-        var result = inputText
-        for (entry in cache) {
-            if (entry.originalWord.isEmpty()) continue
-            if (entry.isWholeWord) {
-                val escaped = Pattern.quote(entry.originalWord)
-                val regex = "(?i)\\b$escaped\\b".toRegex()
-                result = regex.replace(result, entry.replacementWord)
-            } else {
-                result = result.replace(entry.originalWord, entry.replacementWord, ignoreCase = true)
-            }
+    fun applyReplacements(inputText: String): String = applyReplacementsWithMask(inputText).text
+
+    fun applyReplacementsWithMask(inputText: String): ReplacementResult = synchronized(this) {
+        if (cache.isEmpty() || inputText.isEmpty()) {
+            return ReplacementResult(inputText, BooleanArray(inputText.length))
         }
-        return result
+        val sortedEntries = cache
+            .filter { it.originalWord.isNotEmpty() }
+            .sortedWith(
+                compareByDescending<VoiceReplacementEntry> { it.originalWord.trim().length }
+                    .thenByDescending { it.timestamp }
+            )
+
+        var currentText = inputText
+        var currentMask = BooleanArray(inputText.length)
+
+        for (entry in sortedEntries) {
+            val regex = buildEntryRegex(entry) ?: continue
+            val updated = replaceUnmasked(
+                text = currentText,
+                mask = currentMask,
+                regex = regex,
+                replacement = entry.replacementWord,
+                markReplacementProtected = true
+            )
+            currentText = updated.text
+            currentMask = updated.protectedMask
+        }
+        return ReplacementResult(currentText, currentMask)
+    }
+
+    private fun buildEntryRegex(entry: VoiceReplacementEntry): Regex? {
+        val trimmed = entry.originalWord.trim()
+        if (trimmed.isEmpty()) return null
+        return if (entry.isWholeWord) {
+            val tokens = trimmed.split(WHITESPACE_REGEX).filter { it.isNotEmpty() }
+            val body = if (tokens.size > 1) {
+                tokens.joinToString(SPELLED_SEPARATOR_REGEX) { Pattern.quote(it) }
+            } else {
+                Pattern.quote(trimmed)
+            }
+            Regex("(?i)(?<![\\p{L}\\p{N}_])$body(?![\\p{L}\\p{N}_])")
+        } else {
+            Regex(Pattern.quote(trimmed), RegexOption.IGNORE_CASE)
+        }
+    }
+
+    private fun replaceUnmasked(
+        text: String,
+        mask: BooleanArray,
+        regex: Regex,
+        replacement: String,
+        markReplacementProtected: Boolean
+    ): ReplacementResult {
+        val matches = regex.findAll(text).filter { match ->
+            val range = match.range
+            !range.isEmpty() && range.none { idx -> idx < mask.size && mask[idx] }
+        }.toList()
+
+        if (matches.isEmpty()) return ReplacementResult(text, mask)
+
+        val sb = StringBuilder(text.length + matches.size * replacement.length)
+        val maskOut = ArrayList<Boolean>(text.length + matches.size * replacement.length)
+        var cursor = 0
+
+        for (match in matches) {
+            val start = match.range.first
+            val endExclusive = match.range.last + 1
+            if (start < cursor) continue
+            for (i in cursor until start) {
+                sb.append(text[i])
+                maskOut.add(i < mask.size && mask[i])
+            }
+            sb.append(replacement)
+            repeat(replacement.length) {
+                maskOut.add(markReplacementProtected)
+            }
+            cursor = endExclusive
+        }
+        for (i in cursor until text.length) {
+            sb.append(text[i])
+            maskOut.add(i < mask.size && mask[i])
+        }
+
+        return ReplacementResult(sb.toString(), maskOut.toBooleanArray())
     }
 
     companion object {
+        private val WHITESPACE_REGEX = Regex("\\s+")
+        private const val SPELLED_SEPARATOR_REGEX = "(?:[,\\.\\-\\s]+)"
+
         const val TABLE = "VOICE_REPLACEMENTS"
         const val COLUMN_ID = "_id"
         const val COLUMN_ORIGINAL = "ORIGINAL_WORD"

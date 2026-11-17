@@ -107,6 +107,18 @@
 
     </LinearLayout>
 
+    <!-- 5 Customizable Voice Action Slot Buttons (Symbol-only Toggles) -->
+    <LinearLayout
+        android:id="@+id/voice_actions_row"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp" />
+
     <!-- Bottom 4-Button Keyboard Row matching Clipboard & Main Keyboard -->
     <helium314.keyboard.keyboard.MainKeyboardView
         android:id="@+id/bottom_row_keyboard"

@@ -331,8 +331,8 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
                         suppressAnnotations = suppressAnnotations
                     )
                     if (!rawResult.isNullOrBlank()) {
-                        val replacedText = VoiceReplacementDao.getInstance(applicationContext).applyReplacements(rawResult)
-                        notifyTranscriptionPreview(replacedText)
+                        val processedText = VoiceActionProcessor.processText(applicationContext, rawResult)
+                        notifyTranscriptionPreview(processedText)
                     }
                 } catch (t: Throwable) {
                     LogCatcher.e(TAG, "Exception during preview inference", t)
@@ -406,12 +406,12 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
                         suppressAnnotations = suppressAnnotations
                     )
                     if (!rawResult.isNullOrBlank()) {
-                        val replacedText = VoiceReplacementDao.getInstance(applicationContext).applyReplacements(rawResult)
-                        LogCatcher.i(TAG, "Transcription finalized: ${replacedText.length} chars (sanitized)")
+                        val processedText = VoiceActionProcessor.processText(applicationContext, rawResult)
+                        LogCatcher.i(TAG, "Transcription finalized: ${processedText.length} chars (sanitized)")
                         if (verboseMode) {
-                            LogCatcher.i(TAG, "Transcription text: \"$replacedText\"")
+                            LogCatcher.i(TAG, "Transcription text: \"$processedText\"")
                         }
-                        notifyFinalTranscription(replacedText)
+                        notifyFinalTranscription(processedText)
                     } else {
                         LogCatcher.i(TAG, "Inference returned empty result (silence/noise)")
                     }

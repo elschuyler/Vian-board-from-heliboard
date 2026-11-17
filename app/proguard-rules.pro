@@ -1,5 +1,5 @@
 # Keep native methods, enclosing classes, and JNI bridge classes
--keepclasseswithmembernames,includedescriptorclasses class * {
+-keepclasseswithmembers,includedescriptorclasses class * {
     native <methods>;
 }
 -keep class com.android.inputmethod.latin.utils.WordInputEventForPersonalization { *; }

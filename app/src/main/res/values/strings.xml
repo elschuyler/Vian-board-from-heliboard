@@ -1410,6 +1410,29 @@ New dictionary:
     <string name="voice_input_verbose_mode">Verbose Mode</string>
     <string name="voice_input_verbose_mode_summary">Log detailed transcription and timing telemetry</string>
     <string name="voice_preview_clear">Clear transcription</string>
+    <string name="voice_actions_section_title">Voice Actions</string>
+    <string name="voice_actions_section_summary">Customize the 5 modal symbol buttons, trigger phrases, and custom actions</string>
+    <string name="voice_actions_customize_button">Customize</string>
+    <string name="voice_actions_dialog_title">Voice Actions</string>
+    <string name="voice_actions_dialog_subtitle">Active modal slots: %1$d/%2$d (Drag to reorder, tap to edit)</string>
+    <string name="voice_actions_search_hint">Search actions (e.g. Bracket, Star, 2x)</string>
+    <string name="voice_actions_max_slots_warning">Max 5 modal button slots. Unslot one first.</string>
+    <string name="voice_actions_add_title">Add Voice Action</string>
+    <string name="voice_actions_edit_title">Edit Voice Action</string>
+    <string name="voice_actions_field_title">Action Name</string>
+    <string name="voice_actions_field_symbol">Modal Button Symbol (short)</string>
+    <string name="voice_actions_field_triggers">Trigger Phrases (comma-separated)</string>
+    <string name="voice_actions_field_open_triggers">Open Trigger Phrases (comma-separated)</string>
+    <string name="voice_actions_field_close_triggers">Close Trigger Phrases (comma-separated)</string>
+    <string name="voice_actions_field_output">Output Text / Symbol</string>
+    <string name="voice_actions_field_open_output">Open Symbol</string>
+    <string name="voice_actions_field_close_output">Close Symbol</string>
+    <string name="voice_actions_field_enabled">Active (works when slotted)</string>
+    <string name="voice_actions_field_slotted">Show in 5-button modal row</string>
+    <string name="voice_actions_numbers_info">Converts spoken English cardinal numbers (e.g. \"twenty four\" → \"24\") while keeping separate digits distinct (\"two four\" → \"2 4\").</string>
+    <string name="voice_actions_delete_confirm">Delete custom voice action \"%1$s\"?</string>
+    <string name="voice_action_state_on">On</string>
+    <string name="voice_action_state_off">Off</string>
 
     <!-- Privacy Vault -->
     <string name="privacy_vault_title">Privacy Vault</string>

@@ -1497,16 +1497,36 @@ Vianboard is a fully customizable, privacy-conscious offline Android keyboard ap
     - **Component 4: Verification**:
       - Added Robolectric tests in `VaultLockoutTest.kt` verifying 3m Security & 4m Privacy defaults, custom preference overrides, and `lockVaults()` isolation from Settings sessions; verified `compile_applet` and unit test suites (`VaultLockoutTest` 7/7, `BackupCryptoTest` 5/5, `InputTest` 6/6, `SubtypeTest` 2/2).
 
+- **2026-11-17**: Completed Phase 111 (R8/ProGuard JNI, Serialization & Resource-Shrinking Hardening):
+    - **Component 1: Full JNI `RegisterNatives` & Personalization Field Preservation (`app/proguard-rules.pro`)**:
+      - Replaced `-keepclassmembers class * { native <methods>; }` with `-keepclasseswithmembers,includedescriptorclasses class * { native <methods>; }` (avoiding `-keepclasseswithmembernames` / `allowshrinking`, which previously stripped 8 uncalled `native` methods from `BinaryDictionary` and `BinaryDictionaryUtils` and caused `JNI_OnLoad` `RegisterNatives` to fail with `UnsatisfiedLinkError` on `ProximityInfo` / zero predictions).
+      - Added `-keep class com.android.inputmethod.latin.utils.WordInputEventForPersonalization { *; }` so JNI `GetFieldID` lookups in `com_android_inputmethod_latin_BinaryDictionary.cpp` retain `mTargetWord`, `mPrevWordsCount`, `mPrevWordArray`, `mIsPrevWordBeginningOfSentenceArray`, and `mTimestamp`.
+    - **Component 2: Kotlinx Serialization & Enum Hardening (`app/proguard-rules.pro`)**:
+      - Added `-keepclassmembers class helium314.keyboard.**$Companion { kotlinx.serialization.KSerializer serializer(...); }` and `-keep class helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyTypeSerializer { *; }`.
+      - Added defensive `-keepclassmembers enum helium314.keyboard.** { public static **[] values(); public static ** valueOf(java.lang.String); }` rule for persisted preference/layout/theme string parsing.
+    - **Component 3: Dynamic Resource Shrinking Protection (`app/src/main/res/raw/keep.xml`, `app/src/main/res/values/strings.xml`)**:
+      - Added `res/raw/keep.xml` (`tools:shrinkMode="safe"`) keeping `@string/layout_*`, `@string/theme_name_*`, `@string/label_*`, `@string/popup_keys_*`, `@string/toolbar_mode_*`, `@string/subtype_*`, and `@drawable/sym_keyboard_*` for `resources.getIdentifier(...)` callers (`Ktx.kt`, `Settings.kt`, `Settings.java`).
+      - Fixed copy-paste `tools:keep` typo on `layout_functional_keys_khipro` in `strings.xml:579`.
+    - **Component 4: Verification**:
+      - Verified `gradle :app:assembleMinifiedDebug :app:minifyReleaseWithR8 :app:lintVitalMinifiedDebug :app:lintVitalRelease --no-daemon` (`31/31` native JNI methods present in `seeds.txt`, `0` native methods in `usage.txt`, `WordInputEventForPersonalization` / `KeyTypeSerializer` / `sym_keyboard_*` preserved).
+      - Verified `gradle :app:assembleDebug :app:testDebugUnitTest --tests ... --no-daemon` (`22/22` tests passed across `VaultLockoutTest`, `BackupCryptoTest`, `InputTest`, `SubtypeTest`, `LiteDictionaryDropTest`, `KdbxAttachmentTest`).
 
-
-
-
-
-
-
-
-
-
-
-
+- **2026-11-17**: Completed Phase 112 (Voice Input Word Improvement Enhancement & Desktop-Shortcuts-Style 5-Slot Customizable Voice Actions):
+    - **Component 1: Word Improvement Longest-First & Spelled-Letter Matching (`VoiceReplacementDao.kt`)**:
+      - Sort Word Improvement rules longest-first (with descending timestamp tiebreaker) so multi-word rules (e.g. `"s k p"` -> `"skp"`) always match before shorter rules.
+      - Support flexible token separators (`[,\.\-\s]+`) for multi-word whole-word phrases so Whisper outputs like `"S, K, P"`, `"S. K. P."`, or `"s-k-p"` reliably transform into `"skp"`.
+      - Add non-overlapping span replacement and `protectedMask` tracking (`applyReplacementsWithMask`) so custom Word Improvement replacements cannot crash on `$`/`\` or be clobbered by downstream Voice Actions.
+    - **Component 2: Voice Actions Catalog, Persistence & CRUD (`VoiceActionCatalog.kt`, `Settings.java`, `Defaults.kt`)**:
+      - Store customizable Voice Actions catalog, 5-slot modal assignments, and live ON/OFF toggle states in `Settings.PREF_VOICE_ACTIONS_CONFIG` via `org.json` (zero extra dependencies or R8 rules, backup-compatible).
+      - Default 5 slotted actions: `↵` Next Line (ON, `"next line, new line"`), `( )` Brackets (ON, `"open bracket, open parenthesis"` / `"close bracket, close parenthesis"`), `*` Star (OFF, `"star"`), `×` Multiply (ON, `"times"` -> `<n>x` e.g. `"two times"` -> `"2x"`), `123` Spoken Numbers (ON, English cardinal word-to-digit conversion).
+      - Full CRUD support for user-created custom symbol/text actions (with Word, Tight, Attach-Left, Newline spacing modes) and custom open/close wrapper pairs, plus editable triggers/symbols on built-in actions and hard 5-slot cap (`X/5`).
+    - **Component 3: Deterministic Voice Actions Post-Processor (`VoiceActionProcessor.kt`, `VoiceInputService.kt`)**:
+      - Strict pipeline: `WhisperEngine.cleanWhisperOutput` -> `VoiceReplacementDao` (tracking protected spans) -> `NUMBERS` -> `MULTIPLY` (`<number|numberWord> + trigger` -> `<n>x`) -> `STAR` -> custom symbol actions -> `BRACKETS` / custom wrappers (inner-space trim) -> `NEXT_LINE` (pause-punctuation & whitespace cleanup).
+      - English place-value number parser converts `"twenty four"` -> `"24"`, `"one hundred five"` -> `"105"`, while keeping separate sequential digits distinct (`"two four"` -> `"2 4"`) and preserving ordinals/homophones/articles.
+    - **Component 4: Voice Modal 5-Button Slot Bar & Settings Customizer UI (`voice_input_view.xml`, `VoiceInputView.kt`, `VoiceInputScreen.kt`, `VoiceActionsCustomizerDialog.kt`, `strings.xml`)**:
+      - Add a 5-button symbol-only toggle row (`voice_actions_row`) directly above `bottom_row_keyboard` in `voice_input_view.xml` and raise `VoiceInputView.onMeasure()` compact height clamp (`175dp–195dp`) so the waveform and 48dp mic remain unclipped.
+      - Render `↵` visually for `\n` in the single-line preview strip and streaming text while committing real `\n` on `onTextInput`.
+      - Add a Voice Actions summary + `"Customize"` launcher in `VoiceInputScreen.kt` opening `VoiceActionsCustomizerDialog` (drag-to-reorder slots, search, 5-slot toggle cap, CRUD add/edit/delete, Reset to Defaults).
+    - **Component 5: Verification & Tests (`VoiceActionsTest.kt`)**:
+      - Verified `:app:assembleDebug`, `:app:assembleMinifiedDebug` (including R8 + `lintVitalMinifiedDebug`), `:app:compileDebugKotlin`, and unit/Robolectric tests (`VoiceActionsTest` 10/10 + `InputTest`, `SubtypeTest`, `VaultLockoutTest`, `BackupCryptoTest`).
 

@@ -5,10 +5,14 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.Typeface
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.text.TextUtils
 import android.util.AttributeSet
+import android.util.TypedValue
+import android.view.Gravity
 import android.view.WindowInsets
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
@@ -44,6 +48,7 @@ class VoiceInputView @JvmOverloads constructor(
     private lateinit var gainPill: TextView
     private lateinit var upgradeButton: TextView
     private lateinit var micButton: ImageView
+    private var voiceActionsRow: LinearLayout? = null
     private var bottomRowKeyboard: MainKeyboardView? = null
 
     private var previewStrip: LinearLayout? = null
@@ -202,6 +207,7 @@ class VoiceInputView @JvmOverloads constructor(
         gainPill = findViewById(R.id.voice_gain_pill)
         upgradeButton = findViewById(R.id.voice_upgrade_button)
         micButton = findViewById(R.id.voice_mic_button)
+        voiceActionsRow = findViewById(R.id.voice_actions_row)
         bottomRowKeyboard = findViewById(R.id.bottom_row_keyboard)
 
         setupListeners()
@@ -277,7 +283,8 @@ class VoiceInputView @JvmOverloads constructor(
         val colors = Settings.getValues().mColors
         colors.setBackground(this, ColorType.MAIN_BACKGROUND)
 
-        // Setup bottom row keyboard with theme keys
+        // Setup 5 customizable Voice Action symbol toggle slots and bottom row keyboard
+        setupVoiceActionsRow()
         setupBottomRowKeyboard(editorInfo, actionListener)
 
         // Setup voice preview strip
@@ -400,7 +407,66 @@ class VoiceInputView @JvmOverloads constructor(
     }
 
     private fun updatePreviewStripText(text: String) {
-        previewText?.text = text
+        previewText?.text = text.replace("\n", " ↵ ")
+    }
+
+    private fun setupVoiceActionsRow() {
+        val container = voiceActionsRow ?: return
+        container.removeAllViews()
+        val actions = VoiceActionCatalog.getSlottedActions(context.prefs())
+        if (actions.isEmpty()) {
+            container.visibility = GONE
+            return
+        }
+        container.visibility = VISIBLE
+        val density = context.resources.displayMetrics.density
+        val marginPx = (3 * density).toInt()
+
+        actions.forEachIndexed { index, action ->
+            var currentEnabled = action.isEnabled
+            val btn = TextView(context).apply {
+                text = action.symbol
+                gravity = Gravity.CENTER
+                maxLines = 1
+                ellipsize = TextUtils.TruncateAt.END
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+                setTypeface(null, Typeface.BOLD)
+                KeyboardTypeface.applyToTextView(this)
+                isClickable = true
+                isFocusable = true
+                tag = "voice_action_slot_$index"
+                if (keyBackgroundId != 0) {
+                    setBackgroundResource(keyBackgroundId)
+                }
+                layoutParams = LayoutParams(0, LayoutParams.MATCH_PARENT, 1f).apply {
+                    setMargins(marginPx, 0, marginPx, 0)
+                }
+            }
+            styleVoiceActionSlotButton(btn, action, currentEnabled)
+            btn.setOnClickListener {
+                currentEnabled = VoiceActionCatalog.toggleActionEnabled(context.prefs(), action.id)
+                styleVoiceActionSlotButton(btn, action, currentEnabled)
+                LogCatcher.i(TAG, "Voice action slot '${action.id}' toggled: enabled=$currentEnabled")
+            }
+            container.addView(btn)
+        }
+    }
+
+    private fun styleVoiceActionSlotButton(btn: TextView, action: VoiceActionItem, isEnabled: Boolean) {
+        val colors = Settings.getValues().mColors
+        if (isEnabled) {
+            colors.setBackground(btn, ColorType.ACTION_KEY_BACKGROUND)
+            btn.setTextColor(colors.get(ColorType.KEY_TEXT))
+            btn.alpha = 1.0f
+        } else {
+            colors.setBackground(btn, ColorType.FUNCTIONAL_KEY_BACKGROUND)
+            btn.setTextColor(colors.get(ColorType.KEY_TEXT))
+            btn.alpha = 0.50f
+        }
+        val stateLabel = context.getString(
+            if (isEnabled) R.string.voice_action_state_on else R.string.voice_action_state_off
+        )
+        btn.contentDescription = "${action.title}: $stateLabel"
     }
 
     private fun setupBottomRowKeyboard(editorInfo: EditorInfo?, listener: KeyboardActionListener) {
@@ -456,7 +522,7 @@ class VoiceInputView @JvmOverloads constructor(
 
     fun updateStreamingText(text: String) {
         if (!isVoiceActive || isVoicePaused) return
-        streamingText.text = text
+        streamingText.text = text.replace("\n", " ↵ ")
     }
 
     fun updateRms(rms: Float) {
@@ -493,8 +559,8 @@ class VoiceInputView @JvmOverloads constructor(
         val width = ResourceUtils.getKeyboardWidth(context, Settings.getValues()) + paddingLeft + paddingRight
         val density = res.displayMetrics.density
         val keyboardHeight = ResourceUtils.getKeyboardHeight(res, Settings.getValues())
-        // Compact modal height (~60% of keyboard height, clamped between 135dp and 155dp)
-        val compactTargetDp = (keyboardHeight / density * 0.60f).coerceIn(135f, 155f)
+        // Compact modal height (~60% of keyboard height + 40dp for the 5-button action bar, clamped 175dp..195dp)
+        val compactTargetDp = (keyboardHeight / density * 0.60f + 40f).coerceIn(175f, 195f)
         val modalHeight = (compactTargetDp * density).toInt()
         val totalHeight = modalHeight + paddingTop + paddingBottom
 

@@ -204,6 +204,7 @@ public final class Settings implements SharedPreferences.OnSharedPreferenceChang
     public static final String PREF_VOICE_USE_BEAM_SEARCH = "pref_voice_use_beam_search";
     public static final String PREF_VOICE_CONTINUOUS_STREAMING = "pref_voice_continuous_streaming";
     public static final String PREF_VOICE_VERBOSE_MODE = "pref_voice_verbose_mode";
+    public static final String PREF_VOICE_ACTIONS_CONFIG = "pref_voice_actions_config";
     public static final String PREF_LITE_MODE = "pref_lite_mode";
 
     // Emoji

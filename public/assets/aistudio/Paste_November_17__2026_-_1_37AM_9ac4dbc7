@@ -1,0 +1,407 @@
+=== VIANBOARD ALL SYSTEM LOGS (100) [Filter: All] ===
+--- ACTIVE SUBSYSTEMS ---
+[Input Service] LatinIME: Active
+[Diagnostic] LogCatcher: Active
+
+2026-11-17 01:26:57.649 [I] LatinIME: onFinishInput
+2026-11-17 01:26:58.315 [I] LatinIME: onFinishInput
+2026-11-17 01:27:06.249 [I] LatinIME: onFinishInput
+2026-11-17 01:27:08.885 [I] LatinIME: onFinishInput
+2026-11-17 01:27:14.373 [I] LatinIME: onFinishInput
+2026-11-17 01:27:15.828 [I] LatinIME: onFinishInput
+2026-11-17 01:27:17.136 [I] LatinIME: onFinishInput
+2026-11-17 01:27:18.431 [I] LatinIME: onFinishInput
+2026-11-17 01:27:19.185 [I] LatinIME: onFinishInput
+2026-11-17 01:27:19.858 [I] LatinIME: onFinishInput
+2026-11-17 01:27:28.489 [I] LatinIME: onFinishInput
+2026-11-17 01:27:31.856 [I] LatinIME: onFinishInput
+2026-11-17 01:27:47.243 [I] LatinIME: onFinishInput
+2026-11-17 01:27:49.640 [I] LatinIME: onFinishInput
+2026-11-17 01:29:42.188 [I] LatinIME: onFinishInput
+2026-11-17 01:29:43.064 [I] LatinIME: onFinishInput
+2026-11-17 01:29:43.710 [I] LatinIME: onFinishInput
+2026-11-17 01:29:48.543 [I] LatinIME: onFinishInput
+2026-11-17 01:29:55.393 [I] LatinIME: onFinishInput
+2026-11-17 01:29:58.476 [I] LatinIME: onFinishInput
+2026-11-17 01:30:02.731 [I] LatinIME: onFinishInput
+2026-11-17 01:30:06.135 [I] LatinIME: onFinishInput
+2026-11-17 01:30:08.257 [I] LatinIME: onFinishInput
+2026-11-17 01:33:43.301 [I] LatinIME: onFinishInput
+2026-11-17 01:33:44.566 [I] LatinIME: onFinishInput
+2026-11-17 01:33:51.892 [I] LatinIME: onFinishInput
+2026-11-17 01:33:58.975 [I] Settings: loadSettings
+2026-11-17 01:33:58.987 [I] LatinIME: Starting input. Cursor position = 920,920
+2026-11-17 01:33:59.044 [E] ProximityInfo: could not create proximity info
+java.lang.UnsatisfiedLinkError: No implementation found for long com.android.inputmethod.keyboard.ProximityInfo.setProximityInfoNative(int, int, int, int, int, int, int[], int, int[], int[], int[], int[], int[], float[], float[], float[]) (tried Java_com_android_inputmethod_keyboard_ProximityInfo_setProximityInfoNative and Java_com_android_inputmethod_keyboard_ProximityInfo_setProximityInfoNative__IIIIII_3II_3I_3I_3I_3I_3I_3F_3F_3F) - is the library loaded, e.g. System.loadLibrary?
+	at com.android.inputmethod.keyboard.ProximityInfo.setProximityInfoNative(Native Method)
+	at com.android.inputmethod.keyboard.ProximityInfo.createNativeProximityInfo(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:332)
+	at com.android.inputmethod.keyboard.ProximityInfo.<init>(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:304)
+	at helium314.keyboard.keyboard.Keyboard.<init>(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:98)
+	at helium314.keyboard.keyboard.KeyboardLayoutSet.getKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:1250)
+	at helium314.keyboard.keyboard.KeyboardLayoutSet.getKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:1347)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.setKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:327)
+	at helium314.keyboard.keyboard.internal.KeyboardState.loadLayout(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:47)
+	at helium314.keyboard.keyboard.internal.KeyboardState.onLoadKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:60)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.loadKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:95)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.reloadMainKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:109)
+	at helium314.keyboard.latin.LatinIME.onStartInputView(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:691)
+	at android.inputmethodservice.InputMethodService.startViews(InputMethodService.java:3230)
+	at android.inputmethodservice.InputMethodService.showWindow(InputMethodService.java:3129)
+	at android.inputmethodservice.InputMethodService$InputMethodImpl.showSoftInput(InputMethodService.java:1046)
+	at android.inputmethodservice.InputMethodService$InputMethodImpl.showSoftInputWithToken(InputMethodService.java:1006)
+	at android.inputmethodservice.IInputMethodWrapper.executeMessage(IInputMethodWrapper.java:232)
+	at com.android.internal.os.HandlerCaller$MyHandler.handleMessage(HandlerCaller.java:44)
+	at android.os.Handler.dispatchMessage(Handler.java:107)
+	at android.os.Looper.loopOnce(Looper.java:246)
+	at android.os.Looper.loop(Looper.java:334)
+	at android.app.ActivityThread.main(ActivityThread.java:8895)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:706)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:916)
+
+java.lang.UnsatisfiedLinkError: No implementation found for long com.android.inputmethod.keyboard.ProximityInfo.setProximityInfoNative(int, int, int, int, int, int, int[], int, int[], int[], int[], int[], int[], float[], float[], float[]) (tried Java_com_android_inputmethod_keyboard_ProximityInfo_setProximityInfoNative and Java_com_android_inputmethod_keyboard_ProximityInfo_setProximityInfoNative__IIIIII_3II_3I_3I_3I_3I_3I_3F_3F_3F) - is the library loaded, e.g. System.loadLibrary?
+	at com.android.inputmethod.keyboard.ProximityInfo.setProximityInfoNative(Native Method)
+	at com.android.inputmethod.keyboard.ProximityInfo.createNativeProximityInfo(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:332)
+	at com.android.inputmethod.keyboard.ProximityInfo.<init>(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:304)
+	at helium314.keyboard.keyboard.Keyboard.<init>(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:98)
+	at helium314.keyboard.keyboard.KeyboardLayoutSet.getKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:1250)
+	at helium314.keyboard.keyboard.KeyboardLayoutSet.getKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:1347)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.setKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:327)
+	at helium314.keyboard.keyboard.internal.KeyboardState.loadLayout(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:47)
+	at helium314.keyboard.keyboard.internal.KeyboardState.onLoadKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:60)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.loadKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:95)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.reloadMainKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:109)
+	at helium314.keyboard.latin.LatinIME.onStartInputView(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:691)
+	at android.inputmethodservice.InputMethodService.startViews(InputMethodService.java:3230)
+	at android.inputmethodservice.InputMethodService.showWindow(InputMethodService.java:3129)
+	at android.inputmethodservice.InputMethodService$InputMethodImpl.showSoftInput(InputMethodService.java:1046)
+	at android.inputmethodservice.InputMethodService$InputMethodImpl.showSoftInputWithToken(InputMethodService.java:1006)
+	at android.inputmethodservice.IInputMethodWrapper.executeMessage(IInputMethodWrapper.java:232)
+	at com.android.internal.os.HandlerCaller$MyHandler.handleMessage(HandlerCaller.java:44)
+	at android.os.Handler.dispatchMessage(Handler.java:107)
+	at android.os.Looper.loopOnce(Looper.java:246)
+	at android.os.Looper.loop(Looper.java:334)
+	at android.app.ActivityThread.main(ActivityThread.java:8895)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:706)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:916)
+2026-11-17 01:33:59.154 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:00.678 [I] LatinIME: Restarting input. Cursor position = 0,0
+2026-11-17 01:34:00.928 [E] ProximityInfo: could not create proximity info
+java.lang.UnsatisfiedLinkError: No implementation found for long com.android.inputmethod.keyboard.ProximityInfo.setProximityInfoNative(int, int, int, int, int, int, int[], int, int[], int[], int[], int[], int[], float[], float[], float[]) (tried Java_com_android_inputmethod_keyboard_ProximityInfo_setProximityInfoNative and Java_com_android_inputmethod_keyboard_ProximityInfo_setProximityInfoNative__IIIIII_3II_3I_3I_3I_3I_3I_3F_3F_3F) - is the library loaded, e.g. System.loadLibrary?
+	at com.android.inputmethod.keyboard.ProximityInfo.setProximityInfoNative(Native Method)
+	at com.android.inputmethod.keyboard.ProximityInfo.createNativeProximityInfo(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:332)
+	at com.android.inputmethod.keyboard.ProximityInfo.<init>(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:304)
+	at helium314.keyboard.keyboard.Keyboard.<init>(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:98)
+	at helium314.keyboard.keyboard.KeyboardLayoutSet.getKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:1250)
+	at helium314.keyboard.keyboard.KeyboardLayoutSet.getKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:1347)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.setKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:327)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.setAlphabetKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:5)
+	at helium314.keyboard.keyboard.internal.KeyboardState.setShifted(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:47)
+	at helium314.keyboard.keyboard.internal.KeyboardState.updateAlphabetShiftState(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:60)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.requestUpdatingShiftState(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:5)
+	at helium314.keyboard.latin.LatinIME.onStartInputView(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:733)
+	at android.inputmethodservice.InputMethodService.doStartInput(InputMethodService.java:3410)
+	at android.inputmethodservice.InputMethodService$InputMethodImpl.restartInput(InputMethodService.java:889)
+	at android.inputmethodservice.InputMethodService$InputMethodImpl.dispatchStartInput(InputMethodService.java:904)
+	at android.inputmethodservice.IInputMethodWrapper.executeMessage(IInputMethodWrapper.java:201)
+	at com.android.internal.os.HandlerCaller$MyHandler.handleMessage(HandlerCaller.java:44)
+	at android.os.Handler.dispatchMessage(Handler.java:107)
+	at android.os.Looper.loopOnce(Looper.java:246)
+	at android.os.Looper.loop(Looper.java:334)
+	at android.app.ActivityThread.main(ActivityThread.java:8895)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:706)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:916)
+
+java.lang.UnsatisfiedLinkError: No implementation found for long com.android.inputmethod.keyboard.ProximityInfo.setProximityInfoNative(int, int, int, int, int, int, int[], int, int[], int[], int[], int[], int[], float[], float[], float[]) (tried Java_com_android_inputmethod_keyboard_ProximityInfo_setProximityInfoNative and Java_com_android_inputmethod_keyboard_ProximityInfo_setProximityInfoNative__IIIIII_3II_3I_3I_3I_3I_3I_3F_3F_3F) - is the library loaded, e.g. System.loadLibrary?
+	at com.android.inputmethod.keyboard.ProximityInfo.setProximityInfoNative(Native Method)
+	at com.android.inputmethod.keyboard.ProximityInfo.createNativeProximityInfo(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:332)
+	at com.android.inputmethod.keyboard.ProximityInfo.<init>(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:304)
+	at helium314.keyboard.keyboard.Keyboard.<init>(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:98)
+	at helium314.keyboard.keyboard.KeyboardLayoutSet.getKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:1250)
+	at helium314.keyboard.keyboard.KeyboardLayoutSet.getKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:1347)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.setKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:327)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.setAlphabetKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:5)
+	at helium314.keyboard.keyboard.internal.KeyboardState.setShifted(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:47)
+	at helium314.keyboard.keyboard.internal.KeyboardState.updateAlphabetShiftState(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:60)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.requestUpdatingShiftState(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:5)
+	at helium314.keyboard.latin.LatinIME.onStartInputView(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:733)
+	at android.inputmethodservice.InputMethodService.doStartInput(InputMethodService.java:3410)
+	at android.inputmethodservice.InputMethodService$InputMethodImpl.restartInput(InputMethodService.java:889)
+	at android.inputmethodservice.InputMethodService$InputMethodImpl.dispatchStartInput(InputMethodService.java:904)
+	at android.inputmethodservice.IInputMethodWrapper.executeMessage(IInputMethodWrapper.java:201)
+	at com.android.internal.os.HandlerCaller$MyHandler.handleMessage(HandlerCaller.java:44)
+	at android.os.Handler.dispatchMessage(Handler.java:107)
+	at android.os.Looper.loopOnce(Looper.java:246)
+	at android.os.Looper.loop(Looper.java:334)
+	at android.app.ActivityThread.main(ActivityThread.java:8895)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:706)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:916)
+2026-11-17 01:34:02.110 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-17 01:34:02.403 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:02.576 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:02.790 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:03.040 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=0, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:03.742 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-17 01:34:03.973 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:04.189 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:04.424 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=0, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:04.642 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-17 01:34:04.924 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=0, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:05.190 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-17 01:34:05.439 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:05.690 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:05.942 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=0, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:06.159 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-17 01:34:06.422 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:06.692 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:07.908 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=0, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:09.398 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:11.738 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:15.325 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:16.275 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:18.510 [I] LatinIME: hideWindow
+2026-11-17 01:34:18.511 [I] LatinIME: onFinishInputView
+2026-11-17 01:34:18.512 [I] LatinIME: onWindowHidden
+2026-11-17 01:34:18.522 [I] LatinIME: onFinishInput
+2026-11-17 01:34:18.568 [I] Settings: loadSettings
+2026-11-17 01:34:18.572 [I] LatinIME: Starting input. Cursor position = 9,9
+2026-11-17 01:34:18.651 [W] RichInputConnection: Laggy editor connection: fell back to cursor position 4
+2026-11-17 01:34:18.662 [W] RichInputConnection: Laggy editor connection: fell back to cursor position 9
+2026-11-17 01:34:18.662 [W] RichInputConnection: Unable to connect to the editor. Setting caps mode without knowing text.
+2026-11-17 01:34:18.688 [E] ProximityInfo: could not create proximity info
+java.lang.UnsatisfiedLinkError: No implementation found for long com.android.inputmethod.keyboard.ProximityInfo.setProximityInfoNative(int, int, int, int, int, int, int[], int, int[], int[], int[], int[], int[], float[], float[], float[]) (tried Java_com_android_inputmethod_keyboard_ProximityInfo_setProximityInfoNative and Java_com_android_inputmethod_keyboard_ProximityInfo_setProximityInfoNative__IIIIII_3II_3I_3I_3I_3I_3I_3F_3F_3F) - is the library loaded, e.g. System.loadLibrary?
+	at com.android.inputmethod.keyboard.ProximityInfo.setProximityInfoNative(Native Method)
+	at com.android.inputmethod.keyboard.ProximityInfo.createNativeProximityInfo(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:332)
+	at com.android.inputmethod.keyboard.ProximityInfo.<init>(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:304)
+	at helium314.keyboard.keyboard.Keyboard.<init>(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:98)
+	at helium314.keyboard.keyboard.KeyboardLayoutSet.getKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:1250)
+	at helium314.keyboard.keyboard.KeyboardLayoutSet.getKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:1347)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.setKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:327)
+	at helium314.keyboard.keyboard.internal.KeyboardState.loadLayout(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:47)
+	at helium314.keyboard.keyboard.internal.KeyboardState.onLoadKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:60)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.loadKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:95)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.reloadMainKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:109)
+	at helium314.keyboard.latin.LatinIME.onStartInputView(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:691)
+	at android.inputmethodservice.InputMethodService.startViews(InputMethodService.java:3230)
+	at android.inputmethodservice.InputMethodService.showWindow(InputMethodService.java:3129)
+	at android.inputmethodservice.InputMethodService$InputMethodImpl.showSoftInput(InputMethodService.java:1046)
+	at android.inputmethodservice.InputMethodService$InputMethodImpl.showSoftInputWithToken(InputMethodService.java:1006)
+	at android.inputmethodservice.IInputMethodWrapper.executeMessage(IInputMethodWrapper.java:232)
+	at com.android.internal.os.HandlerCaller$MyHandler.handleMessage(HandlerCaller.java:44)
+	at android.os.Handler.dispatchMessage(Handler.java:107)
+	at android.os.Looper.loopOnce(Looper.java:246)
+	at android.os.Looper.loop(Looper.java:334)
+	at android.app.ActivityThread.main(ActivityThread.java:8895)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:706)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:916)
+
+java.lang.UnsatisfiedLinkError: No implementation found for long com.android.inputmethod.keyboard.ProximityInfo.setProximityInfoNative(int, int, int, int, int, int, int[], int, int[], int[], int[], int[], int[], float[], float[], float[]) (tried Java_com_android_inputmethod_keyboard_ProximityInfo_setProximityInfoNative and Java_com_android_inputmethod_keyboard_ProximityInfo_setProximityInfoNative__IIIIII_3II_3I_3I_3I_3I_3I_3F_3F_3F) - is the library loaded, e.g. System.loadLibrary?
+	at com.android.inputmethod.keyboard.ProximityInfo.setProximityInfoNative(Native Method)
+	at com.android.inputmethod.keyboard.ProximityInfo.createNativeProximityInfo(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:332)
+	at com.android.inputmethod.keyboard.ProximityInfo.<init>(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:304)
+	at helium314.keyboard.keyboard.Keyboard.<init>(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:98)
+	at helium314.keyboard.keyboard.KeyboardLayoutSet.getKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:1250)
+	at helium314.keyboard.keyboard.KeyboardLayoutSet.getKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:1347)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.setKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:327)
+	at helium314.keyboard.keyboard.internal.KeyboardState.loadLayout(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:47)
+	at helium314.keyboard.keyboard.internal.KeyboardState.onLoadKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:60)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.loadKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:95)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.reloadMainKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:109)
+	at helium314.keyboard.latin.LatinIME.onStartInputView(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:691)
+	at android.inputmethodservice.InputMethodService.startViews(InputMethodService.java:3230)
+	at android.inputmethodservice.InputMethodService.showWindow(InputMethodService.java:3129)
+	at android.inputmethodservice.InputMethodService$InputMethodImpl.showSoftInput(InputMethodService.java:1046)
+	at android.inputmethodservice.InputMethodService$InputMethodImpl.showSoftInputWithToken(InputMethodService.java:1006)
+	at android.inputmethodservice.IInputMethodWrapper.executeMessage(IInputMethodWrapper.java:232)
+	at com.android.internal.os.HandlerCaller$MyHandler.handleMessage(HandlerCaller.java:44)
+	at android.os.Handler.dispatchMessage(Handler.java:107)
+	at android.os.Looper.loopOnce(Looper.java:246)
+	at android.os.Looper.loop(Looper.java:334)
+	at android.app.ActivityThread.main(ActivityThread.java:8895)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:706)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:916)
+2026-11-17 01:34:18.728 [I] LatinIME: Restarting input. Cursor position = 0,0
+2026-11-17 01:34:18.770 [I] LatinIME: hideWindow
+2026-11-17 01:34:18.771 [I] LatinIME: onFinishInputView
+2026-11-17 01:34:18.772 [I] LatinIME: onWindowHidden
+2026-11-17 01:34:19.019 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=0, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:20.298 [I] Settings: loadSettings
+2026-11-17 01:34:20.301 [I] LatinIME: Starting input. Cursor position = 0,0
+2026-11-17 01:34:21.296 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-17 01:34:21.678 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:22.078 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:22.360 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:23.280 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-17 01:34:23.460 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=0, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:24.485 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-17 01:34:24.762 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:25.044 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:25.279 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:26.562 [I] LatinIME: Restarting input. Cursor position = 0,0
+2026-11-17 01:34:26.715 [I] LatinIME: hideWindow
+2026-11-17 01:34:26.717 [I] LatinIME: onFinishInputView
+2026-11-17 01:34:26.718 [I] LatinIME: onWindowHidden
+2026-11-17 01:34:26.718 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:27.414 [I] LatinIME: onFinishInput
+2026-11-17 01:34:29.137 [I] LatinIME: onFinishInput
+2026-11-17 01:34:29.150 [I] Settings: loadSettings
+2026-11-17 01:34:29.153 [I] LatinIME: Starting input. Cursor position = 0,0
+2026-11-17 01:34:29.191 [E] ProximityInfo: could not create proximity info
+java.lang.UnsatisfiedLinkError: No implementation found for long com.android.inputmethod.keyboard.ProximityInfo.setProximityInfoNative(int, int, int, int, int, int, int[], int, int[], int[], int[], int[], int[], float[], float[], float[]) (tried Java_com_android_inputmethod_keyboard_ProximityInfo_setProximityInfoNative and Java_com_android_inputmethod_keyboard_ProximityInfo_setProximityInfoNative__IIIIII_3II_3I_3I_3I_3I_3I_3F_3F_3F) - is the library loaded, e.g. System.loadLibrary?
+	at com.android.inputmethod.keyboard.ProximityInfo.setProximityInfoNative(Native Method)
+	at com.android.inputmethod.keyboard.ProximityInfo.createNativeProximityInfo(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:332)
+	at com.android.inputmethod.keyboard.ProximityInfo.<init>(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:304)
+	at helium314.keyboard.keyboard.Keyboard.<init>(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:98)
+	at helium314.keyboard.keyboard.KeyboardLayoutSet.getKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:1250)
+	at helium314.keyboard.keyboard.KeyboardLayoutSet.getKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:1347)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.setKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:327)
+	at helium314.keyboard.keyboard.internal.KeyboardState.loadLayout(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:47)
+	at helium314.keyboard.keyboard.internal.KeyboardState.onLoadKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:60)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.loadKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:95)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.reloadMainKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:109)
+	at helium314.keyboard.latin.LatinIME.onStartInputView(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:691)
+	at android.inputmethodservice.InputMethodService.startViews(InputMethodService.java:3230)
+	at android.inputmethodservice.InputMethodService.showWindow(InputMethodService.java:3129)
+	at android.inputmethodservice.InputMethodService$InputMethodImpl.showSoftInput(InputMethodService.java:1046)
+	at android.inputmethodservice.InputMethodService$InputMethodImpl.showSoftInputWithToken(InputMethodService.java:1006)
+	at android.inputmethodservice.IInputMethodWrapper.executeMessage(IInputMethodWrapper.java:232)
+	at com.android.internal.os.HandlerCaller$MyHandler.handleMessage(HandlerCaller.java:44)
+	at android.os.Handler.dispatchMessage(Handler.java:107)
+	at android.os.Looper.loopOnce(Looper.java:246)
+	at android.os.Looper.loop(Looper.java:334)
+	at android.app.ActivityThread.main(ActivityThread.java:8895)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:706)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:916)
+
+java.lang.UnsatisfiedLinkError: No implementation found for long com.android.inputmethod.keyboard.ProximityInfo.setProximityInfoNative(int, int, int, int, int, int, int[], int, int[], int[], int[], int[], int[], float[], float[], float[]) (tried Java_com_android_inputmethod_keyboard_ProximityInfo_setProximityInfoNative and Java_com_android_inputmethod_keyboard_ProximityInfo_setProximityInfoNative__IIIIII_3II_3I_3I_3I_3I_3I_3F_3F_3F) - is the library loaded, e.g. System.loadLibrary?
+	at com.android.inputmethod.keyboard.ProximityInfo.setProximityInfoNative(Native Method)
+	at com.android.inputmethod.keyboard.ProximityInfo.createNativeProximityInfo(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:332)
+	at com.android.inputmethod.keyboard.ProximityInfo.<init>(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:304)
+	at helium314.keyboard.keyboard.Keyboard.<init>(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:98)
+	at helium314.keyboard.keyboard.KeyboardLayoutSet.getKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:1250)
+	at helium314.keyboard.keyboard.KeyboardLayoutSet.getKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:1347)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.setKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:327)
+	at helium314.keyboard.keyboard.internal.KeyboardState.loadLayout(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:47)
+	at helium314.keyboard.keyboard.internal.KeyboardState.onLoadKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:60)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.loadKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:95)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.reloadMainKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:109)
+	at helium314.keyboard.latin.LatinIME.onStartInputView(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:691)
+	at android.inputmethodservice.InputMethodService.startViews(InputMethodService.java:3230)
+	at android.inputmethodservice.InputMethodService.showWindow(InputMethodService.java:3129)
+	at android.inputmethodservice.InputMethodService$InputMethodImpl.showSoftInput(InputMethodService.java:1046)
+	at android.inputmethodservice.InputMethodService$InputMethodImpl.showSoftInputWithToken(InputMethodService.java:1006)
+	at android.inputmethodservice.IInputMethodWrapper.executeMessage(IInputMethodWrapper.java:232)
+	at com.android.internal.os.HandlerCaller$MyHandler.handleMessage(HandlerCaller.java:44)
+	at android.os.Handler.dispatchMessage(Handler.java:107)
+	at android.os.Looper.loopOnce(Looper.java:246)
+	at android.os.Looper.loop(Looper.java:334)
+	at android.app.ActivityThread.main(ActivityThread.java:8895)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:706)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:916)
+2026-11-17 01:34:29.221 [E] ProximityInfo: could not create proximity info
+java.lang.UnsatisfiedLinkError: No implementation found for long com.android.inputmethod.keyboard.ProximityInfo.setProximityInfoNative(int, int, int, int, int, int, int[], int, int[], int[], int[], int[], int[], float[], float[], float[]) (tried Java_com_android_inputmethod_keyboard_ProximityInfo_setProximityInfoNative and Java_com_android_inputmethod_keyboard_ProximityInfo_setProximityInfoNative__IIIIII_3II_3I_3I_3I_3I_3I_3F_3F_3F) - is the library loaded, e.g. System.loadLibrary?
+	at com.android.inputmethod.keyboard.ProximityInfo.setProximityInfoNative(Native Method)
+	at com.android.inputmethod.keyboard.ProximityInfo.createNativeProximityInfo(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:332)
+	at com.android.inputmethod.keyboard.ProximityInfo.<init>(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:304)
+	at helium314.keyboard.keyboard.Keyboard.<init>(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:98)
+	at helium314.keyboard.keyboard.KeyboardLayoutSet.getKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:1250)
+	at helium314.keyboard.keyboard.KeyboardLayoutSet.getKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:1347)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.setKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:327)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.setAlphabetKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:5)
+	at helium314.keyboard.keyboard.internal.KeyboardState.setShifted(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:47)
+	at helium314.keyboard.keyboard.internal.KeyboardState.updateAlphabetShiftState(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:60)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.requestUpdatingShiftState(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:5)
+	at helium314.keyboard.keyboard.internal.KeyboardState.onLoadKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:63)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.loadKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:95)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.reloadMainKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:109)
+	at helium314.keyboard.latin.LatinIME.onStartInputView(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:691)
+	at android.inputmethodservice.InputMethodService.startViews(InputMethodService.java:3230)
+	at android.inputmethodservice.InputMethodService.showWindow(InputMethodService.java:3129)
+	at android.inputmethodservice.InputMethodService$InputMethodImpl.showSoftInput(InputMethodService.java:1046)
+	at android.inputmethodservice.InputMethodService$InputMethodImpl.showSoftInputWithToken(InputMethodService.java:1006)
+	at android.inputmethodservice.IInputMethodWrapper.executeMessage(IInputMethodWrapper.java:232)
+	at com.android.internal.os.HandlerCaller$MyHandler.handleMessage(HandlerCaller.java:44)
+	at android.os.Handler.dispatchMessage(Handler.java:107)
+	at android.os.Looper.loopOnce(Looper.java:246)
+	at android.os.Looper.loop(Looper.java:334)
+	at android.app.ActivityThread.main(ActivityThread.java:8895)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:706)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:916)
+
+java.lang.UnsatisfiedLinkError: No implementation found for long com.android.inputmethod.keyboard.ProximityInfo.setProximityInfoNative(int, int, int, int, int, int, int[], int, int[], int[], int[], int[], int[], float[], float[], float[]) (tried Java_com_android_inputmethod_keyboard_ProximityInfo_setProximityInfoNative and Java_com_android_inputmethod_keyboard_ProximityInfo_setProximityInfoNative__IIIIII_3II_3I_3I_3I_3I_3I_3F_3F_3F) - is the library loaded, e.g. System.loadLibrary?
+	at com.android.inputmethod.keyboard.ProximityInfo.setProximityInfoNative(Native Method)
+	at com.android.inputmethod.keyboard.ProximityInfo.createNativeProximityInfo(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:332)
+	at com.android.inputmethod.keyboard.ProximityInfo.<init>(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:304)
+	at helium314.keyboard.keyboard.Keyboard.<init>(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:98)
+	at helium314.keyboard.keyboard.KeyboardLayoutSet.getKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:1250)
+	at helium314.keyboard.keyboard.KeyboardLayoutSet.getKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:1347)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.setKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:327)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.setAlphabetKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:5)
+	at helium314.keyboard.keyboard.internal.KeyboardState.setShifted(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:47)
+	at helium314.keyboard.keyboard.internal.KeyboardState.updateAlphabetShiftState(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:60)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.requestUpdatingShiftState(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:5)
+	at helium314.keyboard.keyboard.internal.KeyboardState.onLoadKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:63)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.loadKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:95)
+	at helium314.keyboard.keyboard.KeyboardSwitcher.reloadMainKeyboard(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:109)
+	at helium314.keyboard.latin.LatinIME.onStartInputView(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:691)
+	at android.inputmethodservice.InputMethodService.startViews(InputMethodService.java:3230)
+	at android.inputmethodservice.InputMethodService.showWindow(InputMethodService.java:3129)
+	at android.inputmethodservice.InputMethodService$InputMethodImpl.showSoftInput(InputMethodService.java:1046)
+	at android.inputmethodservice.InputMethodService$InputMethodImpl.showSoftInputWithToken(InputMethodService.java:1006)
+	at android.inputmethodservice.IInputMethodWrapper.executeMessage(IInputMethodWrapper.java:232)
+	at com.android.internal.os.HandlerCaller$MyHandler.handleMessage(HandlerCaller.java:44)
+	at android.os.Handler.dispatchMessage(Handler.java:107)
+	at android.os.Looper.loopOnce(Looper.java:246)
+	at android.os.Looper.loop(Looper.java:334)
+	at android.app.ActivityThread.main(ActivityThread.java:8895)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:706)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:916)
+2026-11-17 01:34:30.099 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-17 01:34:30.395 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:30.696 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:30.943 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:31.848 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=1, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:31.959 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=0, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-17 01:34:33.173 [E] ProximityInfo: could not create proximity info
+java.lang.UnsatisfiedLinkError: No implementation found for long com.android.inputmethod.keyboard.ProximityInfo.setProximityInfoNative(int, int, int, int, int, int, int[], int, int[], int[], int[], int[], int[], float[], float[], float[]) (tried Java_com_android_inputmethod_keyboard_ProximityInfo_setProximityInfoNative and Java_com_android_inputmethod_keyboard_ProximityInfo_setProximityInfoNative__IIIIII_3II_3I_3I_3I_3I_3I_3F_3F_3F) - is the library loaded, e.g. System.loadLibrary?
+	at com.android.inputmethod.keyboard.ProximityInfo.setProximityInfoNative(Native Method)
+	at com.android.inputmethod.keyboard.ProximityInfo.createNativeProximityInfo(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:332)
+	at com.android.inputmethod.keyboard.ProximityInfo.<init>(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:304)
+	at helium314.keyboard.keyboard.Keyboard.<init>(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:98)
+	at helium314.keyboard.keyboard.PopupKeysKeyboard.<init>(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:1)
+	at helium314.keyboard.keyboard.PopupKeysKeyboard$Builder.build(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:183)
+	at helium314.keyboard.keyboard.PointerTracker.onLongPressed(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:269)
+	at helium314.keyboard.keyboard.internal.TimerHandler.handleMessage(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:127)
+	at android.os.Handler.dispatchMessage(Handler.java:107)
+	at android.os.Looper.loopOnce(Looper.java:246)
+	at android.os.Looper.loop(Looper.java:334)
+	at android.app.ActivityThread.main(ActivityThread.java:8895)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:706)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:916)
+
+java.lang.UnsatisfiedLinkError: No implementation found for long com.android.inputmethod.keyboard.ProximityInfo.setProximityInfoNative(int, int, int, int, int, int, int[], int, int[], int[], int[], int[], int[], float[], float[], float[]) (tried Java_com_android_inputmethod_keyboard_ProximityInfo_setProximityInfoNative and Java_com_android_inputmethod_keyboard_ProximityInfo_setProximityInfoNative__IIIIII_3II_3I_3I_3I_3I_3I_3F_3F_3F) - is the library loaded, e.g. System.loadLibrary?
+	at com.android.inputmethod.keyboard.ProximityInfo.setProximityInfoNative(Native Method)
+	at com.android.inputmethod.keyboard.ProximityInfo.createNativeProximityInfo(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:332)
+	at com.android.inputmethod.keyboard.ProximityInfo.<init>(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:304)
+	at helium314.keyboard.keyboard.Keyboard.<init>(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:98)
+	at helium314.keyboard.keyboard.PopupKeysKeyboard.<init>(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:1)
+	at helium314.keyboard.keyboard.PopupKeysKeyboard$Builder.build(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:183)
+	at helium314.keyboard.keyboard.PointerTracker.onLongPressed(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:269)
+	at helium314.keyboard.keyboard.internal.TimerHandler.handleMessage(r8-map-id-df3400851c20b229e53c5be12cc608f60f3822d0d2765e62d8551961f68893a9:127)
+	at android.os.Handler.dispatchMessage(Handler.java:107)
+	at android.os.Looper.loopOnce(Looper.java:246)
+	at android.os.Looper.loop(Looper.java:334)
+	at android.app.ActivityThread.main(ActivityThread.java:8895)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:706)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:916)

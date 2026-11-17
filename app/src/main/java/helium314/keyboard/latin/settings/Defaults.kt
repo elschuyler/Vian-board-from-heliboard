@@ -195,4 +195,5 @@ object Defaults {
     const val PREF_VOICE_USE_BEAM_SEARCH = true
     const val PREF_VOICE_CONTINUOUS_STREAMING = true
     const val PREF_VOICE_VERBOSE_MODE = false
+    const val PREF_VOICE_ACTIONS_CONFIG = ""
 }

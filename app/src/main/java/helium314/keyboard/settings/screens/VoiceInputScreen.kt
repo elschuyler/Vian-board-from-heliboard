@@ -52,6 +52,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -64,10 +65,13 @@ import helium314.keyboard.latin.settings.Defaults
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.LogCatcher
 import helium314.keyboard.latin.utils.prefs
+import helium314.keyboard.latin.voice.VoiceActionCatalog
+import helium314.keyboard.latin.voice.VoiceActionItem
 import helium314.keyboard.latin.voice.VoiceModelInfo
 import helium314.keyboard.latin.voice.VoiceModelManager
 import helium314.keyboard.settings.SearchSettingsScreen
 import helium314.keyboard.latin.utils.NextScreenIcon
+import helium314.keyboard.settings.dialogs.VoiceActionsCustomizerDialog
 import helium314.keyboard.settings.preferences.Preference
 import helium314.keyboard.settings.preferences.PreferenceCategory
 import helium314.keyboard.settings.preferences.SwitchPreference
@@ -95,10 +99,14 @@ fun VoiceInputScreen(
     var showAddDialog by remember { mutableStateOf(false) }
     var entryToDelete by remember { mutableStateOf<VoiceReplacementEntry?>(null) }
 
+    var slottedActions by remember { mutableStateOf(VoiceActionCatalog.getSlottedActions(context.prefs())) }
+    var showVoiceActionsDialog by remember { mutableStateOf(false) }
+
     fun refreshState() {
         modelInfo = VoiceModelManager.getModelInfo(context)
         replacementsList.clear()
         replacementsList.addAll(voiceDao.getAll())
+        slottedActions = VoiceActionCatalog.getSlottedActions(context.prefs())
     }
 
     LaunchedEffect(Unit) {
@@ -250,6 +258,20 @@ fun VoiceInputScreen(
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                 Spacer(modifier = Modifier.height(16.dp))
 
+                // Voice Actions (5 Customizable Modal Symbol Slots + CRUD)
+                VoiceActionsSection(
+                    slottedActions = slottedActions,
+                    onToggleAction = { action ->
+                        VoiceActionCatalog.toggleActionEnabled(context.prefs(), action.id)
+                        refreshState()
+                    },
+                    onCustomizeClick = { showVoiceActionsDialog = true }
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+
                 // Word Improvement Section
                 WordImprovementSection(
                     replacements = replacementsList,
@@ -331,6 +353,93 @@ fun VoiceInputScreen(
                 }
             }
         )
+    }
+
+    if (showVoiceActionsDialog) {
+        VoiceActionsCustomizerDialog(
+            onDismissRequest = {
+                showVoiceActionsDialog = false
+                refreshState()
+            }
+        )
+    }
+}
+
+@Composable
+private fun VoiceActionsSection(
+    slottedActions: List<VoiceActionItem>,
+    onToggleAction: (VoiceActionItem) -> Unit,
+    onCustomizeClick: () -> Unit
+) {
+    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.voice_actions_section_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = stringResource(R.string.voice_actions_section_summary),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            OutlinedButton(
+                onClick = onCustomizeClick,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.testTag("voice_actions_customize_button")
+            ) {
+                Text(stringResource(R.string.voice_actions_customize_button))
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            slottedActions.forEach { action ->
+                Card(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .clickable { onToggleAction(action) }
+                        .testTag("voice_actions_preview_slot_${action.id}"),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (action.isEnabled)
+                            MaterialTheme.colorScheme.primaryContainer
+                        else
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                    ),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = action.symbol,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (action.isEnabled)
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
