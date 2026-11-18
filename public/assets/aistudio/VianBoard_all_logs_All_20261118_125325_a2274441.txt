@@ -1,0 +1,111 @@
+=== LOG KEEPER AUDIT EXPORT ===
+Export Timestamp: 2026-11-18 12:53:25
+Active Tab: All Logs
+Time Filter: All
+Privacy Filter: NO content, NO credentials, NO PII
+
+--- ACTIVE SUBSYSTEMS (2) ---
+- [Input Service] LatinIME: Active (lastSeen=222872511)
+- [Diagnostic] LogCatcher: Active (lastSeen=222872478)
+
+--- LOG ENTRIES (100) ---
+2026-11-18 12:52:00.117 [I] VoiceInputView: Voice input modal presented (hasModel=true, gain=1x)
+2026-11-18 12:52:00.117 [I] VoiceInputConnection: Binding to VoiceInputService with initial gain: 1x
+2026-11-18 12:52:00.134 [I] VoiceInputService: VoiceInputService created in Main IME Process (PID: 17654)
+2026-11-18 12:52:00.135 [I] VoiceInputService: Client bound to VoiceInputService
+2026-11-18 12:52:00.150 [I] VoiceInputConnection: Connected to VoiceInputService
+2026-11-18 12:52:00.179 [I] AudioRecordPipeline: AudioRecord successfully initialized with source: 1
+2026-11-18 12:52:00.194 [I] AudioRecordPipeline: AudioRecordPipeline started successfully at 16kHz mono (buffer: 5120 bytes, gain: 1x)
+2026-11-18 12:52:00.672 [I] AudioRecordPipeline: VAD speech state transition: isSpeaking=true
+2026-11-18 12:52:00.874 [I] WhisperEngine: Initializing Whisper context from file (size: 43550795 bytes)
+2026-11-18 12:52:01.031 [I] WhisperEngine: Whisper context initialized successfully in 157ms (ptr=-5476376615378882240)
+2026-11-18 12:52:01.031 [I] WhisperEngine: Starting inference: 8192 samples (~0.51s, 2 threads, mode=Greedy, prompt=false)
+2026-11-18 12:52:01.044 [I] WhisperEngine: Inference completed in 13ms (RTF: 0.03x realtime)
+2026-11-18 12:52:01.714 [I] WhisperEngine: Starting inference: 21504 samples (~1.34s, 2 threads, mode=Greedy, prompt=false)
+2026-11-18 12:52:02.469 [I] WhisperEngine: Inference completed in 755ms (RTF: 0.56x realtime)
+2026-11-18 12:52:02.553 [I] WhisperEngine: Starting inference: 34816 samples (~2.18s, 2 threads, mode=Greedy, prompt=false)
+2026-11-18 12:52:03.637 [I] WhisperEngine: Inference completed in 1084ms (RTF: 0.50x realtime)
+2026-11-18 12:52:03.715 [I] WhisperEngine: Starting inference: 53248 samples (~3.33s, 2 threads, mode=Greedy, prompt=false)
+2026-11-18 12:52:05.228 [I] WhisperEngine: Inference completed in 1512ms (RTF: 0.45x realtime)
+2026-11-18 12:52:05.312 [I] WhisperEngine: Starting inference: 78848 samples (~4.93s, 2 threads, mode=Greedy, prompt=false)
+2026-11-18 12:52:06.751 [I] AudioRecordPipeline: VAD speech state transition: isSpeaking=false
+2026-11-18 12:52:06.751 [I] VoiceInputService: Speech pause detected by VAD, triggering final chunk inference
+2026-11-18 12:52:07.709 [I] AudioRecordPipeline: VAD speech state transition: isSpeaking=true
+2026-11-18 12:52:15.168 [I] Settings: loadSettings
+2026-11-18 12:52:15.174 [I] VoiceInputView: Voice action slot 'BUILTIN_NUMBERS' toggled: enabled=true
+2026-11-18 12:52:20.926 [I] WhisperEngine: Inference completed in 15613ms (RTF: 3.17x realtime)
+2026-11-18 12:52:20.943 [I] WhisperEngine: Starting inference: 101376 samples (~6.34s, 4 threads, mode=BeamSearch(5), prompt=false)
+2026-11-18 12:52:23.578 [I] WhisperEngine: Inference completed in 2635ms (RTF: 0.42x realtime)
+2026-11-18 12:52:23.596 [I] VoiceInputService: Transcription finalized: 100 chars (sanitized)
+2026-11-18 12:52:23.624 [I] Settings: loadSettings
+2026-11-18 12:52:23.628 [I] VoiceInputView: Microphone sensitivity cycled to 2x
+2026-11-18 12:52:23.642 [I] AudioRecordPipeline: Digital microphone sensitivity gain updated to 2x
+2026-11-18 12:52:23.678 [I] WhisperEngine: Starting inference: 271360 samples (~16.96s, 2 threads, mode=Greedy, prompt=false)
+2026-11-18 12:52:24.135 [I] Settings: loadSettings
+2026-11-18 12:52:24.140 [I] VoiceInputView: Microphone sensitivity cycled to 4x
+2026-11-18 12:52:24.144 [I] AudioRecordPipeline: Digital microphone sensitivity gain updated to 4x
+2026-11-18 12:52:24.611 [I] VoiceInputView: Auto-committing voice transcription: length=100
+2026-11-18 12:52:24.752 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=18, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-18 12:52:28.689 [I] VoiceInputView: Voice input paused
+2026-11-18 12:52:28.699 [I] VoiceInputView: Voice input modal dismissed
+2026-11-18 12:52:28.722 [I] VoiceInputService: Speech pause detected by VAD, triggering final chunk inference
+2026-11-18 12:52:28.768 [I] VoiceInputService: Client unbound from VoiceInputService - Immediate Zero-RAM eviction
+2026-11-18 12:52:28.768 [I] VoiceInputService: VoiceInputService onDestroy
+2026-11-18 12:52:29.490 [I] WhisperEngine: Inference completed in 5812ms (RTF: 0.34x realtime)
+2026-11-18 12:52:29.509 [I] WhisperEngine: Starting inference: 352256 samples (~22.02s, 4 threads, mode=BeamSearch(5), prompt=false)
+2026-11-18 12:52:32.512 [I] LatinIME: hideWindow
+2026-11-18 12:52:32.514 [I] LatinIME: onFinishInputView
+2026-11-18 12:52:32.514 [I] LatinIME: onWindowHidden
+2026-11-18 12:52:32.516 [I] LatinIME: onFinishInput
+2026-11-18 12:52:35.074 [I] WhisperEngine: Inference completed in 5565ms (RTF: 0.25x realtime)
+2026-11-18 12:52:35.095 [I] VoiceInputService: Transcription finalized: 53 chars (sanitized)
+2026-11-18 12:52:35.095 [I] WhisperEngine: Releasing Whisper context (ptr=-5476376615378882240)
+2026-11-18 12:52:46.149 [I] LatinIME: onFinishInput
+2026-11-18 12:52:46.150 [I] Settings: loadSettings
+2026-11-18 12:52:46.154 [I] LatinIME: Starting input. Cursor position = 121,121
+2026-11-18 12:52:48.522 [I] LatinIME: Voice input triggered (showingVoiceInput=false)
+2026-11-18 12:52:48.549 [I] VoiceInputView: Voice input modal presented (hasModel=true, gain=4x)
+2026-11-18 12:52:48.549 [I] VoiceInputConnection: Binding to VoiceInputService with initial gain: 4x
+2026-11-18 12:52:48.564 [I] VoiceInputService: VoiceInputService created in Main IME Process (PID: 17654)
+2026-11-18 12:52:48.565 [I] VoiceInputService: Client bound to VoiceInputService
+2026-11-18 12:52:48.577 [I] VoiceInputConnection: Connected to VoiceInputService
+2026-11-18 12:52:48.593 [I] AudioRecordPipeline: Digital microphone sensitivity gain updated to 4x
+2026-11-18 12:52:48.621 [I] AudioRecordPipeline: AudioRecord successfully initialized with source: 1
+2026-11-18 12:52:48.633 [I] AudioRecordPipeline: AudioRecordPipeline started successfully at 16kHz mono (buffer: 5120 bytes, gain: 4x)
+2026-11-18 12:52:49.106 [I] AudioRecordPipeline: VAD speech state transition: isSpeaking=true
+2026-11-18 12:52:49.307 [I] WhisperEngine: Initializing Whisper context from file (size: 43550795 bytes)
+2026-11-18 12:52:49.472 [I] WhisperEngine: Whisper context initialized successfully in 165ms (ptr=-5476376615378882688)
+2026-11-18 12:52:49.472 [I] WhisperEngine: Starting inference: 8192 samples (~0.51s, 2 threads, mode=Greedy, prompt=false)
+2026-11-18 12:52:49.482 [I] WhisperEngine: Inference completed in 9ms (RTF: 0.02x realtime)
+2026-11-18 12:52:50.143 [I] WhisperEngine: Starting inference: 21504 samples (~1.34s, 2 threads, mode=Greedy, prompt=false)
+2026-11-18 12:52:50.722 [I] WhisperEngine: Inference completed in 578ms (RTF: 0.43x realtime)
+2026-11-18 12:52:50.985 [I] WhisperEngine: Starting inference: 34816 samples (~2.18s, 2 threads, mode=Greedy, prompt=false)
+2026-11-18 12:53:08.177 [I] Settings: loadSettings
+2026-11-18 12:53:08.183 [I] VoiceInputView: Voice action slot 'BUILTIN_NUMBERS' toggled: enabled=false
+2026-11-18 12:53:08.976 [I] VoiceInputView: Voice preview cleared by user
+2026-11-18 12:53:08.981 [I] VoiceInputView: Voice input modal dismissed
+2026-11-18 12:53:09.042 [I] VoiceInputService: Client unbound from VoiceInputService - Immediate Zero-RAM eviction
+2026-11-18 12:53:09.042 [I] VoiceInputService: VoiceInputService onDestroy
+2026-11-18 12:53:11.143 [I] LatinIME: Voice input triggered (showingVoiceInput=false)
+2026-11-18 12:53:11.164 [I] VoiceInputView: Voice input modal presented (hasModel=true, gain=4x)
+2026-11-18 12:53:11.164 [I] VoiceInputConnection: Binding to VoiceInputService with initial gain: 4x
+2026-11-18 12:53:11.183 [I] VoiceInputService: VoiceInputService created in Main IME Process (PID: 17654)
+2026-11-18 12:53:11.184 [I] VoiceInputService: Client bound to VoiceInputService
+2026-11-18 12:53:11.197 [I] VoiceInputConnection: Connected to VoiceInputService
+2026-11-18 12:53:11.213 [I] AudioRecordPipeline: Digital microphone sensitivity gain updated to 4x
+2026-11-18 12:53:11.234 [I] AudioRecordPipeline: AudioRecord successfully initialized with source: 1
+2026-11-18 12:53:11.245 [I] AudioRecordPipeline: AudioRecordPipeline started successfully at 16kHz mono (buffer: 5120 bytes, gain: 4x)
+2026-11-18 12:53:11.717 [I] AudioRecordPipeline: VAD speech state transition: isSpeaking=true
+2026-11-18 12:53:11.919 [I] WhisperEngine: Initializing Whisper context from file (size: 43550795 bytes)
+2026-11-18 12:53:12.088 [I] WhisperEngine: Whisper context initialized successfully in 169ms (ptr=-5476376613750822336)
+2026-11-18 12:53:12.088 [I] WhisperEngine: Starting inference: 8192 samples (~0.51s, 2 threads, mode=Greedy, prompt=false)
+2026-11-18 12:53:12.101 [I] WhisperEngine: Inference completed in 13ms (RTF: 0.03x realtime)
+2026-11-18 12:53:12.446 [I] VoiceInputView: Voice input modal dismissed
+2026-11-18 12:53:12.506 [I] WhisperEngine: Starting inference: 16640 samples (~1.04s, 4 threads, mode=BeamSearch(5), prompt=false)
+2026-11-18 12:53:12.506 [I] VoiceInputService: Client unbound from VoiceInputService - Immediate Zero-RAM eviction
+2026-11-18 12:53:12.507 [I] VoiceInputService: VoiceInputService onDestroy
+2026-11-18 12:53:13.231 [I] WhisperEngine: Inference completed in 22246ms (RTF: 10.22x realtime)
+2026-11-18 12:53:13.268 [I] WhisperEngine: Starting inference: 323200 samples (~20.20s, 4 threads, mode=BeamSearch(5), prompt=false)
+2026-11-18 12:53:13.309 [I] WhisperEngine: Inference completed in 803ms (RTF: 0.77x realtime)
+2026-11-18 12:53:13.340 [I] VoiceInputService: Transcription finalized: 28 chars (sanitized)
+2026-11-18 12:53:13.340 [I] WhisperEngine: Releasing Whisper context (ptr=-5476376613750822336)

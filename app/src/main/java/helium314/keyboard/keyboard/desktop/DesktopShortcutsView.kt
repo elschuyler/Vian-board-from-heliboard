@@ -4,16 +4,20 @@ package helium314.keyboard.keyboard.desktop
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Typeface
-import android.os.SystemClock
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.Gravity
+import android.view.HapticFeedbackConstants
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
-import android.view.ViewGroup
+import android.view.WindowInsets
+import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
-import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import helium314.keyboard.keyboard.KeyboardActionListener
@@ -31,6 +35,7 @@ import helium314.keyboard.latin.R
 import helium314.keyboard.latin.common.ColorType
 import helium314.keyboard.latin.common.Constants
 import helium314.keyboard.latin.settings.Settings
+import helium314.keyboard.latin.utils.InputTypeUtils
 import helium314.keyboard.latin.utils.LogCatcher
 import helium314.keyboard.latin.utils.ResourceUtils
 import helium314.keyboard.latin.utils.ToolbarKey
@@ -44,6 +49,11 @@ class DesktopShortcutsView @JvmOverloads constructor(
     defStyle: Int = R.attr.clipboardHistoryViewStyle
 ) : LinearLayout(context, attrs, defStyle), View.OnClickListener, View.OnLongClickListener {
 
+    companion object {
+        internal const val ARROW_REPEAT_INITIAL_DELAY_MS = 400L
+        internal const val ARROW_REPEAT_INTERVAL_MS = 50L
+    }
+
     private val clipboardLayoutParams = ClipboardLayoutParams(context)
     private val keyBackgroundId: Int
 
@@ -55,7 +65,14 @@ class DesktopShortcutsView @JvmOverloads constructor(
     private var mainKeyboardView: MainKeyboardView? = null
 
     private var keyboardActionListener: KeyboardActionListener? = null
-    private var inputConnection: InputConnection? = null
+    private var bottomRowActionListener: KeyboardActionListener? = null
+    private var inputConnectionProvider: (() -> InputConnection?)? = null
+    private var editorInfoProvider: (() -> EditorInfo?)? = null
+    private var flushComposingAction: (() -> Unit)? = null
+    private var fallbackEditorInfo: EditorInfo? = null
+
+    private val repeatHandler = Handler(Looper.getMainLooper())
+    private var activeRepeatRunnable: Runnable? = null
 
     private val toolbarKeys = listOf(
         ToolbarKey.UNDO,
@@ -69,19 +86,67 @@ class DesktopShortcutsView @JvmOverloads constructor(
     ).map { createToolbarKey(context, it) }
     private var isToolbarInitialized = false
 
+    private var navBarBottomInset: Int = 0
+    private val basePaddingBottom: Int
+
     init {
         orientation = VERTICAL
         val keyboardViewAttr = context.obtainStyledAttributes(attrs, R.styleable.KeyboardView, defStyle, R.style.KeyboardView)
         keyBackgroundId = keyboardViewAttr.getResourceId(R.styleable.KeyboardView_keyBackground, 0)
         keyboardViewAttr.recycle()
-        fitsSystemWindows = false
-        setPadding(0, 0, 0, 0)
+        fitsSystemWindows = true
+        basePaddingBottom = paddingBottom
+        updateNavBarInset()
+    }
+
+    private fun updateNavBarInset() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val wm = context.getSystemService(WindowManager::class.java)
+            val windowInsets = wm?.currentWindowMetrics?.windowInsets
+            if (windowInsets != null) {
+                val insets = windowInsets.getInsetsIgnoringVisibility(
+                    WindowInsets.Type.navigationBars() or WindowInsets.Type.displayCutout()
+                )
+                applyBottomInset(insets.bottom)
+            }
+        }
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        requestApplyInsets()
+        updateNavBarInset()
+    }
+
+    override fun onDetachedFromWindow() {
+        cancelArrowRepeat()
+        super.onDetachedFromWindow()
+    }
+
+    override fun onApplyWindowInsets(insets: WindowInsets): WindowInsets {
+        val navBottom = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            insets.getInsets(WindowInsets.Type.navigationBars() or WindowInsets.Type.displayCutout()).bottom
+        } else {
+            @Suppress("DEPRECATION")
+            insets.systemWindowInsetBottom
+        }
+        applyBottomInset(navBottom)
+        return super.onApplyWindowInsets(insets)
+    }
+
+    private fun applyBottomInset(bottomInset: Int) {
+        val effectiveInset = if (Settings.getValues().mIsFloatingKeyboard) 0 else bottomInset
+        if (navBarBottomInset != effectiveInset) {
+            navBarBottomInset = effectiveInset
+            setPadding(paddingLeft, paddingTop, paddingRight, basePaddingBottom + effectiveInset)
+            requestLayout()
+        }
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val res = context.resources
-        val width = ResourceUtils.getKeyboardWidth(context, Settings.getValues())
-        val height = ResourceUtils.getSecondaryKeyboardHeight(res, Settings.getValues())
+        val width = ResourceUtils.getKeyboardWidth(context, Settings.getValues()) + paddingLeft + paddingRight
+        val height = ResourceUtils.getSecondaryKeyboardHeight(res, Settings.getValues()) + paddingTop + paddingBottom
         val widthSpec = MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY)
         val heightSpec = MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
         super.onMeasure(widthSpec, heightSpec)
@@ -121,14 +186,24 @@ class DesktopShortcutsView @JvmOverloads constructor(
         isToolbarInitialized = true
     }
 
+    private fun currentInputConnection(): InputConnection? = inputConnectionProvider?.invoke()
+
+    private fun currentEditorInfo(): EditorInfo? = editorInfoProvider?.invoke() ?: fallbackEditorInfo
+
     override fun onClick(view: View) {
         val tag = view.tag
         if (tag is ToolbarKey) {
             handleToolbarClick(tag)
         } else if (tag is DesktopShortcut) {
-            DesktopShortcutsCatalog.executeShortcut(context, tag, inputConnection, keyboardActionListener)
+            flushComposingAction?.invoke()
+            DesktopShortcutsCatalog.executeShortcut(
+                context = context,
+                shortcut = tag,
+                ic = currentInputConnection(),
+                actionListener = keyboardActionListener
+            )
         } else if (tag is Int) {
-            // Hardware KeyEvent from Arrow/Nav cluster
+            flushComposingAction?.invoke()
             sendKeyEvent(tag)
         }
     }
@@ -138,38 +213,119 @@ class DesktopShortcutsView @JvmOverloads constructor(
         if (tag is ToolbarKey) {
             when (tag) {
                 ToolbarKey.COPY -> {
+                    flushComposingAction?.invoke()
                     keyboardActionListener?.onCodeInput(KeyCode.PROMPT_LIST, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
                     return true
                 }
                 ToolbarKey.PASTE -> {
+                    flushComposingAction?.invoke()
                     keyboardActionListener?.onCodeInput(KeyCode.CLIPBOARD, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
                     return true
                 }
                 ToolbarKey.SELECT_WORD -> {
-                    sendCtrlKey(KeyEvent.KEYCODE_A)
+                    flushComposingAction?.invoke()
+                    val ic = currentInputConnection()
+                    val sent = DesktopShortcutsCatalog.sendDesktopKeyEvent(
+                        ic,
+                        KeyEvent.KEYCODE_A,
+                        DesktopShortcutsCatalog.buildMetaState(isCtrl = true)
+                    )
+                    if (!sent) {
+                        ic?.performContextMenuAction(android.R.id.selectAll)
+                    }
                     return true
                 }
                 else -> return false
             }
         } else if (tag is DesktopShortcut && tag.longPressCode != 0) {
+            flushComposingAction?.invoke()
             keyboardActionListener?.onCodeInput(tag.longPressCode, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
             return true
         }
         return false
     }
 
-    private fun handleToolbarClick(key: ToolbarKey) {
+    internal fun handleToolbarClick(key: ToolbarKey) {
         when (key) {
             ToolbarKey.CLOSE_HISTORY -> {
                 keyboardActionListener?.onCodeInput(KeyCode.DESKTOP_SHORTCUTS, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
             }
-            ToolbarKey.UNDO -> sendCtrlKey(KeyEvent.KEYCODE_Z)
-            ToolbarKey.REDO -> sendCtrlKey(KeyEvent.KEYCODE_Y)
-            ToolbarKey.PAGE_START -> sendCtrlKey(KeyEvent.KEYCODE_MOVE_HOME)
-            ToolbarKey.PAGE_END -> sendCtrlKey(KeyEvent.KEYCODE_MOVE_END)
-            ToolbarKey.SELECT_WORD -> sendCtrlKey(KeyEvent.KEYCODE_W)
-            ToolbarKey.COPY -> sendCtrlKey(KeyEvent.KEYCODE_C)
-            ToolbarKey.PASTE -> sendCtrlKey(KeyEvent.KEYCODE_V)
+            ToolbarKey.UNDO -> {
+                flushComposingAction?.invoke()
+                val ic = currentInputConnection()
+                val sent = DesktopShortcutsCatalog.sendDesktopKeyEvent(
+                    ic,
+                    KeyEvent.KEYCODE_Z,
+                    DesktopShortcutsCatalog.buildMetaState(isCtrl = true)
+                )
+                if (!sent) {
+                    ic?.performContextMenuAction(android.R.id.undo)
+                }
+            }
+            ToolbarKey.REDO -> {
+                flushComposingAction?.invoke()
+                val ic = currentInputConnection()
+                val sent = DesktopShortcutsCatalog.sendDesktopKeyEvent(
+                    ic,
+                    KeyEvent.KEYCODE_Z,
+                    DesktopShortcutsCatalog.buildMetaState(isCtrl = true, isShift = true)
+                )
+                if (!sent) {
+                    ic?.performContextMenuAction(android.R.id.redo)
+                }
+            }
+            ToolbarKey.PAGE_START -> {
+                flushComposingAction?.invoke()
+                val listener = keyboardActionListener
+                if (listener != null) {
+                    listener.onCodeInput(KeyCode.MOVE_START_OF_PAGE, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
+                } else {
+                    DesktopShortcutsCatalog.sendDesktopKeyEvent(
+                        currentInputConnection(),
+                        KeyEvent.KEYCODE_MOVE_HOME,
+                        DesktopShortcutsCatalog.buildMetaState(isCtrl = true)
+                    )
+                }
+            }
+            ToolbarKey.PAGE_END -> {
+                flushComposingAction?.invoke()
+                val listener = keyboardActionListener
+                if (listener != null) {
+                    listener.onCodeInput(KeyCode.MOVE_END_OF_PAGE, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
+                } else {
+                    DesktopShortcutsCatalog.sendDesktopKeyEvent(
+                        currentInputConnection(),
+                        KeyEvent.KEYCODE_MOVE_END,
+                        DesktopShortcutsCatalog.buildMetaState(isCtrl = true)
+                    )
+                }
+            }
+            ToolbarKey.SELECT_WORD -> {
+                flushComposingAction?.invoke()
+                keyboardActionListener?.onCodeInput(KeyCode.CLIPBOARD_SELECT_WORD, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
+            }
+            ToolbarKey.COPY -> {
+                flushComposingAction?.invoke()
+                val ic = currentInputConnection()
+                if (ic?.performContextMenuAction(android.R.id.copy) != true) {
+                    DesktopShortcutsCatalog.sendDesktopKeyEvent(
+                        ic,
+                        KeyEvent.KEYCODE_C,
+                        DesktopShortcutsCatalog.buildMetaState(isCtrl = true)
+                    )
+                }
+            }
+            ToolbarKey.PASTE -> {
+                flushComposingAction?.invoke()
+                val ic = currentInputConnection()
+                if (ic?.performContextMenuAction(android.R.id.paste) != true) {
+                    DesktopShortcutsCatalog.sendDesktopKeyEvent(
+                        ic,
+                        KeyEvent.KEYCODE_V,
+                        DesktopShortcutsCatalog.buildMetaState(isCtrl = true)
+                    )
+                }
+            }
             else -> {}
         }
     }
@@ -180,8 +336,30 @@ class DesktopShortcutsView @JvmOverloads constructor(
         editorInfo: EditorInfo,
         ic: InputConnection?
     ) {
+        startDesktopShortcuts(
+            actionListener = actionListener,
+            keyVisualAttributes = keyVisualAttributes,
+            editorInfo = editorInfo,
+            inputConnectionProvider = { ic },
+            editorInfoProvider = { editorInfo },
+            flushComposingAction = {}
+        )
+    }
+
+    fun startDesktopShortcuts(
+        actionListener: KeyboardActionListener,
+        keyVisualAttributes: KeyVisualAttributes?,
+        editorInfo: EditorInfo,
+        inputConnectionProvider: () -> InputConnection?,
+        editorInfoProvider: () -> EditorInfo?,
+        flushComposingAction: () -> Unit
+    ) {
+        cancelArrowRepeat()
         this.keyboardActionListener = actionListener
-        this.inputConnection = ic
+        this.inputConnectionProvider = inputConnectionProvider
+        this.editorInfoProvider = editorInfoProvider
+        this.flushComposingAction = flushComposingAction
+        this.fallbackEditorInfo = editorInfo
 
         Settings.getValues().mColors.setBackground(this, ColorType.MAIN_BACKGROUND)
         initializeToolbar()
@@ -194,9 +372,11 @@ class DesktopShortcutsView @JvmOverloads constructor(
         buildFatButtons(params)
         buildArrowCluster(params)
 
+        val bottomListener = createBottomRowActionListener(actionListener)
+        this.bottomRowActionListener = bottomListener
         mainKeyboardView?.let { kbView ->
-            // Intercept bottom row keys so enter and delete act as desktop keys
-            kbView.setKeyboardActionListener(createBottomRowActionListener(actionListener))
+            // Intercept bottom row keys so enter, space, and delete use desktop-first dispatch
+            kbView.setKeyboardActionListener(bottomListener)
             PointerTracker.switchTo(kbView)
             val bottomKls = KeyboardLayoutSet.Builder.buildEmojiClipBottomRow(context, editorInfo)
             val keyboard = bottomKls.getKeyboard(KeyboardElement.CLIPBOARD_BOTTOM_ROW)
@@ -205,15 +385,29 @@ class DesktopShortcutsView @JvmOverloads constructor(
     }
 
     fun stopDesktopShortcuts() {
+        cancelArrowRepeat()
+        keyboardActionListener = null
+        bottomRowActionListener = null
+        inputConnectionProvider = null
+        editorInfoProvider = null
+        flushComposingAction = null
+        fallbackEditorInfo = null
         if (Settings.getValues().mLiteMode) {
             if (this::fatRow1.isInitialized) fatRow1.removeAllViews()
             if (this::fatRow2.isInitialized) fatRow2.removeAllViews()
             if (this::fatRow3.isInitialized) fatRow3.removeAllViews()
             if (this::arrowRow1.isInitialized) arrowRow1.removeAllViews()
             if (this::arrowRow2.isInitialized) arrowRow2.removeAllViews()
-            keyboardActionListener = null
-            inputConnection = null
         }
+    }
+
+    internal fun dispatchBottomRowCodeForTesting(primaryCode: Int, isKeyRepeat: Boolean = false) {
+        bottomRowActionListener?.onCodeInput(
+            primaryCode,
+            Constants.NOT_A_COORDINATE,
+            Constants.NOT_A_COORDINATE,
+            isKeyRepeat
+        )
     }
 
     private fun buildFatButtons(params: KeyDrawParams) {
@@ -228,18 +422,21 @@ class DesktopShortcutsView @JvmOverloads constructor(
         row1Shortcuts.forEach { s ->
             fatRow1.addView(createFatButton(s, params, 1f))
         }
+        fatRow1.visibility = if (row1Shortcuts.isEmpty()) View.GONE else View.VISIBLE
 
         // Row 2: 2 buttons
         val row2Shortcuts = shortcuts.drop(3).take(2)
         row2Shortcuts.forEach { s ->
             fatRow2.addView(createFatButton(s, params, 1f))
         }
+        fatRow2.visibility = if (row2Shortcuts.isEmpty()) View.GONE else View.VISIBLE
 
         // Row 3: 2 buttons
         val row3Shortcuts = shortcuts.drop(5).take(2)
         row3Shortcuts.forEach { s ->
             fatRow3.addView(createFatButton(s, params, 1f))
         }
+        fatRow3.visibility = if (row3Shortcuts.isEmpty()) View.GONE else View.VISIBLE
     }
 
     private fun createFatButton(
@@ -252,6 +449,7 @@ class DesktopShortcutsView @JvmOverloads constructor(
             orientation = VERTICAL
             gravity = Gravity.CENTER
             tag = shortcut
+            contentDescription = "${shortcut.title} (${shortcut.subtitle})"
             isClickable = true
             isFocusable = true
             if (keyBackgroundId != 0) {
@@ -270,7 +468,6 @@ class DesktopShortcutsView @JvmOverloads constructor(
             setPadding(pad, (2 * density).toInt(), pad, (2 * density).toInt())
         }
 
-        // Big word title
         val titleText = TextView(context).apply {
             text = shortcut.title
             typeface = params.mTypeface ?: Typeface.DEFAULT_BOLD
@@ -282,7 +479,6 @@ class DesktopShortcutsView @JvmOverloads constructor(
         }
         btn.addView(titleText)
 
-        // Small shortcut combination subtitle
         val subText = TextView(context).apply {
             text = shortcut.subtitle
             typeface = params.mTypeface ?: Typeface.DEFAULT
@@ -298,38 +494,95 @@ class DesktopShortcutsView @JvmOverloads constructor(
     }
 
     private fun buildArrowCluster(params: KeyDrawParams) {
+        cancelArrowRepeat()
         arrowRow1.removeAllViews()
         arrowRow2.removeAllViews()
 
         // Row 1: Home, Up, End
-        arrowRow1.addView(createArrowButton("↖ Home", KeyEvent.KEYCODE_MOVE_HOME, params, 1f))
-        arrowRow1.addView(createArrowButton("↑ Up", KeyEvent.KEYCODE_DPAD_UP, params, 1f))
-        arrowRow1.addView(createArrowButton("↘ End", KeyEvent.KEYCODE_MOVE_END, params, 1f))
+        arrowRow1.addView(createArrowButton("↖ Home", KeyEvent.KEYCODE_MOVE_HOME, params, 1f, repeatable = false))
+        arrowRow1.addView(createArrowButton("↑ Up", KeyEvent.KEYCODE_DPAD_UP, params, 1f, repeatable = true))
+        arrowRow1.addView(createArrowButton("↘ End", KeyEvent.KEYCODE_MOVE_END, params, 1f, repeatable = false))
 
         // Row 2: Left, Down, Right
-        arrowRow2.addView(createArrowButton("← Left", KeyEvent.KEYCODE_DPAD_LEFT, params, 1f))
-        arrowRow2.addView(createArrowButton("↓ Down", KeyEvent.KEYCODE_DPAD_DOWN, params, 1f))
-        arrowRow2.addView(createArrowButton("→ Right", KeyEvent.KEYCODE_DPAD_RIGHT, params, 1f))
+        arrowRow2.addView(createArrowButton("← Left", KeyEvent.KEYCODE_DPAD_LEFT, params, 1f, repeatable = true))
+        arrowRow2.addView(createArrowButton("↓ Down", KeyEvent.KEYCODE_DPAD_DOWN, params, 1f, repeatable = true))
+        arrowRow2.addView(createArrowButton("→ Right", KeyEvent.KEYCODE_DPAD_RIGHT, params, 1f, repeatable = true))
     }
 
     private fun createArrowButton(
         label: String,
         keyCode: Int,
         params: KeyDrawParams,
-        weight: Float
+        weight: Float,
+        repeatable: Boolean
     ): View {
         val density = context.resources.displayMetrics.density
-        val btn = LinearLayout(context).apply {
+        var handledByTouch = false
+        val btn = object : LinearLayout(context) {
+            override fun performClick(): Boolean {
+                if (repeatable && !handledByTouch) {
+                    flushComposingAction?.invoke()
+                    sendKeyEvent(keyCode)
+                }
+                return super.performClick()
+            }
+        }.apply {
             orientation = VERTICAL
             gravity = Gravity.CENTER
             tag = keyCode
+            contentDescription = label
             isClickable = true
             isFocusable = true
             if (keyBackgroundId != 0) {
                 setBackgroundResource(keyBackgroundId)
             }
             Settings.getValues().mColors.setBackground(this, ColorType.KEY_BACKGROUND)
-            setOnClickListener(this@DesktopShortcutsView)
+
+            if (repeatable) {
+                setOnTouchListener { v, event ->
+                    when (event.actionMasked) {
+                        MotionEvent.ACTION_DOWN -> {
+                            cancelArrowRepeat()
+                            v.isPressed = true
+                            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            flushComposingAction?.invoke()
+                            sendKeyEvent(keyCode)
+                            val repeatRunnable = object : Runnable {
+                                override fun run() {
+                                    if (activeRepeatRunnable !== this || !v.isPressed) return
+                                    sendKeyEvent(keyCode)
+                                    repeatHandler.postDelayed(this, ARROW_REPEAT_INTERVAL_MS)
+                                }
+                            }
+                            activeRepeatRunnable = repeatRunnable
+                            repeatHandler.postDelayed(repeatRunnable, ARROW_REPEAT_INITIAL_DELAY_MS)
+                            true
+                        }
+                        MotionEvent.ACTION_UP -> {
+                            val wasPressed = v.isPressed
+                            v.isPressed = false
+                            cancelArrowRepeat()
+                            if (wasPressed) {
+                                handledByTouch = true
+                                try {
+                                    v.performClick()
+                                } finally {
+                                    handledByTouch = false
+                                }
+                            }
+                            true
+                        }
+                        MotionEvent.ACTION_CANCEL -> {
+                            v.isPressed = false
+                            cancelArrowRepeat()
+                            true
+                        }
+                        else -> false
+                    }
+                }
+            } else {
+                setOnClickListener(this@DesktopShortcutsView)
+            }
 
             val lp = LayoutParams(0, LayoutParams.MATCH_PARENT, weight).apply {
                 val m = (2 * density).toInt()
@@ -353,25 +606,63 @@ class DesktopShortcutsView @JvmOverloads constructor(
         return btn
     }
 
+    private fun cancelArrowRepeat() {
+        activeRepeatRunnable?.let { repeatHandler.removeCallbacks(it) }
+        activeRepeatRunnable = null
+    }
+
     private fun createBottomRowActionListener(original: KeyboardActionListener): KeyboardActionListener {
         return object : KeyboardActionListener by original {
             override fun onCodeInput(primaryCode: Int, x: Int, y: Int, isKeyRepeat: Boolean) {
                 when (primaryCode) {
                     KeyCode.ALPHA -> {
-                        // Switch back to alphabet typing
                         original.onCodeInput(KeyCode.DESKTOP_SHORTCUTS, x, y, false)
                     }
                     KeyCode.DELETE -> {
-                        // Desktop Backspace variant
-                        sendKeyEvent(KeyEvent.KEYCODE_DEL)
-                    }
-                    Constants.CODE_ENTER -> {
-                        // Desktop Enter variant
-                        sendKeyEvent(KeyEvent.KEYCODE_ENTER)
+                        if (!isKeyRepeat) {
+                            flushComposingAction?.invoke()
+                        }
+                        val sent = DesktopShortcutsCatalog.sendDesktopKeyEvent(
+                            currentInputConnection(),
+                            KeyEvent.KEYCODE_DEL
+                        )
+                        if (!sent) {
+                            original.onCodeInput(KeyCode.DELETE, x, y, isKeyRepeat)
+                        }
                     }
                     Constants.CODE_SPACE -> {
-                        // Desktop Space variant
-                        sendKeyEvent(KeyEvent.KEYCODE_SPACE)
+                        if (!isKeyRepeat) {
+                            flushComposingAction?.invoke()
+                        }
+                        val sent = DesktopShortcutsCatalog.sendDesktopKeyEvent(
+                            currentInputConnection(),
+                            KeyEvent.KEYCODE_SPACE
+                        )
+                        if (!sent) {
+                            original.onCodeInput(Constants.CODE_SPACE, x, y, isKeyRepeat)
+                        }
+                    }
+                    Constants.CODE_ENTER -> {
+                        flushComposingAction?.invoke()
+                        val ei = currentEditorInfo()
+                        val actionId = if (ei != null) {
+                            InputTypeUtils.getImeOptionsActionIdFromEditorInfo(ei)
+                        } else {
+                            EditorInfo.IME_ACTION_UNSPECIFIED
+                        }
+                        val hasExplicitImeAction = actionId == InputTypeUtils.IME_ACTION_CUSTOM_LABEL ||
+                            (actionId != EditorInfo.IME_ACTION_NONE && actionId != EditorInfo.IME_ACTION_UNSPECIFIED)
+                        if (hasExplicitImeAction) {
+                            original.onCodeInput(Constants.CODE_ENTER, x, y, false)
+                        } else {
+                            val sent = DesktopShortcutsCatalog.sendDesktopKeyEvent(
+                                currentInputConnection(),
+                                KeyEvent.KEYCODE_ENTER
+                            )
+                            if (!sent) {
+                                original.onCodeInput(Constants.CODE_ENTER, x, y, isKeyRepeat)
+                            }
+                        }
                     }
                     else -> original.onCodeInput(primaryCode, x, y, isKeyRepeat)
                 }
@@ -381,24 +672,9 @@ class DesktopShortcutsView @JvmOverloads constructor(
 
     private fun sendKeyEvent(keyCode: Int) {
         try {
-            val ic = inputConnection ?: return
-            val now = SystemClock.uptimeMillis()
-            ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0))
-            ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0))
+            DesktopShortcutsCatalog.sendDesktopKeyEvent(currentInputConnection(), keyCode)
         } catch (t: Throwable) {
             LogCatcher.log('E', "DesktopShortcuts", "sendKeyEvent-$keyCode: ${t.message}", t)
-        }
-    }
-
-    private fun sendCtrlKey(keyCode: Int) {
-        try {
-            val ic = inputConnection ?: return
-            val now = SystemClock.uptimeMillis()
-            val meta = KeyEvent.META_CTRL_ON or KeyEvent.META_CTRL_LEFT_ON
-            ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0, meta))
-            ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0, meta))
-        } catch (t: Throwable) {
-            LogCatcher.log('E', "DesktopShortcuts", "sendCtrlKey-$keyCode: ${t.message}", t)
         }
     }
 }

@@ -4,6 +4,7 @@ package helium314.keyboard.keyboard.desktop
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.SystemClock
+import android.view.KeyCharacterMap
 import android.view.KeyEvent
 import android.view.inputmethod.InputConnection
 import androidx.core.content.edit
@@ -12,7 +13,16 @@ import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
 import helium314.keyboard.latin.common.Constants
 import helium314.keyboard.latin.common.Constants.Separators
 import helium314.keyboard.latin.utils.LogCatcher
-import helium314.keyboard.latin.utils.prefs
+
+enum class DesktopShortcutKind {
+    KEY_EVENT,
+    CONTEXT_THEN_KEY,
+    KEY_THEN_CONTEXT,
+    SELECT_WORD,
+    SELECT_LINE,
+    NAV_TOP,
+    NAV_BOTTOM
+}
 
 data class DesktopShortcut(
     val id: String,
@@ -23,45 +33,74 @@ data class DesktopShortcut(
     val isShift: Boolean = false,
     val isAlt: Boolean = false,
     val longPressCode: Int = 0,
-    val category: String = "Editing"
+    val category: String = "Editing",
+    val dispatchKind: DesktopShortcutKind = DesktopShortcutKind.KEY_EVENT,
+    val contextActionId: Int = 0
 )
 
 object DesktopShortcutsCatalog {
     const val PREF_DESKTOP_SHORTCUTS_CONFIG = "pref_desktop_shortcuts_config"
+    const val MAX_MODAL_SLOTS = 7
 
     val ALL_SHORTCUTS: List<DesktopShortcut> = listOf(
-        // Primary text editing
-        DesktopShortcut("SELECT_ALL", "Select All", "Ctrl + A", KeyEvent.KEYCODE_A, isCtrl = true, category = "Editing"),
-        DesktopShortcut("COPY", "Copy", "Ctrl + C", KeyEvent.KEYCODE_C, isCtrl = true, longPressCode = KeyCode.PROMPT_LIST, category = "Editing"),
-        DesktopShortcut("PASTE", "Paste", "Ctrl + V", KeyEvent.KEYCODE_V, isCtrl = true, longPressCode = KeyCode.CLIPBOARD, category = "Editing"),
-        DesktopShortcut("CUT", "Cut", "Ctrl + X", KeyEvent.KEYCODE_X, isCtrl = true, category = "Editing"),
-        DesktopShortcut("UNDO", "Undo", "Ctrl + Z", KeyEvent.KEYCODE_Z, isCtrl = true, category = "Editing"),
-        DesktopShortcut("REDO", "Redo", "Ctrl + Y", KeyEvent.KEYCODE_Y, isCtrl = true, category = "Editing"),
+        // Primary text & code editing
+        DesktopShortcut(
+            "SELECT_ALL", "Select All", "Ctrl + A", KeyEvent.KEYCODE_A, isCtrl = true,
+            category = "Editing", dispatchKind = DesktopShortcutKind.KEY_THEN_CONTEXT, contextActionId = android.R.id.selectAll
+        ),
+        DesktopShortcut(
+            "COPY", "Copy", "Ctrl + C", KeyEvent.KEYCODE_C, isCtrl = true, longPressCode = KeyCode.PROMPT_LIST,
+            category = "Editing", dispatchKind = DesktopShortcutKind.CONTEXT_THEN_KEY, contextActionId = android.R.id.copy
+        ),
+        DesktopShortcut(
+            "PASTE", "Paste", "Ctrl + V", KeyEvent.KEYCODE_V, isCtrl = true, longPressCode = KeyCode.CLIPBOARD,
+            category = "Editing", dispatchKind = DesktopShortcutKind.CONTEXT_THEN_KEY, contextActionId = android.R.id.paste
+        ),
+        DesktopShortcut(
+            "CUT", "Cut", "Ctrl + X", KeyEvent.KEYCODE_X, isCtrl = true,
+            category = "Editing", dispatchKind = DesktopShortcutKind.CONTEXT_THEN_KEY, contextActionId = android.R.id.cut
+        ),
+        DesktopShortcut(
+            "UNDO", "Undo", "Ctrl + Z", KeyEvent.KEYCODE_Z, isCtrl = true,
+            category = "Editing", dispatchKind = DesktopShortcutKind.KEY_THEN_CONTEXT, contextActionId = android.R.id.undo
+        ),
+        DesktopShortcut(
+            "REDO", "Redo", "Ctrl + Shift + Z", KeyEvent.KEYCODE_Z, isCtrl = true, isShift = true,
+            category = "Editing", dispatchKind = DesktopShortcutKind.KEY_THEN_CONTEXT, contextActionId = android.R.id.redo
+        ),
         DesktopShortcut("SEARCH", "Find", "Ctrl + F", KeyEvent.KEYCODE_F, isCtrl = true, category = "Editing"),
         DesktopShortcut("REPLACE", "Replace", "Ctrl + H", KeyEvent.KEYCODE_H, isCtrl = true, category = "Editing"),
-        DesktopShortcut("SELECT_WORD", "Select Word", "Ctrl + W", KeyEvent.KEYCODE_W, isCtrl = true, longPressCode = KeyCode.CLIPBOARD_SELECT_ALL, category = "Editing"),
-        DesktopShortcut("SELECT_LINE", "Select Line", "Shift + End", KeyEvent.KEYCODE_MOVE_END, isCtrl = false, isShift = true, category = "Editing"),
-        DesktopShortcut("DUPLICATE", "Duplicate", "Ctrl + D", KeyEvent.KEYCODE_D, isCtrl = true, category = "Editing"),
+        DesktopShortcut(
+            "SELECT_WORD", "Select Word", "Select Word", KeyEvent.KEYCODE_W, isCtrl = false,
+            longPressCode = KeyCode.CLIPBOARD_SELECT_ALL, category = "Editing", dispatchKind = DesktopShortcutKind.SELECT_WORD
+        ),
+        DesktopShortcut(
+            "SELECT_LINE", "Select Line", "Home → Shift+End", KeyEvent.KEYCODE_MOVE_END, isCtrl = false, isShift = true,
+            category = "Editing", dispatchKind = DesktopShortcutKind.SELECT_LINE
+        ),
+        DesktopShortcut("DUPLICATE", "Duplicate Line", "Shift + Alt + ↓", KeyEvent.KEYCODE_DPAD_DOWN, isCtrl = false, isShift = true, isAlt = true, category = "Editing"),
+        DesktopShortcut("TAB", "Tab", "Tab", KeyEvent.KEYCODE_TAB, isCtrl = false, category = "Editing"),
+        DesktopShortcut("OUTDENT", "Outdent", "Shift + Tab", KeyEvent.KEYCODE_TAB, isCtrl = false, isShift = true, category = "Editing"),
+        DesktopShortcut("COMMENT", "Comment", "Ctrl + /", KeyEvent.KEYCODE_SLASH, isCtrl = true, category = "Editing"),
+        DesktopShortcut("SELECT_NEXT", "Select Next", "Ctrl + D", KeyEvent.KEYCODE_D, isCtrl = true, category = "Editing"),
+        DesktopShortcut("DELETE_LINE", "Delete Line", "Ctrl + Shift + K", KeyEvent.KEYCODE_K, isCtrl = true, isShift = true, category = "Editing"),
         DesktopShortcut("GO_TO_LINE", "Go to Line", "Ctrl + G", KeyEvent.KEYCODE_G, isCtrl = true, category = "Editing"),
+        DesktopShortcut("SAVE", "Save", "Ctrl + S", KeyEvent.KEYCODE_S, isCtrl = true, category = "Editing"),
 
         // Navigation
-        DesktopShortcut("TOP", "Top", "Ctrl + Home", KeyEvent.KEYCODE_MOVE_HOME, isCtrl = true, category = "Navigation"),
-        DesktopShortcut("BOTTOM", "Bottom", "Ctrl + End", KeyEvent.KEYCODE_MOVE_END, isCtrl = true, category = "Navigation"),
+        DesktopShortcut(
+            "TOP", "Top", "Ctrl + Home", KeyEvent.KEYCODE_MOVE_HOME, isCtrl = true,
+            category = "Navigation", dispatchKind = DesktopShortcutKind.NAV_TOP
+        ),
+        DesktopShortcut(
+            "BOTTOM", "Bottom", "Ctrl + End", KeyEvent.KEYCODE_MOVE_END, isCtrl = true,
+            category = "Navigation", dispatchKind = DesktopShortcutKind.NAV_BOTTOM
+        ),
         DesktopShortcut("PAGE_UP", "Page Up", "PgUp", KeyEvent.KEYCODE_PAGE_UP, isCtrl = false, category = "Navigation"),
         DesktopShortcut("PAGE_DOWN", "Page Down", "PgDn", KeyEvent.KEYCODE_PAGE_DOWN, isCtrl = false, category = "Navigation"),
         DesktopShortcut("LINE_START", "Line Start", "Home", KeyEvent.KEYCODE_MOVE_HOME, isCtrl = false, category = "Navigation"),
         DesktopShortcut("LINE_END", "Line End", "End", KeyEvent.KEYCODE_MOVE_END, isCtrl = false, category = "Navigation"),
-
-        // Browser & Application
-        DesktopShortcut("SAVE", "Save", "Ctrl + S", KeyEvent.KEYCODE_S, isCtrl = true, category = "Browser"),
-        DesktopShortcut("NEW_TAB", "New Tab", "Ctrl + T", KeyEvent.KEYCODE_T, isCtrl = true, category = "Browser"),
-        DesktopShortcut("CLOSE_TAB", "Close Tab", "Ctrl + W", KeyEvent.KEYCODE_W, isCtrl = true, category = "Browser"),
-        DesktopShortcut("REFRESH", "Refresh", "Ctrl + R", KeyEvent.KEYCODE_R, isCtrl = true, category = "Browser"),
-        DesktopShortcut("BOOKMARK", "Bookmark", "Ctrl + D", KeyEvent.KEYCODE_D, isCtrl = true, category = "Browser"),
-        DesktopShortcut("PRINT", "Print", "Ctrl + P", KeyEvent.KEYCODE_P, isCtrl = true, category = "Browser"),
-        DesktopShortcut("ZOOM_IN", "Zoom In", "Ctrl + =", KeyEvent.KEYCODE_EQUALS, isCtrl = true, category = "Browser"),
-        DesktopShortcut("ZOOM_OUT", "Zoom Out", "Ctrl + -", KeyEvent.KEYCODE_MINUS, isCtrl = true, category = "Browser"),
-        DesktopShortcut("ESCAPE", "Escape", "Esc", KeyEvent.KEYCODE_ESCAPE, isCtrl = false, category = "Browser"),
+        DesktopShortcut("ESCAPE", "Escape", "Esc", KeyEvent.KEYCODE_ESCAPE, isCtrl = false, category = "Navigation"),
 
         // Formatting
         DesktopShortcut("BOLD", "Bold", "Ctrl + B", KeyEvent.KEYCODE_B, isCtrl = true, category = "Formatting"),
@@ -91,15 +130,10 @@ object DesktopShortcutsCatalog {
             if (parts.size == 2 && parts[1].toBoolean()) parts[0] else null
         }
         val list = ids.mapNotNull { SHORTCUTS_MAP[it] }
-        return if (list.size >= 7) list.take(7) else {
-            val fallback = list.toMutableList()
-            for (defId in DEFAULT_CHOSEN_IDS) {
-                if (fallback.none { it.id == defId }) {
-                    SHORTCUTS_MAP[defId]?.let { fallback.add(it) }
-                }
-                if (fallback.size == 7) break
-            }
-            fallback
+        return if (list.isEmpty()) {
+            DEFAULT_CHOSEN_IDS.mapNotNull { SHORTCUTS_MAP[it] }
+        } else {
+            list.take(MAX_MODAL_SLOTS)
         }
     }
 
@@ -115,10 +149,18 @@ object DesktopShortcutsCatalog {
         }
         val orderedList = mutableListOf<Pair<DesktopShortcut, Boolean>>()
         val seen = mutableSetOf<String>()
+        var enabledCount = 0
         saved.split(Separators.ENTRY).forEach {
             val id = it.split(Separators.KV)[0]
             SHORTCUTS_MAP[id]?.let { shortcut ->
-                orderedList.add(shortcut to (savedMap[id] ?: false))
+                val rawEnabled = savedMap[id] ?: false
+                val effectiveEnabled = if (rawEnabled && enabledCount < MAX_MODAL_SLOTS) {
+                    enabledCount++
+                    true
+                } else {
+                    false
+                }
+                orderedList.add(shortcut to effectiveEnabled)
                 seen.add(id)
             }
         }
@@ -131,8 +173,62 @@ object DesktopShortcutsCatalog {
     }
 
     fun saveConfig(prefs: SharedPreferences, items: List<Pair<DesktopShortcut, Boolean>>) {
-        val serialized = items.joinToString(Separators.ENTRY) { "${it.first.id}${Separators.KV}${it.second}" }
+        var enabledCount = 0
+        val serialized = items.joinToString(Separators.ENTRY) { (shortcut, enabled) ->
+            val effective = if (enabled && enabledCount < MAX_MODAL_SLOTS) {
+                enabledCount++
+                true
+            } else {
+                false
+            }
+            "${shortcut.id}${Separators.KV}$effective"
+        }
         prefs.edit { putString(PREF_DESKTOP_SHORTCUTS_CONFIG, serialized) }
+    }
+
+    fun buildMetaState(isCtrl: Boolean = false, isShift: Boolean = false, isAlt: Boolean = false): Int {
+        var meta = 0
+        if (isCtrl) meta = meta or KeyEvent.META_CTRL_ON or KeyEvent.META_CTRL_LEFT_ON
+        if (isShift) meta = meta or KeyEvent.META_SHIFT_ON or KeyEvent.META_SHIFT_LEFT_ON
+        if (isAlt) meta = meta or KeyEvent.META_ALT_ON or KeyEvent.META_ALT_LEFT_ON
+        return meta
+    }
+
+    fun sendDesktopKeyEvent(
+        ic: InputConnection?,
+        keyCode: Int,
+        metaState: Int = 0,
+        repeatCount: Int = 0
+    ): Boolean {
+        if (ic == null) return false
+        val downTime = SystemClock.uptimeMillis()
+        val flags = KeyEvent.FLAG_SOFT_KEYBOARD or KeyEvent.FLAG_KEEP_TOUCH_MODE
+        val down = KeyEvent(
+            downTime,
+            downTime,
+            KeyEvent.ACTION_DOWN,
+            keyCode,
+            repeatCount,
+            metaState,
+            KeyCharacterMap.VIRTUAL_KEYBOARD,
+            0,
+            flags
+        )
+        val downSent = ic.sendKeyEvent(down)
+        val upTime = maxOf(SystemClock.uptimeMillis(), downTime + 1L)
+        val up = KeyEvent(
+            downTime,
+            upTime,
+            KeyEvent.ACTION_UP,
+            keyCode,
+            0,
+            metaState,
+            KeyCharacterMap.VIRTUAL_KEYBOARD,
+            0,
+            flags
+        )
+        val upSent = ic.sendKeyEvent(up)
+        return downSent && upSent
     }
 
     fun executeShortcut(
@@ -142,26 +238,61 @@ object DesktopShortcutsCatalog {
         actionListener: KeyboardActionListener?
     ) {
         try {
-            if (ic == null) return
-            val now = SystemClock.uptimeMillis()
-            var meta = 0
-            if (shortcut.isCtrl) meta = meta or KeyEvent.META_CTRL_ON or KeyEvent.META_CTRL_LEFT_ON
-            if (shortcut.isShift) meta = meta or KeyEvent.META_SHIFT_ON or KeyEvent.META_SHIFT_LEFT_ON
-            if (shortcut.isAlt) meta = meta or KeyEvent.META_ALT_ON or KeyEvent.META_ALT_LEFT_ON
-
-            val down = KeyEvent(now, now, KeyEvent.ACTION_DOWN, shortcut.keyCode, 0, meta)
-            val up = KeyEvent(now, now, KeyEvent.ACTION_UP, shortcut.keyCode, 0, meta)
-            ic.sendKeyEvent(down)
-            ic.sendKeyEvent(up)
-
-            // Context action fallback for common editable operations
-            when (shortcut.id) {
-                "SELECT_ALL" -> ic.performContextMenuAction(android.R.id.selectAll)
-                "COPY" -> ic.performContextMenuAction(android.R.id.copy)
-                "PASTE" -> ic.performContextMenuAction(android.R.id.paste)
-                "CUT" -> ic.performContextMenuAction(android.R.id.cut)
-                "UNDO" -> ic.performContextMenuAction(android.R.id.undo)
-                "REDO" -> ic.performContextMenuAction(android.R.id.redo)
+            val meta = buildMetaState(shortcut.isCtrl, shortcut.isShift, shortcut.isAlt)
+            when (shortcut.dispatchKind) {
+                DesktopShortcutKind.SELECT_WORD -> {
+                    actionListener?.onCodeInput(
+                        KeyCode.CLIPBOARD_SELECT_WORD,
+                        Constants.NOT_A_COORDINATE,
+                        Constants.NOT_A_COORDINATE,
+                        false
+                    )
+                }
+                DesktopShortcutKind.SELECT_LINE -> {
+                    sendDesktopKeyEvent(ic, KeyEvent.KEYCODE_MOVE_HOME, metaState = 0)
+                    sendDesktopKeyEvent(ic, KeyEvent.KEYCODE_MOVE_END, metaState = buildMetaState(isShift = true))
+                }
+                DesktopShortcutKind.NAV_TOP -> {
+                    if (actionListener != null) {
+                        actionListener.onCodeInput(
+                            KeyCode.MOVE_START_OF_PAGE,
+                            Constants.NOT_A_COORDINATE,
+                            Constants.NOT_A_COORDINATE,
+                            false
+                        )
+                    } else {
+                        sendDesktopKeyEvent(ic, KeyEvent.KEYCODE_MOVE_HOME, metaState = buildMetaState(isCtrl = true))
+                    }
+                }
+                DesktopShortcutKind.NAV_BOTTOM -> {
+                    if (actionListener != null) {
+                        actionListener.onCodeInput(
+                            KeyCode.MOVE_END_OF_PAGE,
+                            Constants.NOT_A_COORDINATE,
+                            Constants.NOT_A_COORDINATE,
+                            false
+                        )
+                    } else {
+                        sendDesktopKeyEvent(ic, KeyEvent.KEYCODE_MOVE_END, metaState = buildMetaState(isCtrl = true))
+                    }
+                }
+                DesktopShortcutKind.CONTEXT_THEN_KEY -> {
+                    val handledByContext = ic != null &&
+                        shortcut.contextActionId != 0 &&
+                        ic.performContextMenuAction(shortcut.contextActionId)
+                    if (!handledByContext) {
+                        sendDesktopKeyEvent(ic, shortcut.keyCode, meta)
+                    }
+                }
+                DesktopShortcutKind.KEY_THEN_CONTEXT -> {
+                    val sent = sendDesktopKeyEvent(ic, shortcut.keyCode, meta)
+                    if (!sent && ic != null && shortcut.contextActionId != 0) {
+                        ic.performContextMenuAction(shortcut.contextActionId)
+                    }
+                }
+                DesktopShortcutKind.KEY_EVENT -> {
+                    sendDesktopKeyEvent(ic, shortcut.keyCode, meta)
+                }
             }
         } catch (t: Throwable) {
             LogCatcher.log('E', "DesktopShortcuts", "executeShortcut-${shortcut.id}: ${t.message}", t)

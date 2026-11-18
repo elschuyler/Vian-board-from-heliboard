@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -19,6 +20,7 @@ import android.view.inputmethod.EditorInfo
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.graphics.ColorUtils
 import helium314.keyboard.keyboard.KeyboardActionListener
 import helium314.keyboard.keyboard.KeyboardElement
 import helium314.keyboard.keyboard.KeyboardLayoutSet
@@ -307,8 +309,7 @@ class VoiceInputView @JvmOverloads constructor(
                 colors.setColor(pClear, ColorType.KEY_ICON)
                 pClear.setOnClickListener {
                     clearPreview()
-                    stopVoiceInput()
-                    KeyboardSwitcher.getInstance().closeSecondaryKeyboard()
+                    KeyboardSwitcher.getInstance().closeVoiceInput()
                 }
             }
         }
@@ -435,9 +436,6 @@ class VoiceInputView @JvmOverloads constructor(
                 isClickable = true
                 isFocusable = true
                 tag = "voice_action_slot_$index"
-                if (keyBackgroundId != 0) {
-                    setBackgroundResource(keyBackgroundId)
-                }
                 layoutParams = LayoutParams(0, LayoutParams.MATCH_PARENT, 1f).apply {
                     setMargins(marginPx, 0, marginPx, 0)
                 }
@@ -454,15 +452,28 @@ class VoiceInputView @JvmOverloads constructor(
 
     private fun styleVoiceActionSlotButton(btn: TextView, action: VoiceActionItem, isEnabled: Boolean) {
         val colors = Settings.getValues().mColors
-        if (isEnabled) {
-            colors.setBackground(btn, ColorType.ACTION_KEY_BACKGROUND)
-            btn.setTextColor(colors.get(ColorType.KEY_TEXT))
-            btn.alpha = 1.0f
-        } else {
-            colors.setBackground(btn, ColorType.FUNCTIONAL_KEY_BACKGROUND)
-            btn.setTextColor(colors.get(ColorType.KEY_TEXT))
-            btn.alpha = 0.50f
+        val density = context.resources.displayMetrics.density
+        val keyTextColor = colors.get(ColorType.KEY_TEXT)
+        val background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = 8f * density
+            if (isEnabled) {
+                setColor(colors.get(ColorType.ACTION_KEY_BACKGROUND))
+                setStroke(
+                    (1.5f * density).toInt().coerceAtLeast(1),
+                    ColorUtils.setAlphaComponent(keyTextColor, 200)
+                )
+            } else {
+                setColor(ColorUtils.setAlphaComponent(colors.get(ColorType.FUNCTIONAL_KEY_BACKGROUND), 75))
+                setStroke(
+                    (1f * density).toInt().coerceAtLeast(1),
+                    ColorUtils.setAlphaComponent(keyTextColor, 65)
+                )
+            }
         }
+        btn.background = background
+        btn.setTextColor(keyTextColor)
+        btn.alpha = if (isEnabled) 1.0f else 0.42f
         val stateLabel = context.getString(
             if (isEnabled) R.string.voice_action_state_on else R.string.voice_action_state_off
         )
@@ -474,8 +485,7 @@ class VoiceInputView @JvmOverloads constructor(
         val wrappedListener = object : KeyboardActionListener by listener {
             override fun onCodeInput(code: Int, x: Int, y: Int, isKeyRepeat: Boolean) {
                 if (code == KeyCode.ALPHA) {
-                    stopVoiceInput()
-                    KeyboardSwitcher.getInstance().closeSecondaryKeyboard()
+                    KeyboardSwitcher.getInstance().closeVoiceInput()
                     return
                 } else {
                     pauseVoiceInput()

@@ -953,6 +953,10 @@ public final class InputLogic {
                         : KeyCode.keyCodeToKeyEventCode(keyCode);
                 if (keyEventCode != KeyEvent.KEYCODE_UNKNOWN) {
                     sendDownUpKeyEventWithMetaState(keyEventCode, event.getMetaState());
+                    if (keyCode == KeyCode.ARROW_LEFT || keyCode == KeyCode.ARROW_RIGHT
+                            || keyCode == KeyCode.ARROW_UP || keyCode == KeyCode.ARROW_DOWN) {
+                        inputTransaction.requireShiftUpdate(InputTransaction.SHIFT_UPDATE_LATER);
+                    }
                     return;
                 }
                 if (event.getMetaState() != 0 && event.getCodePoint() >= 32) {

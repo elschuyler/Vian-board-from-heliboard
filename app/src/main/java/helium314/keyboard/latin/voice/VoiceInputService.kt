@@ -32,7 +32,8 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
         private const val IDLE_AUTO_SHUTDOWN_MS = 60_000L // 60 seconds of inactivity
         private const val MIN_SPEECH_SAMPLES = 8_000 // 0.5 seconds at 16kHz
         private const val MAX_SPEECH_SAMPLES = 480_000 // 30 seconds at 16kHz
-        private const val INTERIM_INFERENCE_INTERVAL_MS = 800L
+        private const val MAX_INTERIM_SAMPLES = 96_000 // 6 seconds rolling preview window
+        private const val INTERIM_INFERENCE_INTERVAL_MS = 1200L
     }
 
     private val serviceHandler = Handler(Looper.getMainLooper(), ::handleClientMessage)
@@ -78,7 +79,7 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
         LogCatcher.i(TAG, "Client unbound from VoiceInputService - Immediate Zero-RAM eviction")
         LogCatcher.markComponentActive(COMPONENT_NAME, "IPC Service", "Client Unbound (Freeing Model)")
         clientMessenger = null
-        pauseRecording()
+        pauseRecording(triggerFinalInference = false)
         releaseAudioPipeline()
         releaseWhisperAsync()
         stopSelf()
@@ -208,12 +209,14 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
         }
     }
 
-    private fun pauseRecording() {
+    private fun pauseRecording(triggerFinalInference: Boolean = true) {
         audioPipeline?.pause()
         currentState = VoiceIpcProtocol.ServiceState.PAUSED
         notifyStateChanged(currentState)
         LogCatcher.markComponentActive(COMPONENT_NAME, "IPC Service", "Paused")
-        triggerInference()
+        if (triggerFinalInference) {
+            triggerInference()
+        }
     }
 
     private fun resumeRecording() {
@@ -302,7 +305,8 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
         synchronized(bufferLock) {
             val buf = audioBuffer ?: return
             if (audioSampleCount < MIN_SPEECH_SAMPLES) return
-            samples = buf.copyOf(audioSampleCount)
+            val startIdx = (audioSampleCount - MAX_INTERIM_SAMPLES).coerceAtLeast(0)
+            samples = buf.copyOfRange(startIdx, audioSampleCount)
         }
 
         if (inferenceExecutor.isShutdown) return

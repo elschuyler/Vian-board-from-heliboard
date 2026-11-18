@@ -342,6 +342,12 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     // Implements {@link KeyboardState.SwitchActions}.
     @Override
     public void setAlphabetKeyboard(@NonNull ShiftMode shiftMode) {
+        if (isShowingVoiceInput() || (mVoiceInputView != null && mVoiceInputView.isVoiceActive())) {
+            if (DEBUG_ACTION) {
+                Log.d(TAG, "setAlphabetKeyboard ignored while voice input is active");
+            }
+            return;
+        }
         if (DEBUG_ACTION) {
             Log.d(TAG, "setAlphabetKeyboard");
         }
@@ -354,6 +360,17 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         }
         PointerTracker.setKeyboardActionListener(mLatinIME.mKeyboardActionListener);
         setAlphabetKeyboard(ShiftMode.UNSHIFT);
+    }
+
+    public void closeVoiceInput() {
+        if (mVoiceInputView != null) {
+            mVoiceInputView.stopVoiceInput();
+            mVoiceInputView.setVisibility(View.GONE);
+        }
+        if (mVoicePreviewStrip != null) {
+            mVoicePreviewStrip.setVisibility(View.GONE);
+        }
+        closeSecondaryKeyboard();
     }
 
     // Implements {@link KeyboardState.SwitchActions}.
@@ -699,11 +716,14 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mDesktopShortcutsView = inflateOptionalModal(R.layout.desktop_shortcuts_view);
         }
         if (mDesktopShortcutsView != null) {
+            mLatinIME.flushComposingTextForDesktopShortcuts();
             mDesktopShortcutsView.startDesktopShortcuts(
                     mLatinIME.mKeyboardActionListener,
                     mKeyboardView.getKeyVisualAttribute(),
                     mLatinIME.getCurrentInputEditorInfo(),
-                    mLatinIME.getCurrentInputConnection()
+                    mLatinIME::getCurrentInputConnection,
+                    mLatinIME::getCurrentInputEditorInfo,
+                    mLatinIME::flushComposingTextForDesktopShortcuts
             );
             mDesktopShortcutsView.setVisibility(View.VISIBLE);
             enforceLiteModeSingleModal(mDesktopShortcutsView);
@@ -1167,9 +1187,13 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         KeyboardSwitchState currentState = getKeyboardSwitchState();
         Log.w(TAG, "onToggleKeyboard() : Current = " + currentState + " : Toggle = " + toggleState);
         if (currentState == toggleState) {
+            if (currentState == KeyboardSwitchState.VOICE) {
+                closeVoiceInput();
+            } else {
+                setAlphabetKeyboard(ShiftMode.UNSHIFT);
+            }
             mLatinIME.stopShowingInputView();
             mLatinIME.hideWindow();
-            setAlphabetKeyboard(ShiftMode.UNSHIFT);
         } else {
             mLatinIME.startShowingInputView(true);
             if (toggleState == KeyboardSwitchState.EMOJI) {
@@ -1349,7 +1373,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         loadKeyboard(mLatinIME.getCurrentInputEditorInfo(), Settings.getValues(),
                 mLatinIME.getCurrentAutoCapsState(), mLatinIME.getCurrentRecapitalizeState(), null);
         if (isOwnDialogInput) {
-            setAlphabetKeyboard(ShiftMode.UNSHIFT);
+            closeVoiceInput();
             return;
         }
         if (wasEmoji) {
@@ -1361,7 +1385,11 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         } else if (wasDesktopShortcuts) {
             setDesktopShortcutsKeyboard();
         } else if (wasVoice) {
-            setVoiceInputKeyboard();
+            if (!isShowingVoiceInput()) {
+                setVoiceInputKeyboard();
+            } else if (mVoiceInputView != null) {
+                mVoiceInputView.requestLayout();
+            }
         }
     }
 

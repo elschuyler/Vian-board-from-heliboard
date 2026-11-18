@@ -68,6 +68,7 @@ object ModularBackupEngine {
     private const val PREF_PATTERN_HASH = "pref_vault_pattern_hash"
     private const val PREF_SECURITY_PATTERN_SALT = "pref_vault_security_pattern_salt"
     private const val PREF_SECURITY_PATTERN_HASH = "pref_vault_security_pattern_hash"
+    private const val PREF_STEALTH_GATEKEEPER = "pref_vault_stealth_gatekeeper"
 
     private const val PRIVACY_VAULT_ENC_ENTRY = "database/privacy_vault.enc"
     private const val PREFS_FILE_NAME = "preferences.json"
@@ -131,6 +132,26 @@ object ModularBackupEngine {
         PREF_SECURITY_PATTERN_SALT,
         PREF_SECURITY_PATTERN_HASH
     )
+
+    internal fun unwrapVaultCiphertextOrNull(raw: String): String? {
+        var current = raw
+        if (!current.startsWith(VaultDao.ENCRYPTED_PREFIX)) {
+            return if (VaultDao.isCorruptedOrGibberish(current)) null else current
+        }
+        var depth = 0
+        while (current.startsWith(VaultDao.ENCRYPTED_PREFIX) && depth < 8) {
+            val payload = current.removePrefix(VaultDao.ENCRYPTED_PREFIX)
+            val decrypted = try {
+                VaultCryptoManager.decryptBase64ToString(payload)
+            } catch (_: Throwable) {
+                null
+            } ?: return null
+            current = decrypted
+            depth++
+        }
+        if (current.startsWith(VaultDao.ENCRYPTED_PREFIX)) return null
+        return if (VaultDao.isCorruptedOrGibberish(current)) null else current
+    }
 
     internal fun deriveAesKeyFromPassphrase(
         passphrase: CharArray,
@@ -415,32 +436,55 @@ object ModularBackupEngine {
                         val vaultDao = VaultDao.getInstance(context)
                         val vaultList = mutableListOf<PrivacyVaultBackupEntry>()
                         val entries = vaultDao.getAll()
+                        var skippedExport = vaultDao.unDecryptableCount
                         entries.forEach { e ->
-                            var cleanPhrase = e.phrase
-                            while (cleanPhrase.startsWith(VaultDao.ENCRYPTED_PREFIX)) {
-                                cleanPhrase = try {
-                                    VaultCryptoManager.decryptBase64ToString(cleanPhrase.removePrefix(VaultDao.ENCRYPTED_PREFIX))
-                                        ?: cleanPhrase.removePrefix(VaultDao.ENCRYPTED_PREFIX)
-                                } catch (_: Throwable) {
-                                    cleanPhrase.removePrefix(VaultDao.ENCRYPTED_PREFIX)
-                                }
+                            val cleanPhrase = unwrapVaultCiphertextOrNull(e.phrase)
+                            if (cleanPhrase == null) {
+                                skippedExport++
+                                return@forEach
                             }
+                            val cleanNotes = if (e.notes.isEmpty()) "" else (unwrapVaultCiphertextOrNull(e.notes) ?: "")
                             vaultList.add(
                                 PrivacyVaultBackupEntry(
                                     shortcut = e.shortcut,
                                     phrase = cleanPhrase,
-                                    notes = e.notes,
+                                    notes = cleanNotes,
                                     timestamp = e.timestamp
                                 )
                             )
                         }
-                        val patternSalt = context.prefs().getString(PREF_PATTERN_SALT, null)
-                        val patternHash = context.prefs().getString(PREF_PATTERN_HASH, null)
+                        if (skippedExport > 0) {
+                            LogCatcher.w(TAG, "Skipped $skippedExport un-decryptable/corrupted privacy vault entries during backup")
+                        }
+                        val prefs = context.prefs()
+                        val patternSalt = prefs.getString(PREF_PATTERN_SALT, null)
+                        val patternHash = prefs.getString(PREF_PATTERN_HASH, null)
+                        val securityPatternSalt = prefs.getString(PREF_SECURITY_PATTERN_SALT, null)
+                        val securityPatternHash = prefs.getString(PREF_SECURITY_PATTERN_HASH, null)
 
                         val payload = EncryptedVaultPayload(
                             entries = vaultList,
                             patternSalt = patternSalt,
-                            patternHash = patternHash
+                            patternHash = patternHash,
+                            securityPatternSalt = securityPatternSalt,
+                            securityPatternHash = securityPatternHash,
+                            separatePatterns = prefs.getBoolean(VaultSessionManager.PREF_SEPARATE_PATTERNS, false),
+                            requireGatekeeper = prefs.getBoolean(VaultSessionManager.PREF_REQUIRE_GATEKEEPER, false),
+                            gatekeeperPrivacyVault = prefs.getBoolean(VaultSessionManager.PREF_GATEKEEPER_PRIVACY_VAULT, true),
+                            gatekeeperSecurityVault = prefs.getBoolean(VaultSessionManager.PREF_GATEKEEPER_SECURITY_VAULT, true),
+                            biometricEnabled = prefs.getBoolean(VaultSessionManager.PREF_BIOMETRIC_ENABLED, false),
+                            phonePinEnabled = prefs.getBoolean(VaultSessionManager.PREF_PHONE_PIN_ENABLED, false),
+                            primaryUnlockMethod = prefs.getString(VaultSessionManager.PREF_PRIMARY_UNLOCK_METHOD, null),
+                            backupUnlockMethod = prefs.getString(VaultSessionManager.PREF_BACKUP_UNLOCK_METHOD, null),
+                            securityVaultTimeoutMs = prefs.getLong(
+                                VaultSessionManager.PREF_SECURITY_VAULT_TIMEOUT,
+                                VaultSessionManager.DEFAULT_SECURITY_SESSION_DURATION_MS
+                            ),
+                            privacyVaultTimeoutMs = prefs.getLong(
+                                VaultSessionManager.PREF_PRIVACY_VAULT_TIMEOUT,
+                                VaultSessionManager.DEFAULT_PRIVACY_SESSION_DURATION_MS
+                            ),
+                            stealthGatekeeper = prefs.getBoolean(PREF_STEALTH_GATEKEEPER, true)
                         )
                         val payloadBytes = json.encodeToString(payload).toByteArray(Charsets.UTF_8)
                         val kdfIterations = BackupManifest.DEFAULT_KDF_ITERATIONS
@@ -905,26 +949,59 @@ object ModularBackupEngine {
             if (BackupModule.PRIVACY_VAULT in selectedModules) {
                 val vaultDao = VaultDao.getInstance(context)
                 if (decryptedVaultPayload != null) {
-                    if (decryptedVaultPayload.patternSalt != null && decryptedVaultPayload.patternHash != null) {
-                        context.prefs().edit().apply {
+                    context.prefs().edit().apply {
+                        if (decryptedVaultPayload.patternSalt != null && decryptedVaultPayload.patternHash != null) {
                             putString(PREF_PATTERN_SALT, decryptedVaultPayload.patternSalt)
                             putString(PREF_PATTERN_HASH, decryptedVaultPayload.patternHash)
-                            commit()
                         }
+                        if (decryptedVaultPayload.securityPatternSalt != null && decryptedVaultPayload.securityPatternHash != null) {
+                            putString(PREF_SECURITY_PATTERN_SALT, decryptedVaultPayload.securityPatternSalt)
+                            putString(PREF_SECURITY_PATTERN_HASH, decryptedVaultPayload.securityPatternHash)
+                        } else if (decryptedVaultPayload.separatePatterns == false) {
+                            remove(PREF_SECURITY_PATTERN_SALT)
+                            remove(PREF_SECURITY_PATTERN_HASH)
+                        }
+                        decryptedVaultPayload.separatePatterns?.let { putBoolean(VaultSessionManager.PREF_SEPARATE_PATTERNS, it) }
+                        decryptedVaultPayload.requireGatekeeper?.let { putBoolean(VaultSessionManager.PREF_REQUIRE_GATEKEEPER, it) }
+                        decryptedVaultPayload.gatekeeperPrivacyVault?.let { putBoolean(VaultSessionManager.PREF_GATEKEEPER_PRIVACY_VAULT, it) }
+                        decryptedVaultPayload.gatekeeperSecurityVault?.let { putBoolean(VaultSessionManager.PREF_GATEKEEPER_SECURITY_VAULT, it) }
+                        decryptedVaultPayload.biometricEnabled?.let { putBoolean(VaultSessionManager.PREF_BIOMETRIC_ENABLED, it) }
+                        decryptedVaultPayload.phonePinEnabled?.let { putBoolean(VaultSessionManager.PREF_PHONE_PIN_ENABLED, it) }
+                        decryptedVaultPayload.primaryUnlockMethod?.let { putString(VaultSessionManager.PREF_PRIMARY_UNLOCK_METHOD, it) }
+                        decryptedVaultPayload.backupUnlockMethod?.let { putString(VaultSessionManager.PREF_BACKUP_UNLOCK_METHOD, it) }
+                        decryptedVaultPayload.securityVaultTimeoutMs?.let { putLong(VaultSessionManager.PREF_SECURITY_VAULT_TIMEOUT, it) }
+                        decryptedVaultPayload.privacyVaultTimeoutMs?.let { putLong(VaultSessionManager.PREF_PRIVACY_VAULT_TIMEOUT, it) }
+                        decryptedVaultPayload.stealthGatekeeper?.let { putBoolean(PREF_STEALTH_GATEKEEPER, it) }
+                        commit()
                     }
-                    val restoredCount = vaultDao.replaceAllInTransaction(
-                        decryptedVaultPayload.entries.map { e ->
+                    VaultSessionManager.resetLockout(context)
+                    VaultSessionManager.lockAll()
+
+                    val restoredEntries = mutableListOf<helium314.keyboard.latin.database.VaultEntry>()
+                    var skippedCount = 0
+                    for (e in decryptedVaultPayload.entries) {
+                        val cleanPhrase = unwrapVaultCiphertextOrNull(e.phrase)
+                        if (cleanPhrase == null) {
+                            skippedCount++
+                            continue
+                        }
+                        val cleanNotes = if (e.notes.isEmpty()) "" else (unwrapVaultCiphertextOrNull(e.notes) ?: "")
+                        restoredEntries.add(
                             helium314.keyboard.latin.database.VaultEntry(
                                 id = 0L,
                                 shortcut = e.shortcut,
-                                phrase = e.phrase,
-                                notes = e.notes,
+                                phrase = cleanPhrase,
+                                notes = cleanNotes,
                                 timestamp = e.timestamp
                             )
-                        }
-                    )
+                        )
+                    }
+                    if (skippedCount > 0) {
+                        LogCatcher.w(TAG, "Skipped $skippedCount un-decryptable/corrupted privacy vault entries from backup payload")
+                    }
+                    val restoredCount = vaultDao.replaceAllInTransaction(restoredEntries)
                     restoredStats["privacy_vault_count"] = restoredCount
-                    LogCatcher.i(TAG, "Restored $restoredCount encrypted privacy vault entries")
+                    LogCatcher.i(TAG, "Restored $restoredCount encrypted privacy vault entries and unlock configuration")
                 } else {
                     if (privacyVaultPatternJson != null) {
                         try {
@@ -932,25 +1009,31 @@ object ModularBackupEngine {
                             context.prefs().edit().apply {
                                 patternMap[PREF_PATTERN_SALT]?.let { putString(PREF_PATTERN_SALT, it) }
                                 patternMap[PREF_PATTERN_HASH]?.let { putString(PREF_PATTERN_HASH, it) }
+                                patternMap[PREF_SECURITY_PATTERN_SALT]?.let { putString(PREF_SECURITY_PATTERN_SALT, it) }
+                                patternMap[PREF_SECURITY_PATTERN_HASH]?.let { putString(PREF_SECURITY_PATTERN_HASH, it) }
                                 commit()
                             }
+                            VaultSessionManager.resetLockout(context)
+                            VaultSessionManager.lockAll()
                         } catch (t: Throwable) {
                             LogCatcher.w(TAG, "Restoring legacy pattern credentials error: ${t.message}")
                         }
                     }
                     if (privacyVaultJson != null) {
                         val entries = json.decodeFromString<List<PrivacyVaultBackupEntry>>(privacyVaultJson!!)
-                        val mapped = entries.map { e ->
-                            var cleanPhrase = e.phrase
-                            while (cleanPhrase.startsWith(VaultDao.ENCRYPTED_PREFIX)) {
-                                cleanPhrase = try {
-                                    VaultCryptoManager.decryptBase64ToString(cleanPhrase.removePrefix(VaultDao.ENCRYPTED_PREFIX))
-                                        ?: cleanPhrase.removePrefix(VaultDao.ENCRYPTED_PREFIX)
-                                } catch (_: Throwable) {
-                                    cleanPhrase.removePrefix(VaultDao.ENCRYPTED_PREFIX)
-                                }
+                        val mapped = mutableListOf<helium314.keyboard.latin.database.VaultEntry>()
+                        var skippedCount = 0
+                        for (e in entries) {
+                            val cleanPhrase = unwrapVaultCiphertextOrNull(e.phrase)
+                            if (cleanPhrase == null) {
+                                skippedCount++
+                                continue
                             }
-                            helium314.keyboard.latin.database.VaultEntry(0L, e.shortcut, cleanPhrase, e.notes, e.timestamp)
+                            val cleanNotes = if (e.notes.isEmpty()) "" else (unwrapVaultCiphertextOrNull(e.notes) ?: "")
+                            mapped.add(helium314.keyboard.latin.database.VaultEntry(0L, e.shortcut, cleanPhrase, cleanNotes, e.timestamp))
+                        }
+                        if (skippedCount > 0) {
+                            LogCatcher.w(TAG, "Skipped $skippedCount un-decryptable legacy json vault entries (device KeyStore mismatch)")
                         }
                         val count = vaultDao.replaceAllInTransaction(mapped)
                         restoredStats["privacy_vault_count"] = count
@@ -963,29 +1046,31 @@ object ModularBackupEngine {
                             ).use { it.moveToFirst() }
                             if (hasVault) {
                                 val mapped = mutableListOf<helium314.keyboard.latin.database.VaultEntry>()
+                                var skippedCount = 0
                                 otherDb.readableDatabase.rawQuery(
                                     "SELECT SHORTCUT, PHRASE, NOTES, TIMESTAMP FROM ${VaultDao.TABLE}", null
                                 ).use { c ->
                                     while (c.moveToNext()) {
-                                        var cleanPhrase = c.getString(1) ?: ""
-                                        while (cleanPhrase.startsWith(VaultDao.ENCRYPTED_PREFIX)) {
-                                            cleanPhrase = try {
-                                                VaultCryptoManager.decryptBase64ToString(cleanPhrase.removePrefix(VaultDao.ENCRYPTED_PREFIX))
-                                                    ?: cleanPhrase.removePrefix(VaultDao.ENCRYPTED_PREFIX)
-                                            } catch (_: Throwable) {
-                                                cleanPhrase.removePrefix(VaultDao.ENCRYPTED_PREFIX)
-                                            }
+                                        val cleanPhrase = unwrapVaultCiphertextOrNull(c.getString(1) ?: "")
+                                        if (cleanPhrase == null) {
+                                            skippedCount++
+                                            continue
                                         }
+                                        val rawNotes = c.getStringOrNull(2) ?: ""
+                                        val cleanNotes = if (rawNotes.isEmpty()) "" else (unwrapVaultCiphertextOrNull(rawNotes) ?: "")
                                         mapped.add(
                                             helium314.keyboard.latin.database.VaultEntry(
                                                 id = 0L,
                                                 shortcut = c.getString(0) ?: "",
                                                 phrase = cleanPhrase,
-                                                notes = c.getStringOrNull(2) ?: "",
+                                                notes = cleanNotes,
                                                 timestamp = c.getLong(3)
                                             )
                                         )
                                     }
+                                }
+                                if (skippedCount > 0) {
+                                    LogCatcher.w(TAG, "Skipped $skippedCount un-decryptable legacy db vault entries (device KeyStore mismatch)")
                                 }
                                 val count = vaultDao.replaceAllInTransaction(mapped)
                                 restoredStats["privacy_vault_count"] = count

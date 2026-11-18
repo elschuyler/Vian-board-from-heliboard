@@ -12,6 +12,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class BackupCryptoTest {
@@ -108,5 +109,39 @@ class BackupCryptoTest {
         assertFailsWith<IllegalArgumentException> {
             ModularBackupEngine.decryptVaultBlob(ByteArray(32), "", ByteArray(16), 10_000)
         }
+    }
+
+    @Test
+    fun encryptAndDecryptVaultPayload_preservesSecurityPatternAndUnlockSettings() {
+        val payload = EncryptedVaultPayload(
+            entries = listOf(PrivacyVaultBackupEntry(shortcut = "sh ", phrase = "secret phrase")),
+            patternSalt = "aabbccdd",
+            patternHash = "11223344",
+            securityPatternSalt = "eeff0011",
+            securityPatternHash = "55667788",
+            separatePatterns = true,
+            requireGatekeeper = true,
+            gatekeeperPrivacyVault = false,
+            gatekeeperSecurityVault = true,
+            biometricEnabled = true,
+            phonePinEnabled = true,
+            primaryUnlockMethod = "biometric",
+            backupUnlockMethod = "pattern",
+            securityVaultTimeoutMs = 300_000L,
+            privacyVaultTimeoutMs = 600_000L,
+            stealthGatekeeper = false
+        )
+        val plaintext = ModularBackupEngine.json.encodeToString(payload).toByteArray(Charsets.UTF_8)
+        val (cipherBytes, saltBytes) = ModularBackupEngine.encryptVaultBlob(plaintext, "pass-123", 10_000)
+        val decrypted = ModularBackupEngine.decryptVaultBlob(cipherBytes, "pass-123", saltBytes, 10_000)
+        val decoded = ModularBackupEngine.json.decodeFromString<EncryptedVaultPayload>(String(decrypted, Charsets.UTF_8))
+        assertEquals(payload, decoded)
+    }
+
+    @Test
+    fun unwrapVaultCiphertextOrNull_rejectsUndecryptableOrCorruptedPayloads() {
+        assertNull(ModularBackupEngine.unwrapVaultCiphertextOrNull("🔒enc:ZmFrZWNpcGhlcnRleHQ="))
+        assertNull(ModularBackupEngine.unwrapVaultCiphertextOrNull("corrupt\uFFFDvalue"))
+        assertEquals("clean secret", ModularBackupEngine.unwrapVaultCiphertextOrNull("clean secret"))
     }
 }

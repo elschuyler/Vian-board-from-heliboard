@@ -24,7 +24,7 @@ class EnergyVad(
      * Process a single PCM frame of audio shorts.
      * Returns true if speech was detected in this frame.
      */
-    fun processFrame(buffer: ShortArray, readSize: Int): Boolean {
+    fun processFrame(buffer: ShortArray, readSize: Int, gainMultiplier: Int = 1): Boolean {
         if (readSize <= 0) return isSpeechDetected
 
         var sumSquares = 0.0
@@ -32,7 +32,8 @@ class EnergyVad(
             val sample = buffer[i].toDouble()
             sumSquares += sample * sample
         }
-        val frameEnergy = sqrt(sumSquares / readSize).toFloat()
+        val effectiveGain = gainMultiplier.coerceAtLeast(1).toFloat()
+        val frameEnergy = sqrt(sumSquares / readSize).toFloat() / effectiveGain
 
         // Slowly adapt noise floor when quiet
         if (frameEnergy < noiseFloor * 1.5f) {

@@ -51,3 +51,45 @@
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: Verify Voice modal layout/sizing, live tap toggles, and Whisper spoken dictation on a physical device once exported/built via GitHub Actions.
 
+### Receipt 008-03
+- **Timestamp**: 2026-11-18T00:42:30-08:00
+- **Requested**:
+  - Implement all 5 finalized stabilization pillars: (1) Voice modal stability (`×`/`ABC` dismiss only; Space/Delete/Enter pause mic without closing), crisp ON/OFF pill contrast, full-width horizontal equalizer animation, greedy Whisper default (`1200ms`/96k rolling window) & gain-normalized VAD/RMS; (2) Desktop Shortcuts bottom system navigation bar inset clearance; (3) Privacy Vault backup/restore preserving unlock config + patterns without gibberish ciphertext import; (4) `applicationId = "shura.keyboard"` and `versionName = "1beta"`; (5) Locked HeliBoard 4.1–4.3 low-risk imports and normal-typing hide diagnostics/guards.
+- **Exact files touched**:
+  - `app/build.gradle.kts`
+  - `app/src/main/java/helium314/keyboard/latin/settings/Defaults.kt`
+  - `app/src/main/java/helium314/keyboard/latin/voice/EnergyVad.kt`
+  - `app/src/main/java/helium314/keyboard/latin/voice/AudioRecordPipeline.kt`
+  - `app/src/main/java/helium314/keyboard/latin/voice/VoiceInputService.kt`
+  - `app/src/main/java/helium314/keyboard/latin/voice/VoicePulseView.kt`
+  - `app/src/main/java/helium314/keyboard/latin/voice/VoiceInputView.kt`
+  - `app/src/main/java/helium314/keyboard/keyboard/KeyboardSwitcher.java`
+  - `app/src/main/java/helium314/keyboard/latin/LatinIME.java`
+  - `app/src/main/java/helium314/keyboard/keyboard/desktop/DesktopShortcutsView.kt`
+  - `app/src/main/java/helium314/keyboard/settings/backup/BackupManifest.kt`
+  - `app/src/main/java/helium314/keyboard/settings/backup/ModularBackupEngine.kt`
+  - `app/src/main/java/helium314/keyboard/latin/database/Database.kt`
+  - `app/src/main/java/helium314/keyboard/settings/screens/BackupRestoreScreen.kt`
+  - `app/src/main/java/helium314/keyboard/latin/DictionaryFacilitator.java`
+  - `app/src/main/java/helium314/keyboard/latin/SingleDictionaryFacilitator.kt`
+  - `app/src/main/java/helium314/keyboard/latin/DictionaryFacilitatorImpl.kt`
+  - `app/src/main/java/helium314/keyboard/keyboard/Key.java`
+  - `app/src/main/java/helium314/keyboard/keyboard/internal/keyboard_parser/floris/TextKeyData.kt`
+  - `app/src/main/java/helium314/keyboard/latin/suggestions/SuggestionStripView.kt`
+  - `app/src/main/java/helium314/keyboard/latin/inputlogic/InputLogic.java`
+  - `app/src/test/java/helium314/keyboard/BackupCryptoTest.kt`
+  - `app/src/test/java/helium314/keyboard/StabilizationRegressionTest.kt` (new)
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_008.md`
+- **What was actually done**:
+  1. **Package & Version Identity (`app/build.gradle.kts`)**: Set `applicationId = "shura.keyboard"` and `versionName = "1beta"`, keeping `versionCode = 4100`, `namespace = "helium314.keyboard.latin"`, and existing `signingConfigs` untouched.
+  2. **Voice Modal Stability, UI Contrast, Waveform & Whisper/VAD Pipeline**: Guarded `KeyboardSwitcher.setAlphabetKeyboard(ShiftMode)` when Voice Input is active and introduced `closeVoiceInput()` for explicit dismissal (`×`, `ABC`, OS Back, `onToggleKeyboard(VOICE)`, `reloadMainKeyboard`, IME hide/finish). Space/Delete/Enter in `VoiceInputView` now call `pauseVoiceInput()` and keep the modal open. Added crisp ON/OFF `GradientDrawable` pill borders/opacity on action toggles without changing the `175dp..195dp` compact vertical clamp. Upgraded `VoicePulseView` bar count dynamically (`21..96`) in `onSizeChanged` with a `postOnAnimation` fallback when animations are disabled. Normalized `EnergyVad` by `gainMultiplier`, switched `AudioRecordPipeline` RMS to a `sqrt` curve with gain-scaled ambient floor, defaulted `PREF_VOICE_USE_BEAM_SEARCH = false`, raised `INTERIM_INFERENCE_INTERVAL_MS` to `1200L`, capped interim samples to `96_000`, and avoided final inference on `onUnbind()`.
+  3. **Desktop Shortcuts Nav Bar Insets (`DesktopShortcutsView.kt`)**: Enabled `fitsSystemWindows = true`, applied bottom `WindowInsets.Type.navigationBars()` (except in floating mode), and included padding in `onMeasure()`.
+  4. **Privacy Vault Backup/Restore & Unlock Config (`BackupManifest.kt`, `ModularBackupEngine.kt`, `Database.kt`, `BackupRestoreScreen.kt`)**: Added full unlock settings and security pattern fields to `EncryptedVaultPayload`, restored them atomically + reset lockout/sessions, replaced blind prefix stripping with `unwrapVaultCiphertextOrNull` across both `ModularBackupEngine` and `Database.copyFromDb` (skipping undecryptable/gibberish entries and decrypting notes), and updated BackupRestoreScreen copy.
+  5. **HeliBoard 4.1–4.3 Low-Risk Imports & Normal Typing Hardening**: Added sanitized `LogCatcher` window/hide breadcrumbs and zero-height `onComputeInsets` guards in `LatinIME.java`; removed unused `ValidSpellingWord*` caches across `DictionaryFacilitator*` (and fixed `synchronized(this@DictionaryFacilitatorImpl)` in `asyncReloadUninitializedMainDictionaries`); added empty popup-key length guard (`Key.java`), popup placeholder guard (`TextKeyData.kt`), more-suggestions dismissal on toolbar show (`SuggestionStripView.kt`), and deferred shift update after arrows (`InputLogic.java`).
+- **How it was verified**: Local Gradle R8/lint/unit/Robolectric verification and `compile_applet`:
+  - `gradle :app:testDebugUnitTest` (full run): 212 tests run, 19 pre-existing/sandbox failures (`XLinkTest` [3: offline/repo paths], `ParserTest` [6: fork INR currency vs `$` & `de_DE`], `SuggestTest` [7: fork caps/center-suggestion defaults], `InputLogicTest.insertLetterIntoWordHangulFails` [1], `StringUtilsTest.detectEmojisAtEndFails` [1]) + 1 new Robolectric test adjusted for missing Keyguard/Fingerprint hardware shadows (`StabilizationRegressionTest`).
+  - After updating `StabilizationRegressionTest` shadows (`ShadowKeyguardManager.setIsDeviceSecure(true)`, `ShadowPackageManager.setSystemFeature(FEATURE_FINGERPRINT, true)`): `gradle :app:testDebugUnitTest --tests ... :app:assembleMinifiedDebug :app:lintVitalMinifiedDebug --no-daemon` succeeded with **50/50 targeted tests passed** (`StabilizationRegressionTest` [6/6], `BackupCryptoTest` [7/7], `VoiceActionsTest` [10/10], `VaultLockoutTest` [7/7], `LiteDictionaryDropTest` [1/1], `KdbxAttachmentTest` [1/1], `InputTest` [6/6], `SubtypeTest` [2/2], `SpellCheckerTest` [2/2], `LayoutTest` [1/1], `KeySpecParserTest` [2/2], `SaveGestureDataTest` [3/3], `LocaleUtilsTest` [1/1], `ScriptUtilsTest` [1/1]). `output-metadata.json` verified `applicationId = "shura.keyboard"`, `versionName = "1beta"`, `versionCode = 4100`. `compile_applet` succeeded. On-device APK verification has not yet occurred.
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Because `applicationId` changed from `shura.keyboard.rbsdrd` to `shura.keyboard`, users must export an encrypted modular backup (`.zip` with passphrase for Privacy Vault and `.kdbx` for Security Vault) before uninstalling `shura.keyboard.rbsdrd` and clean-installing `shura.keyboard` via GitHub Actions CI.
+

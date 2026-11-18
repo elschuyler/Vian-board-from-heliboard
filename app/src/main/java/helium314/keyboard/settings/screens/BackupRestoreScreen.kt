@@ -189,7 +189,7 @@ fun BackupRestoreScreen(
                 )
                 Preference(
                     name = stringResource(R.string.button_restore),
-                    description = "Granular restore from backup archive (.zip excludes vault credentials, use .kdbx)",
+                    description = "Granular restore from backup archive (Privacy Vault encrypted via passphrase; Security Vault uses .kdbx)",
                     icon = R.drawable.ic_settings_advanced,
                     onClick = {
                         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)

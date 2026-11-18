@@ -192,7 +192,7 @@ object Defaults {
     const val PREF_VOICE_INPUT_GAIN = "1.0"
     const val PREF_VOICE_MODEL_NAME = ""
     const val PREF_VOICE_SUPPRESS_ANNOTATIONS = true
-    const val PREF_VOICE_USE_BEAM_SEARCH = true
+    const val PREF_VOICE_USE_BEAM_SEARCH = false
     const val PREF_VOICE_CONTINUOUS_STREAMING = true
     const val PREF_VOICE_VERBOSE_MODE = false
     const val PREF_VOICE_ACTIONS_CONFIG = ""

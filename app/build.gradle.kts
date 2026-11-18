@@ -10,11 +10,11 @@ android {
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
-    applicationId = "shura.keyboard.rbsdrd"
+    applicationId = "shura.keyboard"
     minSdk = 24
     targetSdk = 36
     versionCode = 4100
-    versionName = "4.1-beta1"
+    versionName = "1beta"
 
     resourceConfigurations += listOf("en", "fr")
     ndk {

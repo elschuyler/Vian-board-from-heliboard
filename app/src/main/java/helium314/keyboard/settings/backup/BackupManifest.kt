@@ -109,7 +109,20 @@ data class PrivacyVaultBackupEntry(
 data class EncryptedVaultPayload(
     val entries: List<PrivacyVaultBackupEntry> = emptyList(),
     val patternSalt: String? = null,
-    val patternHash: String? = null
+    val patternHash: String? = null,
+    val securityPatternSalt: String? = null,
+    val securityPatternHash: String? = null,
+    val separatePatterns: Boolean? = null,
+    val requireGatekeeper: Boolean? = null,
+    val gatekeeperPrivacyVault: Boolean? = null,
+    val gatekeeperSecurityVault: Boolean? = null,
+    val biometricEnabled: Boolean? = null,
+    val phonePinEnabled: Boolean? = null,
+    val primaryUnlockMethod: String? = null,
+    val backupUnlockMethod: String? = null,
+    val securityVaultTimeoutMs: Long? = null,
+    val privacyVaultTimeoutMs: Long? = null,
+    val stealthGatekeeper: Boolean? = null
 )
 
 data class BackupArchiveInfo(

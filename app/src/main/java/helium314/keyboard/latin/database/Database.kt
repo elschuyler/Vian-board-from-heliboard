@@ -10,6 +10,7 @@ import androidx.core.database.sqlite.transaction
 import helium314.keyboard.latin.utils.GestureDataDao
 import helium314.keyboard.latin.utils.Log
 import helium314.keyboard.latin.utils.LogCatcher
+import helium314.keyboard.settings.backup.ModularBackupEngine
 import java.io.File
 
 class Database internal constructor(context: Context, name: String = NAME) : SQLiteOpenHelper(context, name, null, VERSION) {
@@ -154,20 +155,36 @@ class Database internal constructor(context: Context, name: String = NAME) : SQL
                             "SELECT name FROM sqlite_master WHERE type='table' AND name='${VaultDao.TABLE}'", null
                         ).use { it.moveToFirst() }
                         if (hasVaultTable) {
-                            val vaultDao = VaultDao.getInstance(context)
+                            val vaultDao = VaultDao.getInstance(appCtx)
+                            val mapped = mutableListOf<VaultEntry>()
+                            var skippedCount = 0
                             otherDb.readableDatabase.rawQuery(
                                 "SELECT _id, SHORTCUT, PHRASE, NOTES, TIMESTAMP FROM ${VaultDao.TABLE}", null
                             ).use { c ->
-                                vaultDao.clear()
                                 while (c.moveToNext()) {
-                                    vaultDao.addOrUpdate(
-                                        shortcut = c.getString(1) ?: "",
-                                        phrase = c.getString(2) ?: "",
-                                        notes = c.getStringOrNull(3) ?: ""
+                                    val cleanPhrase = ModularBackupEngine.unwrapVaultCiphertextOrNull(c.getString(2) ?: "")
+                                    if (cleanPhrase == null) {
+                                        skippedCount++
+                                        continue
+                                    }
+                                    val rawNotes = c.getStringOrNull(3) ?: ""
+                                    val cleanNotes = if (rawNotes.isEmpty()) "" else (ModularBackupEngine.unwrapVaultCiphertextOrNull(rawNotes) ?: "")
+                                    mapped.add(
+                                        VaultEntry(
+                                            id = 0L,
+                                            shortcut = c.getString(1) ?: "",
+                                            phrase = cleanPhrase,
+                                            notes = cleanNotes,
+                                            timestamp = c.getLong(4)
+                                        )
                                     )
                                 }
                             }
-                            LogCatcher.i(TAG, "Restored ${vaultDao.count} vault entries")
+                            if (skippedCount > 0) {
+                                LogCatcher.w(TAG, "Skipped $skippedCount un-decryptable vault entries during DB copy")
+                            }
+                            val restoredCount = vaultDao.replaceAllInTransaction(mapped)
+                            LogCatcher.i(TAG, "Restored $restoredCount vault entries")
                         }
                     } catch (t: Throwable) {
                         LogCatcher.log('W', TAG, "Restore vault entries skipped: ${t.message}")

@@ -312,6 +312,7 @@ sealed interface KeyData : AbstractKeyData {
     }
 
     override fun compute(params: KeyboardParams, isPopup: Boolean): KeyData? {
+        if (isPopup && type == KeyType.PLACEHOLDER) return null
         require(groupId in GROUP_NO_DEFAULT_POPUP..GROUP_ENTER) { "only groupIds from -1 to 3 are supported" }
         require(label.isNotEmpty() || type == KeyType.PLACEHOLDER || code != KeyCode.UNSPECIFIED) { "non-placeholder key has no code and no label" }
         require(width >= 0f || width == -1f) { "illegal width $width" }

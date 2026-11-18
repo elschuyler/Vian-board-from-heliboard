@@ -823,7 +823,7 @@ public class LatinIME extends InputMethodService implements
     @Override
     public void onFinishInputView(final boolean finishingInput) {
         if (!mKeyboardSwitcher.isPendingVoiceLaunch() && mKeyboardSwitcher.isShowingVoiceInput()) {
-            mKeyboardSwitcher.setAlphabetKeyboard(ShiftMode.UNSHIFT);
+            mKeyboardSwitcher.closeVoiceInput();
         }
         if (mKeyboardSwitcher.isShowingSecurityVaultExplorer()) {
             mKeyboardSwitcher.closeSecurityVaultExplorer(false);
@@ -841,7 +841,7 @@ public class LatinIME extends InputMethodService implements
     @Override
     public void onFinishInput() {
         if (!mKeyboardSwitcher.isPendingVoiceLaunch() && mKeyboardSwitcher.isShowingVoiceInput()) {
-            mKeyboardSwitcher.setAlphabetKeyboard(ShiftMode.UNSHIFT);
+            mKeyboardSwitcher.closeVoiceInput();
         }
         if (mKeyboardSwitcher.isShowingSecurityVaultExplorer()) {
             mKeyboardSwitcher.closeSecurityVaultExplorer(false);
@@ -1095,13 +1095,14 @@ public class LatinIME extends InputMethodService implements
     public void onWindowHidden() {
         super.onWindowHidden();
         Log.i(TAG, "onWindowHidden");
+        LogCatcher.INSTANCE.i(TAG, "IME window hidden (showing=" + isInputViewShown() + ")");
         if (mKeyboardSwitcher != null && mKeyboardSwitcher.isFloatingModalActive()) {
             mKeyboardSwitcher.closeFloatingModal();
         }
         TempIncognitoManager.onKeyboardClosed();
         VaultSessionManager.INSTANCE.lockVaults();
         if (!mKeyboardSwitcher.isPendingVoiceLaunch() && mKeyboardSwitcher.isShowingVoiceInput()) {
-            mKeyboardSwitcher.closeSecondaryKeyboard();
+            mKeyboardSwitcher.closeVoiceInput();
         }
         if (mKeyboardSwitcher.isShowingPatternUnlock()) {
             mKeyboardSwitcher.closeSecondaryKeyboard();
@@ -1131,6 +1132,7 @@ public class LatinIME extends InputMethodService implements
     void onFinishInputViewInternal(final boolean finishingInput) {
         super.onFinishInputView(finishingInput);
         Log.i(TAG, "onFinishInputView");
+        LogCatcher.INSTANCE.i(TAG, "onFinishInputViewInternal finishingInput=" + finishingInput);
         cleanupInternalStateForFinishInput();
     }
 
@@ -1222,6 +1224,7 @@ public class LatinIME extends InputMethodService implements
     @Override
     public void hideWindow() {
         Log.i(TAG, "hideWindow");
+        LogCatcher.INSTANCE.i(TAG, "hideWindow invoked (liteMode=" + mSettings.getCurrent().mLiteMode + ")");
         if (hasSuggestionStripView() && mSettings.getCurrent().mToolbarMode == ToolbarMode.EXPANDABLE)
             mSuggestionStripView.setToolbarVisibility(false);
         mKeyboardSwitcher.onHideWindow();
@@ -1243,6 +1246,7 @@ public class LatinIME extends InputMethodService implements
     public void requestHideSelf(int flags) {
         super.requestHideSelf(flags);
         Log.i(TAG, "requestHideSelf: " + flags);
+        LogCatcher.INSTANCE.i(TAG, "requestHideSelf flags=" + flags);
     }
 
     @Override
@@ -1306,9 +1310,13 @@ public class LatinIME extends InputMethodService implements
             mInsetsUpdater.setInsets(outInsets);
             return;
         }
-        final int stripHeight = mKeyboardSwitcher.isShowingStripContainer() ? mKeyboardSwitcher.getStripContainer().getHeight() : 0;
-        int visibleTopY = inputHeight - visibleKeyboardView.getHeight() - stripHeight;
         final boolean isFloatingModal = (mKeyboardSwitcher != null && mKeyboardSwitcher.isFloatingModalActive()) || Settings.getValues().mIsHalfBoard;
+        if (!isFloatingModal && (inputHeight <= 0 || visibleKeyboardView.getHeight() <= 0 || visibleKeyboardView.getWidth() <= 0)) {
+            mInsetsUpdater.setInsets(outInsets);
+            return;
+        }
+        final int stripHeight = mKeyboardSwitcher.isShowingStripContainer() ? mKeyboardSwitcher.getStripContainer().getHeight() : 0;
+        int visibleTopY = Math.max(0, inputHeight - visibleKeyboardView.getHeight() - stripHeight);
         if (isFloatingModal)
             visibleTopY = getResources().getDisplayMetrics().heightPixels;
 
@@ -1317,11 +1325,12 @@ public class LatinIME extends InputMethodService implements
         }
 
         // Need to set expanded touchable region if a keyboard view is shown or if floating keyboard is folded
-        if (visibleKeyboardView.isShown() || (isFloatingModal && FloatingKeyboardUtils.isFolded())) {
+        if ((visibleKeyboardView.isShown() && visibleKeyboardView.getWidth() > 0 && visibleKeyboardView.getHeight() > 0)
+                || (isFloatingModal && FloatingKeyboardUtils.isFolded())) {
             int touchLeft = 0;
             int touchTop = mKeyboardSwitcher.isShowingPopupKeysPanel() ? 0 : visibleTopY;
-            int touchRight = visibleKeyboardView.getWidth();
-            int touchBottom = inputHeight + EXTENDED_TOUCHABLE_REGION_HEIGHT; // Extend touchable region below the keyboard.
+            int touchRight = Math.max(touchLeft + 1, visibleKeyboardView.getWidth());
+            int touchBottom = Math.max(touchTop + 1, inputHeight + EXTENDED_TOUCHABLE_REGION_HEIGHT); // Extend touchable region below the keyboard.
             if (isFloatingModal) {
                 final int[] loc = new int[2];
                 if (FloatingKeyboardUtils.isFolded()) {
@@ -1580,7 +1589,7 @@ public class LatinIME extends InputMethodService implements
     public void onVoiceInputTriggered() {
         LogCatcher.INSTANCE.i("LatinIME", "Voice input triggered (showingVoiceInput=" + mKeyboardSwitcher.isShowingVoiceInput() + ")");
         if (mKeyboardSwitcher.isShowingVoiceInput()) {
-            mKeyboardSwitcher.setAlphabetKeyboard(ShiftMode.UNSHIFT);
+            mKeyboardSwitcher.closeVoiceInput();
             return;
         }
         if (!VoicePermissionBridge.INSTANCE.hasRecordAudioPermission(this)) {
@@ -2163,7 +2172,7 @@ public class LatinIME extends InputMethodService implements
         if (keyCode == KeyEvent.KEYCODE_BACK) {
             if (mKeyboardSwitcher.isShowingVoiceInput()) {
                 LogCatcher.INSTANCE.i("LatinIME", "Voice modal dismissed via Back key");
-                mKeyboardSwitcher.setAlphabetKeyboard(ShiftMode.UNSHIFT);
+                mKeyboardSwitcher.closeVoiceInput();
                 return true;
             }
             if (mKeyboardSwitcher.isShowingSecurityVaultExplorer()) {
@@ -2242,6 +2251,13 @@ public class LatinIME extends InputMethodService implements
 
     public boolean isLiteMode() {
         return mSettings.getCurrent().mLiteMode;
+    }
+
+    public void flushComposingTextForDesktopShortcuts() {
+        if (mInputLogic.isComposingWord()) {
+            mInputLogic.commitTyped(mSettings.getCurrent(), LastComposedWord.NOT_A_SEPARATOR);
+        }
+        mInputLogic.mConnection.finishComposingText();
     }
 
     public void restoreSecondaryDictionaries() {

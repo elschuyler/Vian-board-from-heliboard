@@ -1470,5 +1470,7 @@ New dictionary:
     <string name="pref_sliding_key_input_preview_title">Show Slide Indicator</string>
     <string name="pref_sliding_key_input_preview_summary">Display elastic rubber-band line and origin spot while sliding from Shift or Symbol keys</string>
 
+    <string name="desktop_shortcuts_max_slots_warning">Max 7 modal button slots. Turn one off first.</string>
+
     <!-- new strings should go above the section for gesture data gathering -->
 </resources>

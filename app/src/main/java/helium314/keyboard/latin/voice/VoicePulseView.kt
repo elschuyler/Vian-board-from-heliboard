@@ -41,7 +41,7 @@ class VoicePulseView @JvmOverloads constructor(
         set(value) {
             val stateChanged = field != value
             field = value
-            if (stateChanged || (value == PulseState.LISTENING && animator == null)) {
+            if (stateChanged || (value == PulseState.LISTENING && animator == null && !fallbackFrameScheduled)) {
                 updateAnimationState()
                 invalidate()
             }
@@ -51,16 +51,17 @@ class VoicePulseView @JvmOverloads constructor(
     private var inputRms: Float = 0f
     private var smoothedRms: Float = 0f
 
-    // Physics & Equalizer bar simulation
-    private val numBars = 21
-    private val barHeights = FloatArray(numBars)
-    private val targetHeights = FloatArray(numBars)
-    private val barDecay = FloatArray(numBars)
-    private val barWeights = FloatArray(numBars)
-    private val barPhaseOffsets = FloatArray(numBars)
+    // Physics & Equalizer bar simulation (dynamically sized to fill available horizontal width)
+    private var numBars = 21
+    private var barHeights = FloatArray(numBars)
+    private var targetHeights = FloatArray(numBars)
+    private var barDecay = FloatArray(numBars)
+    private var barWeights = FloatArray(numBars)
+    private var barPhaseOffsets = FloatArray(numBars)
 
     private val barRect = RectF()
     private var animator: ValueAnimator? = null
+    private var fallbackFrameScheduled: Boolean = false
     private var animTime: Float = 0f
     private var lastFrameTimeNanos: Long = 0L
 
@@ -75,59 +76,91 @@ class VoicePulseView @JvmOverloads constructor(
     private var cachedGradient: LinearGradient? = null
     private var lastGradientHeight: Float = 0f
 
+    private val fallbackFrameRunnable = object : Runnable {
+        override fun run() {
+            fallbackFrameScheduled = false
+            if (pulseState != PulseState.LISTENING || !isAttachedToWindow) return
+            advanceAnimationFrame()
+            fallbackFrameScheduled = true
+            postOnAnimation(this)
+        }
+    }
+
     init {
+        allocateBars(numBars)
+        updateAnimationState()
+    }
+
+    private fun allocateBars(count: Int) {
+        val clamped = count.coerceIn(21, 96)
+        numBars = clamped
+        barHeights = FloatArray(clamped)
+        targetHeights = FloatArray(clamped)
+        barDecay = FloatArray(clamped)
+        barWeights = FloatArray(clamped)
+        barPhaseOffsets = FloatArray(clamped)
         // Pre-compute frequency response curve: center-heavy with natural acoustic roll-off
         val random = Random(42)
-        for (i in 0 until numBars) {
-            val normalized = i.toFloat() / (numBars - 1) // 0.0 to 1.0
-            // Bell curve with natural spread
+        for (i in 0 until clamped) {
+            val normalized = i.toFloat() / (clamped - 1) // 0.0 to 1.0
             val bell = sin(normalized * Math.PI).toFloat()
-            // Bass, speech vowels (mids), and fricatives (highs) variation
             val jitter = 0.85f + random.nextFloat() * 0.30f
             barWeights[i] = (0.35f + 0.65f * bell) * jitter
             barPhaseOffsets[i] = random.nextFloat() * 6.28f
             barDecay[i] = 0.70f + random.nextFloat() * 0.15f
         }
-        updateAnimationState()
     }
+
+    internal fun getBarCountForTesting(): Int = numBars
 
     fun setRms(rms: Float) {
         inputRms = rms.coerceIn(0f, 1f)
         if (pulseState == PulseState.LISTENING) {
-            invalidate()
+            postInvalidateOnAnimation()
         }
     }
 
-    private fun updateAnimationState() {
+    private fun advanceAnimationFrame() {
+        val now = System.nanoTime()
+        val deltaSec = if (lastFrameTimeNanos > 0L) {
+            ((now - lastFrameTimeNanos) / 1_000_000_000f).coerceIn(0.005f, 0.05f)
+        } else 0.016f
+        lastFrameTimeNanos = now
+
+        animTime += deltaSec * 3.5f
+        smoothedRms = smoothedRms * 0.65f + inputRms * 0.35f
+        updateBarPhysics(deltaSec)
+        postInvalidateOnAnimation()
+    }
+
+    private fun stopAnimators() {
         animator?.cancel()
         animator = null
+        removeCallbacks(fallbackFrameRunnable)
+        fallbackFrameScheduled = false
+    }
+
+    private fun updateAnimationState() {
+        stopAnimators()
 
         if (pulseState == PulseState.LISTENING) {
             lastFrameTimeNanos = System.nanoTime()
-            animator = ValueAnimator.ofFloat(0f, 1f).apply {
-                duration = 1000L
-                repeatCount = ValueAnimator.INFINITE
-                interpolator = LinearInterpolator()
-                addUpdateListener {
-                    val now = System.nanoTime()
-                    val deltaSec = if (lastFrameTimeNanos > 0L) {
-                        ((now - lastFrameTimeNanos) / 1_000_000_000f).coerceIn(0.005f, 0.05f)
-                    } else 0.016f
-                    lastFrameTimeNanos = now
-
-                    animTime += deltaSec * 3.5f
-                    // Smooth RMS attack
-                    smoothedRms = smoothedRms * 0.65f + inputRms * 0.35f
-                    updateBarPhysics(deltaSec)
-                    invalidate()
+            if (ValueAnimator.areAnimatorsEnabled()) {
+                animator = ValueAnimator.ofFloat(0f, 1f).apply {
+                    duration = 1000L
+                    repeatCount = ValueAnimator.INFINITE
+                    interpolator = LinearInterpolator()
+                    addUpdateListener { advanceAnimationFrame() }
+                    start()
                 }
-                start()
+            } else {
+                fallbackFrameScheduled = true
+                postOnAnimation(fallbackFrameRunnable)
             }
         } else {
             smoothedRms = 0f
             inputRms = 0f
             lastFrameTimeNanos = 0L
-            // Reset bar heights smoothly
             for (i in 0 until numBars) {
                 targetHeights[i] = 0f
                 barHeights[i] = 0f
@@ -139,18 +172,15 @@ class VoicePulseView @JvmOverloads constructor(
         for (i in 0 until numBars) {
             // Ambient micro-bounce: traveling music wave
             val ambientWave = sin(animTime * 2.2f + barPhaseOffsets[i])
-            val ambientBounce = ((ambientWave + 1.0f) * 0.5f * 0.12f).toFloat()
+            val ambientBounce = ((ambientWave + 1.0f) * 0.5f * 0.14f).toFloat()
 
             // Dynamic bounce when audio detected
             val activeEnergy = smoothedRms * barWeights[i]
-            // Calculate target fraction for this bar
             val targetFraction = (activeEnergy * 1.35f + ambientBounce).coerceIn(0.04f, 1.0f)
 
             if (targetFraction > barHeights[i]) {
-                // Instant punch / attack
                 barHeights[i] = barHeights[i] * 0.4f + targetFraction * 0.6f
             } else {
-                // Smooth gravity decay
                 barHeights[i] = barHeights[i] * (1f - deltaSec * 8f) + targetFraction * (deltaSec * 8f)
             }
         }
@@ -159,6 +189,16 @@ class VoicePulseView @JvmOverloads constructor(
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         cachedGradient = null
+        val availableWidth = (w - paddingLeft - paddingRight).toFloat()
+        if (availableWidth > 0f) {
+            val density = resources.displayMetrics.density
+            val barWidth = (3.2f * density).coerceAtLeast(3f)
+            val barSpacing = (2.2f * density).coerceAtLeast(2f)
+            val fittedCount = ((availableWidth + barSpacing) / (barWidth + barSpacing)).toInt().coerceIn(21, 96)
+            if (fittedCount != numBars) {
+                allocateBars(fittedCount)
+            }
+        }
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -225,20 +265,18 @@ class VoicePulseView @JvmOverloads constructor(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        if (pulseState == PulseState.LISTENING && animator == null) {
+        if (pulseState == PulseState.LISTENING && animator == null && !fallbackFrameScheduled) {
             updateAnimationState()
         }
     }
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-        animator?.cancel()
-        animator = null
+        stopAnimators()
     }
 
     fun release() {
-        animator?.cancel()
-        animator = null
+        stopAnimators()
         pulseState = PulseState.IDLE
         for (i in 0 until numBars) {
             barHeights[i] = 0f

@@ -159,17 +159,19 @@ class AudioRecordPipeline(
                     }
                 }
 
-                // 2. Compute RMS & dispatch at throttled intervals
+                // 2. Compute RMS & dispatch at throttled intervals using compressed perceptual curve
                 val now = System.currentTimeMillis()
                 if (now - lastRmsTime >= RMS_DISPATCH_INTERVAL_MS) {
                     lastRmsTime = now
                     val rms = sqrt(sumSquares / read).toFloat()
-                    val normalizedRms = (rms / 32767f * 4.5f).coerceIn(0f, 1f)
+                    val ambientFloor = 60f * currentGain
+                    val effectiveRms = (rms - ambientFloor).coerceAtLeast(0f)
+                    val normalizedRms = (sqrt((effectiveRms / 32767f).coerceIn(0f, 1f)) * 2.2f).coerceIn(0f, 1f)
                     listener.onRmsChanged(normalizedRms)
                 }
 
-                // 3. Process VAD
-                val isSpeaking = energyVad.processFrame(buffer, read)
+                // 3. Process VAD normalized against digital gain
+                val isSpeaking = energyVad.processFrame(buffer, read, currentGain)
                 if (isSpeaking != lastSpeechState) {
                     lastSpeechState = isSpeaking
                     LogCatcher.i(TAG, "VAD speech state transition: isSpeaking=$isSpeaking")

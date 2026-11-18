@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.settings.dialogs
 
+import android.widget.Toast
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -9,7 +10,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -34,12 +34,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import helium314.keyboard.keyboard.desktop.DesktopShortcut
 import helium314.keyboard.keyboard.desktop.DesktopShortcutsCatalog
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.utils.prefs
@@ -84,7 +84,7 @@ fun DesktopShortcutsCustomizer(
                     style = MaterialTheme.typography.titleLarge
                 )
                 Text(
-                    text = "Configure the 7 modal buttons (Active: $chosenCount/7)",
+                    text = "Configure 1–${DesktopShortcutsCatalog.MAX_MODAL_SLOTS} modal buttons (Active: $chosenCount/${DesktopShortcutsCatalog.MAX_MODAL_SLOTS})",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -99,10 +99,14 @@ fun DesktopShortcutsCustomizer(
                     singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 8.dp),
+                        .padding(bottom = 8.dp)
+                        .testTag("desktop_shortcuts_search"),
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { searchQuery = "" }) {
+                            IconButton(
+                                onClick = { searchQuery = "" },
+                                modifier = Modifier.testTag("desktop_shortcuts_search_clear")
+                            ) {
                                 Icon(
                                     painter = painterResource(R.drawable.ic_close),
                                     contentDescription = "Clear search",
@@ -119,8 +123,8 @@ fun DesktopShortcutsCustomizer(
                     val q = searchQuery.trim().lowercase()
                     items.filter {
                         it.first.title.lowercase().contains(q) ||
-                                it.first.subtitle.lowercase().contains(q) ||
-                                it.first.category.lowercase().contains(q)
+                            it.first.subtitle.lowercase().contains(q) ||
+                            it.first.category.lowercase().contains(q)
                     }
                 }
 
@@ -143,7 +147,9 @@ fun DesktopShortcutsCustomizer(
                                 shadowElevation = elevation,
                                 shape = RoundedCornerShape(8.dp),
                                 tonalElevation = if (isEnabled) 2.dp else 0.dp,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("desktop_shortcut_row_${shortcut.id}")
                             ) {
                                 Row(
                                     modifier = Modifier
@@ -202,7 +208,16 @@ fun DesktopShortcutsCustomizer(
 
                                     Switch(
                                         checked = isEnabled,
+                                        modifier = Modifier.testTag("desktop_shortcut_switch_${shortcut.id}"),
                                         onCheckedChange = { checked ->
+                                            if (checked && chosenCount >= DesktopShortcutsCatalog.MAX_MODAL_SLOTS) {
+                                                Toast.makeText(
+                                                    ctx,
+                                                    ctx.getString(R.string.desktop_shortcuts_max_slots_warning),
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                                return@Switch
+                                            }
                                             val index = items.indexOfFirst { it.first.id == shortcut.id }
                                             if (index != -1) {
                                                 val updated = items.toMutableList()
