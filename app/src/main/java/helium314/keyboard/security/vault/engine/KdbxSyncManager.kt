@@ -188,7 +188,9 @@ object KdbxSyncManager {
             VaultCryptoManager.zeroize(keyFileBytes)
             try {
                 inputStream?.close()
-            } catch (_: Throwable) {}
+            } catch (e: Exception) {
+                LogCatcher.log('W', TAG, "Failed to close KDBX sync stream: ${e.message}")
+            }
         }
     }
 

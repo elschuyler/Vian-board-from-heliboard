@@ -368,7 +368,9 @@ object FloatingKeyboardUtils {
                 } else {
                     performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                 }
-            } catch (_: Throwable) {}
+            } catch (e: Exception) {
+                LogCatcher.w(TAG, "Folded haptic feedback failed", e)
+            }
         }
 
         setOnTouchListener { _, event ->
@@ -548,7 +550,9 @@ object FloatingKeyboardUtils {
                 } else {
                     chevron.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                 }
-            } catch (_: Throwable) {}
+            } catch (e: Exception) {
+                LogCatcher.w(TAG, "Chevron drag haptic feedback failed", e)
+            }
         }
 
         chevron.setOnTouchListener { _, event ->

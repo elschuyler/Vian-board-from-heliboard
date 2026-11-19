@@ -458,6 +458,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         if (settingsValues.mLiteMode) {
             enforceLiteModeSingleModal(null);
         }
+        syncImeSecureFlag();
     }
 
     @SuppressWarnings("unchecked")
@@ -583,6 +584,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mEmojiPalettesView.setVisibility(View.VISIBLE);
             enforceLiteModeSingleModal(mEmojiPalettesView);
         }
+        syncImeSecureFlag();
     }
 
     // Implements {@link KeyboardState.SwitchActions}.
@@ -629,6 +631,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mVoiceInputView.stopVoiceInput();
         }
         enforceLiteModeSingleModal(mClipboardHistoryView);
+        syncImeSecureFlag();
     }
 
     @Override
@@ -676,6 +679,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mClipboardHistoryView.setVisibility(View.VISIBLE);
         }
         enforceLiteModeSingleModal(mClipboardHistoryView);
+        syncImeSecureFlag();
     }
 
     @Override
@@ -728,6 +732,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mDesktopShortcutsView.setVisibility(View.VISIBLE);
             enforceLiteModeSingleModal(mDesktopShortcutsView);
         }
+        syncImeSecureFlag();
     }
 
     @Override
@@ -836,6 +841,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                 mPatternUnlockView = null;
             }
         }
+        syncImeSecureFlag();
     }
 
     public boolean isShowingStealthPatternUnlock() {
@@ -959,6 +965,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         );
         mPatternUnlockView.setVisibility(View.VISIBLE);
         enforceLiteModeSingleModal(mPatternUnlockView);
+        syncImeSecureFlag();
     }
 
 
@@ -1015,6 +1022,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         );
         mSecurityVaultExplorerView.setVisibility(View.VISIBLE);
         enforceLiteModeSingleModal(mSecurityVaultExplorerView);
+        syncImeSecureFlag();
     }
 
     public void setChosenEntryKeyboard(@NonNull VaultEntryEntity entry) {
@@ -1071,6 +1079,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         );
         mChosenEntryView.setVisibility(View.VISIBLE);
         enforceLiteModeSingleModal(mChosenEntryView);
+        syncImeSecureFlag();
     }
 
     public void closeSecurityVaultExplorer(boolean lock) {
@@ -1083,6 +1092,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         }
         PointerTracker.setKeyboardActionListener(mLatinIME.mKeyboardActionListener);
         setAlphabetKeyboard(ShiftMode.UNSHIFT);
+        syncImeSecureFlag();
     }
 
     public void closeChosenEntry(boolean lock) {
@@ -1095,6 +1105,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         }
         PointerTracker.setKeyboardActionListener(mLatinIME.mKeyboardActionListener);
         setAlphabetKeyboard(ShiftMode.UNSHIFT);
+        syncImeSecureFlag();
     }
 
     public void setVoiceInputKeyboard() {
@@ -1141,6 +1152,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mVoiceInputView.setVisibility(View.VISIBLE);
         }
         enforceLiteModeSingleModal(mVoiceInputView);
+        syncImeSecureFlag();
     }
 
     public enum KeyboardSwitchState {
@@ -1522,6 +1534,26 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
 
     public boolean isShowingChosenEntry() {
         return mChosenEntryView != null && mChosenEntryView.isShown();
+    }
+
+    public void syncImeSecureFlag() {
+        if (mLatinIME == null) return;
+        final android.app.Dialog dialog = mLatinIME.getWindow();
+        if (dialog == null) return;
+        final android.view.Window window = dialog.getWindow();
+        if (window == null) return;
+
+        final boolean isSecurityModalVisible =
+                (mSecurityVaultExplorerView != null && mSecurityVaultExplorerView.getVisibility() == View.VISIBLE)
+                || (mChosenEntryView != null && mChosenEntryView.getVisibility() == View.VISIBLE)
+                || (mPatternUnlockView != null && mPatternUnlockView.getVisibility() == View.VISIBLE);
+        final boolean shouldSecure = isSecurityModalVisible
+                && VaultSessionManager.INSTANCE.isBlockScreenshotsEnabled(mLatinIME);
+        if (shouldSecure) {
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
+        } else {
+            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
+        }
     }
 
     public VoiceInputView getVoiceInputView() {

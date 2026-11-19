@@ -17,6 +17,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
+import java.util.concurrent.RejectedExecutionException
 
 /**
  * LogCatcher is a lightweight, low-overhead background logging and crash interception engine.
@@ -112,8 +113,8 @@ object LogCatcher {
         val name: String,
         val category: String,
         val startedAt: Long,
-        var lastSeenAt: Long,
-        var status: String
+        val lastSeenAt: Long,
+        val status: String
     )
 
     data class LogEntry(
@@ -159,12 +160,12 @@ object LogCatcher {
     @JvmStatic
     fun markComponentActive(name: String, category: String, status: String = "Running") {
         val now = SystemClock.elapsedRealtime()
-        val info = activeComponents[name]
-        if (info == null) {
-            activeComponents[name] = ComponentInfo(name, category, now, now, status)
-        } else {
-            info.lastSeenAt = now
-            info.status = status
+        activeComponents.compute(name) { _, existing ->
+            if (existing == null) {
+                ComponentInfo(name, category, now, now, status)
+            } else {
+                existing.copy(lastSeenAt = now, status = status)
+            }
         }
     }
 
@@ -175,8 +176,7 @@ object LogCatcher {
 
     @JvmStatic
     fun getActiveComponents(): List<ComponentInfo> {
-        val now = System.currentTimeMillis()
-        return activeComponents.values.filter {
+        return activeComponents.values.toList().filter {
             !it.status.equals("Stopped", ignoreCase = true) &&
             !it.status.equals("Idle", ignoreCase = true) &&
             !it.status.equals("Locked", ignoreCase = true) &&
@@ -233,13 +233,24 @@ object LogCatcher {
         queueForDisk(entry)
     }
 
+    private fun executeDiskTask(task: Runnable) {
+        if (diskExecutor.isShutdown || diskExecutor.isTerminated) return
+        try {
+            diskExecutor.execute(task)
+        } catch (e: RejectedExecutionException) {
+            android.util.Log.w("LogCatcher", "Disk log task rejected during executor shutdown", e)
+        } catch (e: RuntimeException) {
+            android.util.Log.w("LogCatcher", "Failed to schedule disk log task", e)
+        }
+    }
+
     private fun queueForDisk(entry: LogEntry) {
         // Write to disk strictly on actual errors or fatal issues (E / F).
         // Normal info and debug logs cycle through the lean 100-entry in-memory ring buffer,
         // saving 100% of background disk I/O, flash storage wear, and battery.
         if (entry.level == 'E' || entry.level == 'F') {
             val ctx = appContext ?: return
-            diskExecutor.execute {
+            executeDiskTask {
                 writeBatchToDisk(ctx, listOf(entry))
             }
         }
@@ -259,7 +270,9 @@ object LogCatcher {
                     writer.newLine()
                 }
             }
-        } catch (_: Throwable) {}
+        } catch (e: Exception) {
+            android.util.Log.w("LogCatcher", "Failed to write error batch to disk", e)
+        }
     }
 
     /**
@@ -340,7 +353,8 @@ object LogCatcher {
                     }
                 }
             }
-        } catch (_: Throwable) {
+        } catch (e: Exception) {
+            android.util.Log.w("LogCatcher", "Failed to rotate active log file", e)
             logFile.delete()
         }
     }
@@ -358,7 +372,7 @@ object LogCatcher {
         }
         val ctx = appContext ?: return
         if (batch != null) {
-            diskExecutor.execute {
+            executeDiskTask {
                 writeBatchToDisk(ctx, batch)
             }
         }
@@ -377,11 +391,13 @@ object LogCatcher {
             ringBuffer.clear()
         }
         appContext?.let { ctx ->
-            diskExecutor.execute {
+            executeDiskTask {
                 try {
                     val file = File(ctx.filesDir, ACTIVE_LOG_FILE)
                     if (file.exists()) file.delete()
-                } catch (_: Throwable) {}
+                } catch (e: Exception) {
+                    android.util.Log.w("LogCatcher", "Failed to delete active log file", e)
+                }
             }
         }
     }
@@ -516,7 +532,8 @@ object LogCatcher {
                 targetFile.writeText(content)
                 true
             }
-        } catch (_: Throwable) {
+        } catch (e: Exception) {
+            android.util.Log.w("LogCatcher", "Failed to export logs to Downloads", e)
             false
         }
     }

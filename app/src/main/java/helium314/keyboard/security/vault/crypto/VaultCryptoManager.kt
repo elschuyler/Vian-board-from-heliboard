@@ -182,7 +182,7 @@ object VaultCryptoManager {
         return try {
             val blob = android.util.Base64.decode(base64Ciphertext, android.util.Base64.NO_WRAP)
             decryptToString(blob)
-        } catch (_: Throwable) {
+        } catch (_: Exception) {
             null
         }
     }
@@ -202,7 +202,7 @@ object VaultCryptoManager {
 
     /**
      * Unpacks and decrypts custom fields string. Handles both newly encrypted base64 payloads
-     * and legacy plaintext JSON gracefully.
+     * and legacy plaintext JSON cleanly, failing closed (null) if decryption fails.
      */
     fun unpackCustomFieldsJson(stored: String?): String? {
         if (stored.isNullOrBlank()) return null
@@ -211,9 +211,10 @@ object VaultCryptoManager {
             return trimmed
         }
         return try {
-            decryptBase64ToString(trimmed) ?: trimmed
-        } catch (_: Throwable) {
-            trimmed
+            decryptBase64ToString(trimmed)
+        } catch (e: Exception) {
+            LogCatcher.w(TAG, "unpackCustomFieldsJson failed: ${e.javaClass.simpleName}")
+            null
         }
     }
 

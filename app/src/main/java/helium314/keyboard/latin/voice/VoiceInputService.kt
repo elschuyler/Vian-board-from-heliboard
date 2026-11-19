@@ -41,6 +41,7 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
     private var clientMessenger: Messenger? = null
 
     private var audioPipeline: AudioRecordPipeline? = null
+    @Volatile
     private var currentState = VoiceIpcProtocol.ServiceState.IDLE
 
     private val whisperEngine = WhisperEngine()
@@ -412,9 +413,6 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
                     if (!rawResult.isNullOrBlank()) {
                         val processedText = VoiceActionProcessor.processText(applicationContext, rawResult)
                         LogCatcher.i(TAG, "Transcription finalized: ${processedText.length} chars (sanitized)")
-                        if (verboseMode) {
-                            LogCatcher.i(TAG, "Transcription text: \"$processedText\"")
-                        }
                         notifyFinalTranscription(processedText)
                     } else {
                         LogCatcher.i(TAG, "Inference returned empty result (silence/noise)")
@@ -463,9 +461,11 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
     }
 
     override fun onAudioChunkAvailable(buffer: ShortArray, readSize: Int) {
+        if (currentState != VoiceIpcProtocol.ServiceState.RECORDING) return
         var bufferFull = false
         synchronized(bufferLock) {
-            val buf = audioBuffer ?: FloatArray(MAX_SPEECH_SAMPLES).also { audioBuffer = it }
+            if (currentState != VoiceIpcProtocol.ServiceState.RECORDING) return
+            val buf = audioBuffer ?: return
             val maxToAdd = minOf(readSize, MAX_SPEECH_SAMPLES - audioSampleCount)
             for (i in 0 until maxToAdd) {
                 buf[audioSampleCount++] = buffer[i] / 32768.0f

@@ -22,8 +22,6 @@ import helium314.keyboard.settings.SettingsDestination
 import helium314.keyboard.settings.dialogs.ThreeButtonAlertDialog
 import helium314.keyboard.settings.screens.gesturedata.END_DATE_EPOCH_MILLIS
 import helium314.keyboard.settings.screens.gesturedata.TWO_WEEKS_IN_MILLIS
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import java.text.DateFormat
 import java.util.Date
@@ -88,7 +86,13 @@ object GestureDataGatheringSettings {
         excludedWords = null
         val json = Json.encodeToString(list)
         context.prefs().edit { putString(PREF_WORD_EXCLUSIONS, json) }
-        GlobalScope.launch { GestureDataDao.getInstance(context)?.deleteBackgroundWords(list) }
+        try {
+            ExecutorUtils.getBackgroundExecutor(ExecutorUtils.KEYBOARD).execute {
+                GestureDataDao.getInstance(context)?.deleteBackgroundWords(list)
+            }
+        } catch (e: Exception) {
+            LogCatcher.w("GestureDataGathering", "Failed to schedule background word deletion", e)
+        }
     }
 
     fun getWordExclusions(context: Context): Set<String> {

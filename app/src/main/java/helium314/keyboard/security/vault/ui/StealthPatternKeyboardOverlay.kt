@@ -228,7 +228,7 @@ class StealthPatternKeyboardOverlay @JvmOverloads constructor(
                     HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
                 )
             }
-        } catch (_: Throwable) {
+        } catch (e: Exception) {
             // Fallback subtle 10ms tick
             try {
                 val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
@@ -238,7 +238,9 @@ class StealthPatternKeyboardOverlay @JvmOverloads constructor(
                     @Suppress("DEPRECATION")
                     vibrator?.vibrate(10)
                 }
-            } catch (_: Throwable) {}
+            } catch (fallbackEx: Exception) {
+                LogCatcher.w(TAG, "Stealth pattern tactile tick failed", fallbackEx)
+            }
         }
     }
 
@@ -276,7 +278,8 @@ class StealthPatternKeyboardOverlay @JvmOverloads constructor(
                 @Suppress("DEPRECATION")
                 vibrator?.vibrate(60)
             }
-        } catch (_: Throwable) {
+        } catch (e: Exception) {
+            LogCatcher.w(TAG, "Vibrator failure feedback failed, falling back to haptic", e)
             performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
         }
     }

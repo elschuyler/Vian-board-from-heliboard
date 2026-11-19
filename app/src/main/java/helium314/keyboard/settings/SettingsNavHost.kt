@@ -1,18 +1,27 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.settings
 
+import android.app.Activity
+import android.view.WindowManager
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import helium314.keyboard.security.VaultSessionManager
 import helium314.keyboard.latin.common.LocaleUtils.constructLocale
 import helium314.keyboard.latin.settings.SettingsSubtype.Companion.toSettingsSubtype
 import helium314.keyboard.latin.settings.getTransitionAnimationScale
@@ -57,11 +66,35 @@ fun SettingsNavHost(
     startDestination: String? = null,
 ) {
     val navController = rememberNavController()
+    val context = LocalContext.current
+    val activity = context as? Activity
     val dir = if (LocalLayoutDirection.current == LayoutDirection.Ltr) 1 else -1
     val target = SettingsDestination.navTarget.collectAsState()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route ?: startDestination ?: SettingsDestination.Settings
+    val settingsActivity = activity as? SettingsActivity
+    val prefChangeTick by settingsActivity?.prefChanged?.collectAsState() ?: remember { mutableIntStateOf(0) }
+    val blockScreenshots = remember(prefChangeTick, context) {
+        VaultSessionManager.isBlockScreenshotsEnabled(context)
+    }
+    val shouldSecureWindow = blockScreenshots && isSecurityDestinationRoute(currentRoute)
+
+    LaunchedEffect(activity, shouldSecureWindow) {
+        val window = activity?.window ?: return@LaunchedEffect
+        if (shouldSecureWindow) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        } else {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        }
+    }
+    DisposableEffect(activity) {
+        onDispose {
+            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        }
+    }
 
     // duration does not change when system setting changes, but that's rare enough to not care
-    val duration = (250 * getTransitionAnimationScale(LocalContext.current)).toInt()
+    val duration = (250 * getTransitionAnimationScale(context)).toInt()
     val animation = tween<IntOffset>(durationMillis = duration)
 
     fun goBack() {
@@ -271,4 +304,20 @@ object SettingsDestination {
             navTarget.value = target
         navScope.launch { delay(50); navTarget.value = Settings }
     }
+}
+
+internal fun isSecurityDestinationRoute(route: String?): Boolean {
+    if (route.isNullOrBlank()) return false
+    if (route == SettingsDestination.Security ||
+        route == SettingsDestination.UnlockMethods ||
+        route == SettingsDestination.PatternLock ||
+        route == SettingsDestination.SecurityPatternLock ||
+        route == SettingsDestination.PrivacyVault ||
+        route == SettingsDestination.SecurityVault ||
+        route == SettingsDestination.KdbxEntries ||
+        route == SettingsDestination.KdbxEntryEditor
+    ) {
+        return true
+    }
+    return route.startsWith(SettingsDestination.KdbxEntryEditor + "?")
 }

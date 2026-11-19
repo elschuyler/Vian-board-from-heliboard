@@ -53,6 +53,9 @@ public final class SystemBroadcastReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(final Context context, final Intent intent) {
+        if (context == null || intent == null) {
+            return;
+        }
         final String intentAction = intent.getAction();
         if (Intent.ACTION_MY_PACKAGE_REPLACED.equals(intentAction)) {
             Log.i(TAG, "Package has been replaced: " + context.getPackageName());
@@ -74,7 +77,7 @@ public final class SystemBroadcastReceiver extends BroadcastReceiver {
                 context.getSystemService(Context.INPUT_METHOD_SERVICE);
         // Called to check whether this IME has been triggered by the current user or not
         final boolean isInputMethodManagerValidForUserOfThisProcess =
-                !imm.getInputMethodList().isEmpty();
+                imm != null && !imm.getInputMethodList().isEmpty();
         final boolean isCurrentImeOfCurrentUser = isInputMethodManagerValidForUserOfThisProcess
                 && UncachedInputMethodManagerUtils.isThisImeCurrent(context, imm);
         if (!isCurrentImeOfCurrentUser) {

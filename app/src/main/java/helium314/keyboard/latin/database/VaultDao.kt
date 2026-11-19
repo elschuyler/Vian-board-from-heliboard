@@ -540,12 +540,12 @@ class VaultDao private constructor(private val db: Database) {
             db.writableDatabase.update(TABLE, cv, "$COLUMN_ID = ?", arrayOf(existing.id.toString()))
             resultId = existing.id
             cache[existingIndex] = VaultEntry(resultId, normalizedShortcut, trimmedPhrase, trimmedNotes, now)
-            LogCatcher.i("VaultDao", "Updated vault entry id=$resultId (shortcut='$normalizedShortcut')")
+            LogCatcher.i("VaultDao", "Updated vault entry id=$resultId (shortcutLen=${normalizedShortcut.length})")
         } else {
             resultId = db.writableDatabase.insert(TABLE, null, cv)
             if (resultId != -1L) {
                 cache.add(0, VaultEntry(resultId, normalizedShortcut, trimmedPhrase, trimmedNotes, now))
-                LogCatcher.i("VaultDao", "Added vault entry id=$resultId (shortcut='$normalizedShortcut')")
+                LogCatcher.i("VaultDao", "Added vault entry id=$resultId (shortcutLen=${normalizedShortcut.length})")
             }
         }
         rebuildTriggersLocked(cache)

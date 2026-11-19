@@ -407,7 +407,9 @@ class SecurityVaultDao private constructor(
             try {
                 val file = File(getAttachmentsDir(), "$attachmentUuid.bin")
                 if (file.exists()) file.delete()
-            } catch (_: Throwable) {}
+            } catch (e: Exception) {
+                LogCatcher.log('W', TAG, "Failed to delete attachment file $attachmentUuid: ${e.message}")
+            }
 
             val rows = dbHelper.writableDatabase.delete(
                 SecurityVaultDatabase.TABLE_ATTACHMENTS,
@@ -529,7 +531,9 @@ class SecurityVaultDao private constructor(
         try {
             try {
                 getAttachmentsDir().deleteRecursively()
-            } catch (_: Throwable) {}
+            } catch (e: Exception) {
+                LogCatcher.log('W', TAG, "Failed to clear attachments directory: ${e.message}")
+            }
 
             dbHelper.writableDatabase.transaction {
                 execSQL("DELETE FROM ${SecurityVaultDatabase.TABLE_ATTACHMENTS}")

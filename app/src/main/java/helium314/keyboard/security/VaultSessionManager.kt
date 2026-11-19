@@ -2,6 +2,7 @@
 package helium314.keyboard.security
 
 import android.content.Context
+import android.os.SystemClock
 import androidx.core.content.edit
 import helium314.keyboard.latin.utils.LogCatcher
 import helium314.keyboard.latin.utils.prefs
@@ -31,6 +32,7 @@ object VaultSessionManager {
     const val PREF_PHONE_PIN_ENABLED = "pref_vault_phone_pin_enabled"
     const val PREF_PRIMARY_UNLOCK_METHOD = "pref_vault_primary_unlock_method"
     const val PREF_BACKUP_UNLOCK_METHOD = "pref_vault_backup_unlock_method"
+    const val PREF_BLOCK_SCREENSHOTS = "pref_vault_block_screenshots"
     private const val PREF_SECURITY_PATTERN_SALT = "pref_vault_security_pattern_salt"
     private const val PREF_SECURITY_PATTERN_HASH = "pref_vault_security_pattern_hash"
 
@@ -196,6 +198,16 @@ object VaultSessionManager {
     fun setSecurityVaultGatekeeperEnabled(context: Context, enabled: Boolean) {
         context.prefs().edit {
             putBoolean(PREF_GATEKEEPER_SECURITY_VAULT, enabled)
+        }
+    }
+
+    fun isBlockScreenshotsEnabled(context: Context): Boolean {
+        return context.prefs().getBoolean(PREF_BLOCK_SCREENSHOTS, true)
+    }
+
+    fun setBlockScreenshotsEnabled(context: Context, enabled: Boolean) {
+        context.prefs().edit {
+            putBoolean(PREF_BLOCK_SCREENSHOTS, enabled)
         }
     }
 
@@ -460,42 +472,42 @@ object VaultSessionManager {
 
     // --- Session Management ---
 
-    fun isPrivacySessionValid(): Boolean = System.currentTimeMillis() < privacySessionExpiryMs
+    fun isPrivacySessionValid(): Boolean = SystemClock.elapsedRealtime() < privacySessionExpiryMs
 
-    fun isSecuritySessionValid(): Boolean = System.currentTimeMillis() < securitySessionExpiryMs
+    fun isSecuritySessionValid(): Boolean = SystemClock.elapsedRealtime() < securitySessionExpiryMs
 
-    fun isSettingsSessionValid(): Boolean = System.currentTimeMillis() < settingsSessionExpiryMs
+    fun isSettingsSessionValid(): Boolean = SystemClock.elapsedRealtime() < settingsSessionExpiryMs
 
     fun isAnySessionValid(): Boolean = isPrivacySessionValid() || isSecuritySessionValid() || isSettingsSessionValid()
 
-    fun getSecuritySessionRemainingMs(): Long = maxOf(0L, securitySessionExpiryMs - System.currentTimeMillis())
+    fun getSecuritySessionRemainingMs(): Long = maxOf(0L, securitySessionExpiryMs - SystemClock.elapsedRealtime())
 
-    fun getPrivacySessionRemainingMs(): Long = maxOf(0L, privacySessionExpiryMs - System.currentTimeMillis())
+    fun getPrivacySessionRemainingMs(): Long = maxOf(0L, privacySessionExpiryMs - SystemClock.elapsedRealtime())
 
-    fun getSettingsSessionRemainingMs(): Long = maxOf(0L, settingsSessionExpiryMs - System.currentTimeMillis())
+    fun getSettingsSessionRemainingMs(): Long = maxOf(0L, settingsSessionExpiryMs - SystemClock.elapsedRealtime())
 
     @JvmOverloads
     fun startPrivacySession(context: Context? = null) {
         resetLockout(context)
         val duration = getPrivacyTimeoutMs(context)
-        privacySessionExpiryMs = System.currentTimeMillis() + duration
+        privacySessionExpiryMs = SystemClock.elapsedRealtime() + duration
         LogCatcher.markComponentActive("VaultSessionManager", "Security", "Privacy Active")
-        LogCatcher.log('I', TAG, "startPrivacySession: ${duration / 60000}m session started (expires at $privacySessionExpiryMs)")
+        LogCatcher.log('I', TAG, "startPrivacySession: ${duration / 60000}m session started")
     }
 
     @JvmOverloads
     fun startSecuritySession(context: Context? = null) {
         resetLockout(context)
         val duration = getSecurityTimeoutMs(context)
-        securitySessionExpiryMs = System.currentTimeMillis() + duration
+        securitySessionExpiryMs = SystemClock.elapsedRealtime() + duration
         LogCatcher.markComponentActive("VaultSessionManager", "Security", "Security Active")
-        LogCatcher.log('I', TAG, "startSecuritySession: ${duration / 60000}m session started (expires at $securitySessionExpiryMs)")
+        LogCatcher.log('I', TAG, "startSecuritySession: ${duration / 60000}m session started")
     }
 
     @JvmOverloads
     fun startSettingsSession(context: Context? = null) {
         resetLockout(context)
-        settingsSessionExpiryMs = System.currentTimeMillis() + SETTINGS_SESSION_DURATION_MS
+        settingsSessionExpiryMs = SystemClock.elapsedRealtime() + SETTINGS_SESSION_DURATION_MS
         LogCatcher.markComponentActive("VaultSessionManager", "Security", "Settings Active")
         LogCatcher.log('I', TAG, "startSettingsSession: 3-minute settings session started")
     }

@@ -145,7 +145,9 @@ object KdbxRepository {
             VaultCryptoManager.zeroize(keyFileBytes)
             try {
                 inputStream?.close()
-            } catch (_: Throwable) {}
+            } catch (e: Exception) {
+                LogCatcher.log('W', TAG, "Failed to close KDBX import stream: ${e.message}")
+            }
         }
     }
 
@@ -305,7 +307,8 @@ object KdbxRepository {
                 context.contentResolver.openInputStream(uri)?.use { stream ->
                     KeePassDatabase.decode(stream, credentials)
                 }
-            } catch (_: Throwable) {
+            } catch (e: Exception) {
+                LogCatcher.log('W', TAG, "Could not decode existing KDBX for non-destructive export, creating new database: ${e.message}")
                 null
             }
 
@@ -342,7 +345,9 @@ object KdbxRepository {
             }
             try {
                 outputStream?.close()
-            } catch (_: Throwable) {}
+            } catch (e: Exception) {
+                LogCatcher.log('W', TAG, "Failed to close KDBX export stream: ${e.message}")
+            }
         }
     }
 
@@ -408,7 +413,7 @@ object KdbxRepository {
 
             val entryUuid = try {
                 UUID.fromString(e.entryUuid)
-            } catch (_: Throwable) {
+            } catch (_: IllegalArgumentException) {
                 UUID.nameUUIDFromBytes(e.entryUuid.toByteArray())
             }
 
@@ -426,7 +431,7 @@ object KdbxRepository {
 
         val groupUuid = try {
             UUID.fromString(groupEntity.groupUuid)
-        } catch (_: Throwable) {
+        } catch (_: IllegalArgumentException) {
             UUID.nameUUIDFromBytes(groupEntity.groupUuid.toByteArray())
         }
 

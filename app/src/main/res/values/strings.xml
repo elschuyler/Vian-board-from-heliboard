@@ -1466,6 +1466,9 @@ New dictionary:
 
     <string name="pref_self_contained_isolation_title">Self-Contained Isolation Mode</string>
     <string name="pref_self_contained_isolation_summary">Block external password managers and autofill services from connecting or overlaying; use internal Security Vault and Privacy Vault</string>
+    <string name="pref_vault_block_screenshots_title">Block Screenshots</string>
+    <string name="pref_vault_block_screenshots_summary">Prevent screenshots and screen recording in Security Settings and Security Vault modals</string>
+    <string name="pref_vault_block_screenshots_disabled_summary">Screenshots allowed in Security Settings and Security Vault modals</string>
 
     <string name="pref_sliding_key_input_preview_title">Show Slide Indicator</string>
     <string name="pref_sliding_key_input_preview_summary">Display elastic rubber-band line and origin spot while sliding from Shift or Symbol keys</string>

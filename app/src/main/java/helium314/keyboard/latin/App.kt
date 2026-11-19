@@ -12,6 +12,7 @@ import helium314.keyboard.latin.utils.Log
 import helium314.keyboard.latin.utils.SubtypeSettings
 import helium314.keyboard.latin.utils.prefs
 import helium314.keyboard.latin.utils.upgradeToolbarPrefs
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -25,16 +26,25 @@ class App : Application() {
         Settings.init(this)
         SubtypeSettings.init(this)
 
-        val scope = CoroutineScope(Dispatchers.Default)
+        val startupExceptionHandler = CoroutineExceptionHandler { _, throwable ->
+            Log.w("startup", "Uncaught exception in background startup work", throwable)
+            helium314.keyboard.latin.utils.LogCatcher.w("startup", "Uncaught exception in background startup work", throwable)
+        }
+        val scope = CoroutineScope(Dispatchers.Default + startupExceptionHandler)
         scope.launch { // do some uncritical work in background for faster startup
-            LayoutUtilsCustom.removeMissingLayouts(this@App)
-            val packageInfo = packageManager.getPackageInfo(packageName, 0)
-            @Suppress("DEPRECATION")
-            Log.i(
-                "startup", "Starting ${applicationInfo.processName} version ${packageInfo.versionName} (${
-                    packageInfo.versionCode
-                }) on Android ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT})"
-            )
+            runCatching { LayoutUtilsCustom.removeMissingLayouts(this@App) }
+                .onFailure { Log.w("startup", "Failed to remove missing layouts", it) }
+            runCatching {
+                val packageInfo = packageManager.getPackageInfo(packageName, 0)
+                @Suppress("DEPRECATION")
+                Log.i(
+                    "startup", "Starting ${applicationInfo.processName} version ${packageInfo.versionName} (${
+                        packageInfo.versionCode
+                    }) on Android ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT})"
+                )
+            }.onFailure {
+                Log.w("startup", "Failed to log package startup info", it)
+            }
         }
 
         RichInputMethodManager.init(this)

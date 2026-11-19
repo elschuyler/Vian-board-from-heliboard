@@ -1076,6 +1076,7 @@ public class LatinIME extends InputMethodService implements
             mKeyboardSwitcher.setPendingPromptLaunch(false);
             mKeyboardSwitcher.setPromptKeyboard();
         }
+        mKeyboardSwitcher.syncImeSecureFlag();
     }
 
     @Override
@@ -1088,6 +1089,9 @@ public class LatinIME extends InputMethodService implements
                 FloatingKeyboardUtils.setHalfBoard(mInputView);
             setNavigationBarColor();
             workaroundForHuaweiStatusBarIssue();
+            if (mKeyboardSwitcher != null) {
+                mKeyboardSwitcher.syncImeSecureFlag();
+            }
         }
     }
 
@@ -1110,6 +1114,13 @@ public class LatinIME extends InputMethodService implements
         final MainKeyboardView mainKeyboardView = mKeyboardSwitcher.getMainKeyboardView();
         if (mainKeyboardView != null) {
             mainKeyboardView.closing();
+        }
+        if (mKeyboardSwitcher != null) {
+            mKeyboardSwitcher.syncImeSecureFlag();
+        }
+        final Window window = getWindow() != null ? getWindow().getWindow() : null;
+        if (window != null) {
+            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
         }
         clearNavigationBarColor();
         if (mSettings.getCurrent().mLiteMode) {

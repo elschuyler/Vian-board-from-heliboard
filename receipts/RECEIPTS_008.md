@@ -93,3 +93,44 @@
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: Because `applicationId` changed from `shura.keyboard.rbsdrd` to `shura.keyboard`, users must export an encrypted modular backup (`.zip` with passphrase for Privacy Vault and `.kdbx` for Security Vault) before uninstalling `shura.keyboard.rbsdrd` and clean-installing `shura.keyboard` via GitHub Actions CI.
 
+### Receipt 008-04
+- **Timestamp**: 2026-11-19T12:55:00-08:00
+- **Requested**:
+  - Sync Phase 114 (Desktop Shortcuts Option 2 code/text editor overhaul, 1–7 hard cap, CI `Runnable` Java interop fix) and implement Phase 115 (UI-neutral stabilization & hardening: optional scoped `FLAG_SECURE` for Security Settings + Security Vault / Pattern modals only, leak removal, monotonic session timers, fail-closed custom fields, VoiceInputService buffer race fix, lifecycle guards, silent `catch (_: Throwable)` cleanup, regression tests, and temp plan cleanup).
+- **Exact files touched**:
+  - Phase 114 (already synced in CI / on-device APK verified by user): `app/src/main/java/helium314/keyboard/keyboard/desktop/DesktopShortcut.kt`, `app/src/main/java/helium314/keyboard/keyboard/desktop/DesktopShortcutsView.kt`, `app/src/main/java/helium314/keyboard/settings/dialogs/DesktopShortcutsCustomizer.kt`, `app/src/main/java/helium314/keyboard/keyboard/KeyboardSwitcher.java`, `app/src/main/java/helium314/keyboard/latin/LatinIME.java`, `app/src/test/java/helium314/keyboard/DesktopShortcutsTest.kt`
+  - Phase 115:
+    - `app/src/main/res/values/strings.xml`
+    - `app/src/main/java/helium314/keyboard/security/VaultSessionManager.kt`
+    - `app/src/main/java/helium314/keyboard/settings/screens/SecurityScreen.kt`
+    - `app/src/main/java/helium314/keyboard/settings/SettingsNavHost.kt`
+    - `app/src/main/java/helium314/keyboard/keyboard/KeyboardSwitcher.java`
+    - `app/src/main/java/helium314/keyboard/latin/LatinIME.java`
+    - `app/src/main/java/helium314/keyboard/latin/voice/VoiceInputService.kt`
+    - `app/src/main/java/helium314/keyboard/latin/database/VaultDao.kt`
+    - `app/src/main/java/helium314/keyboard/security/vault/crypto/VaultCryptoManager.kt`
+    - `app/src/main/java/helium314/keyboard/latin/SystemBroadcastReceiver.java`
+    - `app/src/main/java/helium314/keyboard/latin/App.kt`
+    - `app/src/main/java/helium314/keyboard/latin/utils/GestureDataGatheringSettings.kt`
+    - `app/src/main/java/helium314/keyboard/latin/utils/LogCatcher.kt`
+    - `app/src/main/java/helium314/keyboard/latin/utils/FloatingKeyboardUtils.kt`
+    - `app/src/main/java/helium314/keyboard/security/vault/data/SecurityVaultDao.kt`
+    - `app/src/main/java/helium314/keyboard/security/vault/engine/KdbxSyncManager.kt`
+    - `app/src/main/java/helium314/keyboard/security/vault/engine/KdbxRepository.kt`
+    - `app/src/main/java/helium314/keyboard/security/vault/ui/StealthPatternKeyboardOverlay.kt`
+    - `app/src/test/java/helium314/keyboard/StabilizationHardeningTest.kt` (new)
+    - `BLUEPRINT.md`
+    - `receipts/RECEIPTS_008.md`
+- **What was actually done**:
+  1. Documented Phase 114 (Option 2 live `InputConnection`/`EditorInfo` Desktop Shortcuts dispatch, removal of 7 browser chrome keys, addition of `Save`/`Esc`/`Tab`/`Outdent`/`Ctrl+/`/`Select Next`/`Delete Line`/`Go to Line`, 1–7 hard cap with collapsing rows, and `Runnable` Java interop fix confirmed in CI APK).
+  2. Implemented optional scoped `FLAG_SECURE` (`PREF_BLOCK_SCREENSHOTS`, default ON) with a single `"Block Screenshots"` Switch in `SecurityScreen.kt`, route-scoped enforcement in `SettingsNavHost.kt`, and modal-scoped `syncImeSecureFlag()` in `KeyboardSwitcher.java` + `LatinIME.java` (leaving `LogKeeperActivity`, non-security Settings, and regular keyboards screenshotable).
+  3. Removed plaintext transcription and shortcut string logging from `VoiceInputService.kt` and `VaultDao.kt`; migrated `VaultSessionManager` in-memory session expiry timers to monotonic `SystemClock.elapsedRealtime()`; made `VaultCryptoManager.unpackCustomFieldsJson()` fail closed (`null`) on decryption failure while preserving legacy `{...}` JSON.
+  4. Marked `VoiceInputService.currentState` `@Volatile` and prevented `onAudioChunkAvailable()` from allocating a `1.92 MB` `FloatArray` when not `RECORDING`.
+  5. Added null `intent`/`context`/`imm` guards in `SystemBroadcastReceiver.java`, `CoroutineExceptionHandler` + `runCatching` in `App.kt`, `ExecutorUtils.getBackgroundExecutor` in `GestureDataGatheringSettings.kt`, immutable `ComponentInfo` snapshots + `RejectedExecutionException` guard in `LogCatcher.kt`, and narrowed silent `catch (_: Throwable)` blocks across `LogCatcher.kt`, `FloatingKeyboardUtils.kt`, `SecurityVaultDao.kt`, `KdbxSyncManager.kt`, `KdbxRepository.kt`, and `StealthPatternKeyboardOverlay.kt`.
+  6. Added 7 unit/Robolectric tests in `StabilizationHardeningTest.kt` and removed temporary execution plan `TEMP_PHASE115_PLAN.md`.
+- **How it was verified**:
+  - Phase 114: Verified via `DesktopShortcutsTest` (6/6) and user-confirmed GitHub Actions APK install/test on device.
+  - Phase 115: Local Gradle build, R8, lintVital, and Robolectric/JVM unit verification (`:app:assembleDebug` succeeded; `:app:assembleMinifiedDebug :app:lintVitalMinifiedDebug` exited 0; `61/61` targeted tests passed across 14 XML suites including `StabilizationHardeningTest` [7/7], `DesktopShortcutsTest` [6/6], `StabilizationRegressionTest` [6/6], `BackupCryptoTest` [7/7], `VoiceActionsTest` [10/10], `VaultLockoutTest` [7/7], `InputTest` [6/6], `SaveGestureDataTest` [3/3], `SubtypeTest` [2/2], `SpellCheckerTest` [2/2], `KeySpecParserTest` [2/2], `KdbxAttachmentTest` [1/1], `LayoutTest` [1/1], `LiteDictionaryDropTest` [1/1]) plus `compile_applet`. On-device verification of Phase 115 awaits GitHub Actions APK export.
+- **Deviation from requested**: None.
+- **Known issue or follow-up needed**: Verify Phase 115 APK on physical device after GitHub Actions export (specifically `"Block Screenshots"` toggle behavior on Security Settings and Security Vault / Pattern Unlock modals vs normal typing & LogKeeper).
+

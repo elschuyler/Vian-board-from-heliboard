@@ -1550,3 +1550,28 @@ Vianboard is a fully customizable, privacy-conscious offline Android keyboard ap
     - **Tests & Build Verification (`BackupCryptoTest.kt`, `StabilizationRegressionTest.kt`)**:
       - Added `StabilizationRegressionTest` (6 tests) and 2 new `BackupCryptoTest` cases. Verified 50/50 targeted unit/Robolectric tests passing alongside `:app:assembleMinifiedDebug`, `:app:lintVitalMinifiedDebug`, and `compile_applet`.
 
+- **2026-11-18**: Completed Phase 114 (Desktop Shortcuts Code/Text Editor Overhaul — Option 2 Dispatch, 1–7 Hard Cap & CI Java Interop Fix):
+    - **Component 1: Browser Shortcut Removal & New Code/Text Editor Shortcuts (`DesktopShortcut.kt`)**:
+      - Removed non-editor browser shortcuts (`NEW_TAB`, `CLOSE_TAB`, `REFRESH`, `BOOKMARK`, `PRINT`, `ZOOM_IN`, `ZOOM_OUT`) and fixed `REDO` (`Ctrl + Shift + Z`), `DUPLICATE` (`Shift + Alt + ↓`), `SELECT_WORD` (`KeyCode.CLIPBOARD_SELECT_WORD` without emitting `Ctrl+W`), and `SELECT_LINE` (`Home` -> `Shift + End`).
+      - Added `SAVE` (`Ctrl + S`), `ESCAPE` (`Esc`), `TAB` (`Tab`), `OUTDENT` (`Shift + Tab`), `COMMENT` (`Ctrl + /`), `SELECT_NEXT` (`Ctrl + D`), `DELETE_LINE` (`Ctrl + Shift + K`), and `GO_TO_LINE` (`Ctrl + G`).
+    - **Component 2: Option 2 Live `InputConnection` / `EditorInfo` Dispatch & 1–7 Hard Cap (`DesktopShortcutsView.kt`, `DesktopShortcutsCustomizer.kt`, `DesktopShortcut.kt`, `KeyboardSwitcher.java`, `LatinIME.java`)**:
+      - Enforced hard `MAX_MODAL_SLOTS = 7` cap with 1–7 user-selected modal buttons (no backfilling when <7 selected; dynamic row collapse for `fatRow1`/`fatRow2`/`fatRow3`).
+      - Added live `InputConnection` and `EditorInfo` providers + `flushComposingAction` (`Runnable` for clean Java interop between `KeyboardSwitcher.java` and Kotlin `DesktopShortcutsView`) so bottom-row `Backspace`/`Space`/`Enter`, hold-to-repeat D-pad arrows, and non-duplicating `CONTEXT_THEN_KEY` / `KEY_THEN_CONTEXT` / `KEY_EVENT` shortcuts target the active field and gracefully fall back to standard Android `KeyboardActionListener` when hardware key events are declined or an explicit IME action (`SEARCH`, `SEND`, `DONE`, etc.) is active.
+    - **Verification**:
+      - Verified `DesktopShortcutsTest` (6/6), `StabilizationRegressionTest` (6/6), and GitHub Actions APK CI pipeline (confirmed working on device).
+
+- **2026-11-19**: Completed Phase 115 (App Stabilization & Security Hardening — UI-Neutral):
+    - **Component 1: Optional Scoped `FLAG_SECURE` (`VaultSessionManager.kt`, `SecurityScreen.kt`, `SettingsNavHost.kt`, `KeyboardSwitcher.java`, `LatinIME.java`, `strings.xml`)**:
+      - Added `VaultSessionManager.PREF_BLOCK_SCREENSHOTS` (`pref_vault_block_screenshots`, default `true`) with a single `"Block Screenshots"` Switch row under **Unlock & Gatekeeper** in `SecurityScreen.kt`.
+      - Scoped `WindowManager.LayoutParams.FLAG_SECURE` strictly to security Settings routes (`security`, `unlock_methods`, `pattern_lock`, `security_pattern_lock`, `privacy_vault`, `security_vault`, `kdbx_entries`, `kdbx_entry_editor*`) and visible IME security modals (`SecurityVaultExplorerView`, `ChosenEntryView`, `PatternUnlockView`), leaving `LogKeeperActivity`, non-security Settings, and normal keyboards screenshotable.
+    - **Component 2: Content/Metadata Leak Removal & Crypto/Session Hardening (`VoiceInputService.kt`, `VaultDao.kt`, `VaultSessionManager.kt`, `VaultCryptoManager.kt`)**:
+      - Removed raw `"Transcription text: ..."` verbose logging from `VoiceInputService.kt` (retaining character count and telemetry only) and replaced literal shortcut values in `VaultDao.kt` logs with entry `id` and character length.
+      - Switched in-memory Vault session expiry timestamps (`privacySessionExpiryMs`, `securitySessionExpiryMs`, `settingsSessionExpiryMs`) to monotonic `SystemClock.elapsedRealtime()`.
+      - Hardened `VaultCryptoManager.unpackCustomFieldsJson()` to fail closed (`null`) when AES-GCM decryption fails while preserving legacy plaintext JSON `{...}`.
+    - **Component 3: `VoiceInputService.kt` Concurrency & Buffer Race Fix**:
+      - Marked `currentState` `@Volatile` and guarded `onAudioChunkAvailable()` on `currentState == RECORDING` and non-null `audioBuffer` under `bufferLock` to prevent trailing worker callbacks from allocating a 1.92 MB `FloatArray`.
+    - **Component 4: Lifecycle Guards & Catch-Block Narrowing (`SystemBroadcastReceiver.java`, `App.kt`, `GestureDataGatheringSettings.kt`, `LogCatcher.kt`, `FloatingKeyboardUtils.kt`, `SecurityVaultDao.kt`, `KdbxSyncManager.kt`, `KdbxRepository.kt`, `StealthPatternKeyboardOverlay.kt`)**:
+      - Added null `intent`/`context`/`imm` guards in `SystemBroadcastReceiver.onReceive()`; added `CoroutineExceptionHandler` + `runCatching` in `App.kt`; replaced `GlobalScope.launch` in `GestureDataGatheringSettings.kt` with `ExecutorUtils.getBackgroundExecutor(ExecutorUtils.KEYBOARD)`.
+      - Made `LogCatcher.ComponentInfo` immutable via `ConcurrentHashMap.compute` + list snapshot in `getActiveComponents()`, guarded `diskExecutor` submission against `RejectedExecutionException`, and narrowed silent `catch (_: Throwable)` blocks across LogCatcher, FloatingKeyboardUtils, SecurityVaultDao, KdbxSyncManager, KdbxRepository, and StealthPatternKeyboardOverlay to specific `Exception` / `IllegalArgumentException` handlers with sanitized warnings.
+    - **Verification (`StabilizationHardeningTest.kt`)**:
+      - Added 7 Robolectric/unit hardening tests (`StabilizationHardeningTest`) and verified 61/61 targeted tests passing alongside `:app:assembleDebug`, `:app:assembleMinifiedDebug`, `:app:lintVitalMinifiedDebug`, and `compile_applet`.
