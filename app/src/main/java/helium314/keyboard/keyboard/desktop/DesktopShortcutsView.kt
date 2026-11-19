@@ -68,7 +68,7 @@ class DesktopShortcutsView @JvmOverloads constructor(
     private var bottomRowActionListener: KeyboardActionListener? = null
     private var inputConnectionProvider: (() -> InputConnection?)? = null
     private var editorInfoProvider: (() -> EditorInfo?)? = null
-    private var flushComposingAction: (() -> Unit)? = null
+    private var flushComposingAction: Runnable? = null
     private var fallbackEditorInfo: EditorInfo? = null
 
     private val repeatHandler = Handler(Looper.getMainLooper())
@@ -195,7 +195,7 @@ class DesktopShortcutsView @JvmOverloads constructor(
         if (tag is ToolbarKey) {
             handleToolbarClick(tag)
         } else if (tag is DesktopShortcut) {
-            flushComposingAction?.invoke()
+            flushComposingAction?.run()
             DesktopShortcutsCatalog.executeShortcut(
                 context = context,
                 shortcut = tag,
@@ -203,7 +203,7 @@ class DesktopShortcutsView @JvmOverloads constructor(
                 actionListener = keyboardActionListener
             )
         } else if (tag is Int) {
-            flushComposingAction?.invoke()
+            flushComposingAction?.run()
             sendKeyEvent(tag)
         }
     }
@@ -213,17 +213,17 @@ class DesktopShortcutsView @JvmOverloads constructor(
         if (tag is ToolbarKey) {
             when (tag) {
                 ToolbarKey.COPY -> {
-                    flushComposingAction?.invoke()
+                    flushComposingAction?.run()
                     keyboardActionListener?.onCodeInput(KeyCode.PROMPT_LIST, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
                     return true
                 }
                 ToolbarKey.PASTE -> {
-                    flushComposingAction?.invoke()
+                    flushComposingAction?.run()
                     keyboardActionListener?.onCodeInput(KeyCode.CLIPBOARD, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
                     return true
                 }
                 ToolbarKey.SELECT_WORD -> {
-                    flushComposingAction?.invoke()
+                    flushComposingAction?.run()
                     val ic = currentInputConnection()
                     val sent = DesktopShortcutsCatalog.sendDesktopKeyEvent(
                         ic,
@@ -238,7 +238,7 @@ class DesktopShortcutsView @JvmOverloads constructor(
                 else -> return false
             }
         } else if (tag is DesktopShortcut && tag.longPressCode != 0) {
-            flushComposingAction?.invoke()
+            flushComposingAction?.run()
             keyboardActionListener?.onCodeInput(tag.longPressCode, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
             return true
         }
@@ -251,7 +251,7 @@ class DesktopShortcutsView @JvmOverloads constructor(
                 keyboardActionListener?.onCodeInput(KeyCode.DESKTOP_SHORTCUTS, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
             }
             ToolbarKey.UNDO -> {
-                flushComposingAction?.invoke()
+                flushComposingAction?.run()
                 val ic = currentInputConnection()
                 val sent = DesktopShortcutsCatalog.sendDesktopKeyEvent(
                     ic,
@@ -263,7 +263,7 @@ class DesktopShortcutsView @JvmOverloads constructor(
                 }
             }
             ToolbarKey.REDO -> {
-                flushComposingAction?.invoke()
+                flushComposingAction?.run()
                 val ic = currentInputConnection()
                 val sent = DesktopShortcutsCatalog.sendDesktopKeyEvent(
                     ic,
@@ -275,7 +275,7 @@ class DesktopShortcutsView @JvmOverloads constructor(
                 }
             }
             ToolbarKey.PAGE_START -> {
-                flushComposingAction?.invoke()
+                flushComposingAction?.run()
                 val listener = keyboardActionListener
                 if (listener != null) {
                     listener.onCodeInput(KeyCode.MOVE_START_OF_PAGE, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
@@ -288,7 +288,7 @@ class DesktopShortcutsView @JvmOverloads constructor(
                 }
             }
             ToolbarKey.PAGE_END -> {
-                flushComposingAction?.invoke()
+                flushComposingAction?.run()
                 val listener = keyboardActionListener
                 if (listener != null) {
                     listener.onCodeInput(KeyCode.MOVE_END_OF_PAGE, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
@@ -301,11 +301,11 @@ class DesktopShortcutsView @JvmOverloads constructor(
                 }
             }
             ToolbarKey.SELECT_WORD -> {
-                flushComposingAction?.invoke()
+                flushComposingAction?.run()
                 keyboardActionListener?.onCodeInput(KeyCode.CLIPBOARD_SELECT_WORD, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
             }
             ToolbarKey.COPY -> {
-                flushComposingAction?.invoke()
+                flushComposingAction?.run()
                 val ic = currentInputConnection()
                 if (ic?.performContextMenuAction(android.R.id.copy) != true) {
                     DesktopShortcutsCatalog.sendDesktopKeyEvent(
@@ -316,7 +316,7 @@ class DesktopShortcutsView @JvmOverloads constructor(
                 }
             }
             ToolbarKey.PASTE -> {
-                flushComposingAction?.invoke()
+                flushComposingAction?.run()
                 val ic = currentInputConnection()
                 if (ic?.performContextMenuAction(android.R.id.paste) != true) {
                     DesktopShortcutsCatalog.sendDesktopKeyEvent(
@@ -342,7 +342,7 @@ class DesktopShortcutsView @JvmOverloads constructor(
             editorInfo = editorInfo,
             inputConnectionProvider = { ic },
             editorInfoProvider = { editorInfo },
-            flushComposingAction = {}
+            flushComposingAction = Runnable {}
         )
     }
 
@@ -352,7 +352,7 @@ class DesktopShortcutsView @JvmOverloads constructor(
         editorInfo: EditorInfo,
         inputConnectionProvider: () -> InputConnection?,
         editorInfoProvider: () -> EditorInfo?,
-        flushComposingAction: () -> Unit
+        flushComposingAction: Runnable
     ) {
         cancelArrowRepeat()
         this.keyboardActionListener = actionListener
@@ -521,7 +521,7 @@ class DesktopShortcutsView @JvmOverloads constructor(
         val btn = object : LinearLayout(context) {
             override fun performClick(): Boolean {
                 if (repeatable && !handledByTouch) {
-                    flushComposingAction?.invoke()
+                    flushComposingAction?.run()
                     sendKeyEvent(keyCode)
                 }
                 return super.performClick()
@@ -545,7 +545,7 @@ class DesktopShortcutsView @JvmOverloads constructor(
                             cancelArrowRepeat()
                             v.isPressed = true
                             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                            flushComposingAction?.invoke()
+                            flushComposingAction?.run()
                             sendKeyEvent(keyCode)
                             val repeatRunnable = object : Runnable {
                                 override fun run() {
@@ -620,7 +620,7 @@ class DesktopShortcutsView @JvmOverloads constructor(
                     }
                     KeyCode.DELETE -> {
                         if (!isKeyRepeat) {
-                            flushComposingAction?.invoke()
+                            flushComposingAction?.run()
                         }
                         val sent = DesktopShortcutsCatalog.sendDesktopKeyEvent(
                             currentInputConnection(),
@@ -632,7 +632,7 @@ class DesktopShortcutsView @JvmOverloads constructor(
                     }
                     Constants.CODE_SPACE -> {
                         if (!isKeyRepeat) {
-                            flushComposingAction?.invoke()
+                            flushComposingAction?.run()
                         }
                         val sent = DesktopShortcutsCatalog.sendDesktopKeyEvent(
                             currentInputConnection(),
@@ -643,7 +643,7 @@ class DesktopShortcutsView @JvmOverloads constructor(
                         }
                     }
                     Constants.CODE_ENTER -> {
-                        flushComposingAction?.invoke()
+                        flushComposingAction?.run()
                         val ei = currentEditorInfo()
                         val actionId = if (ei != null) {
                             InputTypeUtils.getImeOptionsActionIdFromEditorInfo(ei)

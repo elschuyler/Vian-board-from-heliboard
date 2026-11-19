@@ -251,7 +251,7 @@ class DesktopShortcutsTest {
             editorInfo = activeEditorInfo,
             inputConnectionProvider = { activeIc },
             editorInfoProvider = { activeEditorInfo },
-            flushComposingAction = { flushCount++ }
+            flushComposingAction = Runnable { flushCount++ }
         )
 
         // Row collapse for 2 active shortcuts: row1 visible (2), row2 & row3 GONE
