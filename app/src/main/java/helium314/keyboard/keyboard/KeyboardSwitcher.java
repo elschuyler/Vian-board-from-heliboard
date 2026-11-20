@@ -358,6 +358,9 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         if (DEBUG_ACTION) {
             Log.d(TAG, "closeSecondaryKeyboard");
         }
+        if (mPatternUnlockView != null && mPatternUnlockView.isShowingPattern()) {
+            mPatternUnlockView.dismissAndNotifyCancel();
+        }
         PointerTracker.setKeyboardActionListener(mLatinIME.mKeyboardActionListener);
         setAlphabetKeyboard(ShiftMode.UNSHIFT);
     }
@@ -828,8 +831,12 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     }
 
     public void showStealthPatternUnlock(@NonNull final Runnable onUnlockSuccess, @Nullable final Runnable onCancel) {
+        showStealthPatternUnlock(onUnlockSuccess, onCancel, false);
+    }
+
+    public void showStealthPatternUnlock(@NonNull final Runnable onUnlockSuccess, @Nullable final Runnable onCancel, final boolean isSecurityVault) {
         setAlphabetKeyboard(ShiftMode.UNSHIFT);
-        showPatternUnlockView(onUnlockSuccess, true, false);
+        showPatternUnlockView(onUnlockSuccess, onCancel, true, isSecurityVault);
     }
 
     public void stopStealthPatternUnlock() {
@@ -839,6 +846,38 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             if (Settings.getValues().mLiteMode) {
                 detachOptionalModal(mPatternUnlockView);
                 mPatternUnlockView = null;
+            }
+        }
+        if (mPatternUnlockStrip != null) {
+            mPatternUnlockStrip.setVisibility(View.GONE);
+        }
+        final boolean hasSecondaryModal = isShowingEmojiPalettes()
+                || isShowingClipboardHistory()
+                || isShowingPromptHistory()
+                || isShowingDesktopShortcuts()
+                || isShowingVoiceInput()
+                || isShowingSecurityVaultExplorer()
+                || isShowingChosenEntry();
+        if (!hasSecondaryModal) {
+            final int stripVisibility = (mLatinIME != null && mLatinIME.hasSuggestionStripView())
+                    ? View.VISIBLE : View.GONE;
+            if (mStripContainer != null) {
+                mStripContainer.setVisibility(stripVisibility);
+            }
+            if (mSuggestionStripView != null) {
+                mSuggestionStripView.setVisibility(stripVisibility);
+            }
+            if (!Settings.getValues().mHasHardwareKeyboard) {
+                if (mMainKeyboardFrame != null) {
+                    mMainKeyboardFrame.setVisibility(View.VISIBLE);
+                }
+                if (mKeyboardView != null) {
+                    mKeyboardView.setVisibility(View.VISIBLE);
+                }
+            }
+            if (mKeyboardView != null && mLatinIME != null) {
+                PointerTracker.switchTo(mKeyboardView);
+                PointerTracker.setKeyboardActionListener(mLatinIME.mKeyboardActionListener);
             }
         }
         syncImeSecureFlag();
@@ -904,6 +943,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     }
 
     public void showPatternUnlockView(Runnable onUnlockSuccess, boolean isStealth, boolean isSecurityVault) {
+        showPatternUnlockView(onUnlockSuccess, null, isStealth, isSecurityVault);
+    }
+
+    public void showPatternUnlockView(Runnable onUnlockSuccess, @Nullable Runnable onCancel, boolean isStealth, boolean isSecurityVault) {
         if (mPatternUnlockView == null) {
             mPatternUnlockView = inflateOptionalModal(R.layout.pattern_unlock_view);
         }
@@ -956,12 +999,20 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                 isSecurityVault,
                 () -> {
                     if (onUnlockSuccess != null) {
+                        stopStealthPatternUnlock();
+                        if (!isStealth && Settings.getValues().mHasHardwareKeyboard) {
+                            setAlphabetKeyboard(ShiftMode.UNSHIFT);
+                        }
                         onUnlockSuccess.run();
                     } else {
                         setAlphabetKeyboard(ShiftMode.UNSHIFT);
                     }
                     return kotlin.Unit.INSTANCE;
-                }
+                },
+                onCancel != null ? () -> {
+                    onCancel.run();
+                    return kotlin.Unit.INSTANCE;
+                } : null
         );
         mPatternUnlockView.setVisibility(View.VISIBLE);
         enforceLiteModeSingleModal(mPatternUnlockView);

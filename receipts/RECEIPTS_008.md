@@ -134,3 +134,37 @@
 - **Deviation from requested**: None.
 - **Known issue or follow-up needed**: Verify Phase 115 APK on physical device after GitHub Actions export (specifically `"Block Screenshots"` toggle behavior on Security Settings and Security Vault / Pattern Unlock modals vs normal typing & LogKeeper).
 
+### Receipt 008-05
+- **Timestamp**: 2026-11-20T11:36:00-08:00
+- **Requested**:
+  - Implement Option A2 (LogCatcher/LogKeeper lightweight hardening + persisted pre-crash breadcrumbs), Option B1 (single-process Voice crash-to-pause modal recovery, drop-free preview/commit, and lower latency), Track C (Privacy Vault pill verification + separate Security/Privacy stealth unlock), delete `/debug.keystore`, run thorough checks, and sync blueprint/receipts/temp cleanup.
+- **Exact files touched**:
+  - `app/src/main/java/helium314/keyboard/keyboard/KeyboardSwitcher.java`
+  - `app/src/main/java/helium314/keyboard/security/vault/context/SecurityVaultContextSniffer.kt`
+  - `app/src/main/java/helium314/keyboard/security/PatternUnlockView.kt`
+  - `app/src/main/java/helium314/keyboard/latin/utils/LogCatcher.kt`
+  - `app/src/main/java/helium314/keyboard/settings/LogKeeperActivity.kt`
+  - `app/src/main/java/helium314/keyboard/latin/voice/EnergyVad.kt`
+  - `app/src/main/jni/whisper/jni_whisper.cpp`
+  - `app/src/main/java/helium314/keyboard/latin/voice/WhisperEngine.kt`
+  - `app/src/main/java/helium314/keyboard/latin/voice/AudioRecordPipeline.kt`
+  - `app/src/main/java/helium314/keyboard/latin/voice/VoiceIpcProtocol.kt`
+  - `app/src/main/java/helium314/keyboard/latin/voice/VoiceInputService.kt`
+  - `app/src/main/java/helium314/keyboard/latin/voice/VoiceInputConnection.kt`
+  - `app/src/main/java/helium314/keyboard/latin/voice/VoiceInputView.kt`
+  - `app/src/test/java/helium314/keyboard/PrivacyVaultPillTest.kt` (new)
+  - `app/src/test/java/helium314/keyboard/StabilizationRegressionTest.kt`
+  - `app/src/test/java/helium314/keyboard/StabilizationHardeningTest.kt`
+  - `BLUEPRINT.md`
+  - `receipts/RECEIPTS_008.md`
+  - Deleted: `TEMP_PHASE116_PLAN.md`, `debug.keystore`
+- **What was actually done**:
+  1. **Track C**: Verified Privacy Vault pill insertion (`InputLogic.commitPrivacyVaultEntry`) resets `WordComposer` cleanly (`PrivacyVaultPillTest`), separated Security vs Privacy session targets in `KeyboardSwitcher.showStealthPatternUnlock` and `SecurityVaultContextSniffer`, and moved `PatternUnlockView` unlock/lockout/error timers to `Handler(Looper.getMainLooper())` with cleanup in `stopPatternUnlock()`.
+  2. **Option A2**: Gated `Suggest`/`getSuggestedWords` capture behind `LogCatcher.isSuggestionsLoggingEnabled` and reset it via `DisposableEffect` on exiting `LogKeeperActivity`; expanded ring buffer to 250; persisted sanitized `E`/`F`/`W` + Voice/Engine/Vault lifecycle breadcrumbs to `vianboard_active.log` and reloaded on `init()`; removed `System.gc()` and dead `rotateActiveLogToDownloads()`; unified `exportLogsToDownloads()` to include crash reports + logs.
+  3. **Option B1**: Consolidated voice runtime/memory/mic errors into single-process `pauseEngineOnFailure(...)` (`ServiceState.PAUSED`, zero crash); added RAM headroom checks (`48MB`) and JNI thread/sample bounds (`1..4`, `<= 480_000`); guarded null `IBinder` in `VoiceInputConnection.onServiceConnected`; reduced VAD silence frames (`15 -> 8`), capped speech windows (`48k`/`240k`) with `utteranceGeneration`, added `EVENT_FINALIZATION_COMPLETE = 107`, committed final text immediately (`0ms`), deferred Space/Enter/Backspace/`ABC` flush across Lite Mode detach on `commitHandler`, and preserved `"Paused"` status on late finals.
+  4. **Cleanup**: Deleted `TEMP_PHASE116_PLAN.md` and purged auto-regenerated `debug.keystore` after the final Gradle run.
+- **How it was verified**:
+  - Local unit/Robolectric tests, R8 build, lintVital, and applet compile: **74/74** tests passed (`0` failed/skipped) across 15 suites (`PrivacyVaultPillTest` [6], `StabilizationRegressionTest` [11], `StabilizationHardeningTest` [9], `VoiceActionsTest` [10], `VaultLockoutTest` [7], `BackupCryptoTest` [7], `DesktopShortcutsTest` [6], `InputTest` [6], `SaveGestureDataTest` [3], `SubtypeTest` [2], `SpellCheckerTest` [2], `KeySpecParserTest` [2], `KdbxAttachmentTest` [1], `LayoutTest` [1], `LiteDictionaryDropTest` [1]); `gradle :app:assembleMinifiedDebug :app:lintVitalMinifiedDebug --no-daemon` passed; `compile_applet` succeeded. Native C++ (`jni_whisper.cpp`) and live mic/UI behavior remain **untested on device / NDK** pending GitHub Actions CI APK build.
+- **Deviation from requested**: `debug.keystore.base64` and `.build-outputs/app-debug.apk` remain untouched outside explicit deletion scope and are flagged in the security scan report.
+- **Known issue or follow-up needed**: Verify `jni_whisper.cpp` NDK compilation in GitHub Actions CI, remove pre-existing `debug.keystore.base64` and `.build-outputs/app-debug.apk` if not needed in git, and run on-device verification against live Whisper dictation, Voice pause recovery, LogKeeper breadcrumbs, and Privacy/Security Vault pills.
+

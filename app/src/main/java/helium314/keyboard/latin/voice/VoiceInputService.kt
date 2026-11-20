@@ -18,6 +18,8 @@ import helium314.keyboard.latin.utils.LogCatcher
 import helium314.keyboard.latin.utils.prefs
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Speech recognition service running in the Main IME Process.
@@ -31,9 +33,9 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
         private const val COMPONENT_NAME = "VoiceInputService"
         private const val IDLE_AUTO_SHUTDOWN_MS = 60_000L // 60 seconds of inactivity
         private const val MIN_SPEECH_SAMPLES = 8_000 // 0.5 seconds at 16kHz
-        private const val MAX_SPEECH_SAMPLES = 480_000 // 30 seconds at 16kHz
-        private const val MAX_INTERIM_SAMPLES = 96_000 // 6 seconds rolling preview window
-        private const val INTERIM_INFERENCE_INTERVAL_MS = 1200L
+        private const val MAX_SPEECH_SAMPLES = 240_000 // 15 seconds at 16kHz (<1MB FloatArray)
+        private const val MAX_INTERIM_SAMPLES = 48_000 // 3 seconds rolling preview window
+        private const val INTERIM_INFERENCE_INTERVAL_MS = 1400L
     }
 
     private val serviceHandler = Handler(Looper.getMainLooper(), ::handleClientMessage)
@@ -47,7 +49,12 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
     private val whisperEngine = WhisperEngine()
     private val inferenceExecutor = Executors.newSingleThreadExecutor()
     private val isTranscribing = AtomicBoolean(false)
+    private val pendingFinalCount = AtomicInteger(0)
+    private val utteranceGeneration = AtomicLong(0L)
     private var lastInterimInferenceTime = 0L
+    private var lastGainMultiplier: Int = 1
+    @Volatile
+    private var startErrorDispatched: Boolean = false
 
     private var audioBuffer: FloatArray? = null
     private var audioSampleCount = 0
@@ -98,29 +105,47 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
         }
     }
 
+    private fun prewarmModelAsync() {
+        if (whisperEngine.isModelLoaded || inferenceExecutor.isShutdown) return
+        try {
+            inferenceExecutor.execute {
+                try {
+                    if (whisperEngine.isModelLoaded || currentState != VoiceIpcProtocol.ServiceState.RECORDING) return@execute
+                    val modelFile = VoiceModelManager.getActiveModelFile(applicationContext)
+                    if (!modelFile.exists() || modelFile.length() <= 1024 * 1024) return@execute
+                    val memIssue = WhisperEngine.checkMemoryHeadroom(applicationContext, modelFile, requireModelOverhead = true)
+                    if (memIssue != null) {
+                        pauseEngineOnFailure(memIssue, releasePipeline = true, releaseModel = true)
+                        return@execute
+                    }
+                    LogCatcher.i(TAG, "Pre-warming Whisper model: ${modelFile.name}")
+                    val loaded = whisperEngine.loadModel(modelFile)
+                    if (!loaded && WhisperEngine.isNativeAvailable()) {
+                        pauseEngineOnFailure("Model init failed", releasePipeline = true, releaseModel = true)
+                    }
+                } catch (t: Throwable) {
+                    LogCatcher.e(TAG, "Exception pre-warming Whisper model", t)
+                    pauseEngineOnFailure("Engine stopped (${t.javaClass.simpleName})", releasePipeline = true, releaseModel = true)
+                }
+            }
+        } catch (_: Throwable) {
+        }
+    }
+
+    @Suppress("DEPRECATION")
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
         if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW || level == ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN || level >= ComponentCallbacks2.TRIM_MEMORY_MODERATE) {
-            LogCatcher.i(TAG, "Pausing voice & releasing Whisper model off-thread onTrimMemory (level=$level)")
+            LogCatcher.w(TAG, "Pausing voice & releasing Whisper model off-thread onTrimMemory (level=$level)")
             if (currentState == VoiceIpcProtocol.ServiceState.RECORDING) {
-                audioPipeline?.pause()
-                currentState = VoiceIpcProtocol.ServiceState.PAUSED
-                notifyStateChanged(currentState)
-                LogCatcher.markComponentActive(COMPONENT_NAME, "IPC Service", "Paused (Memory Trim)")
-            } else if (currentState == VoiceIpcProtocol.ServiceState.IDLE) {
+                pauseEngineOnFailure("Low memory", releasePipeline = false, releaseModel = true)
+            } else {
                 synchronized(bufferLock) {
                     audioBuffer = null
                     audioSampleCount = 0
                 }
+                releaseWhisperAsync()
             }
-            if (level >= ComponentCallbacks2.TRIM_MEMORY_MODERATE) {
-                synchronized(bufferLock) {
-                    audioBuffer = null
-                    audioSampleCount = 0
-                }
-            }
-            // Release off main thread to avoid JNI monitor contention ANR; do NOT trigger inference/reload here.
-            releaseWhisperAsync()
         }
     }
 
@@ -172,6 +197,7 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
             }
             VoiceIpcProtocol.CMD_SET_GAIN -> {
                 val gain = msg.arg1
+                if (gain in listOf(1, 2, 4)) lastGainMultiplier = gain
                 audioPipeline?.gainMultiplier = gain
             }
             VoiceIpcProtocol.CMD_FORCE_RELEASE -> {
@@ -183,36 +209,52 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
         return true
     }
 
-    private fun startRecording(gain: Int) {
-        if (audioPipeline == null) {
-            audioPipeline = AudioRecordPipeline(this)
-        }
-        audioPipeline?.gainMultiplier = gain
-        synchronized(bufferLock) {
+    private fun allocateAudioBufferLocked(): Boolean {
+        return try {
             if (audioBuffer == null) {
                 audioBuffer = FloatArray(MAX_SPEECH_SAMPLES)
             }
             audioSampleCount = 0
+            true
+        } catch (oom: OutOfMemoryError) {
+            LogCatcher.e(TAG, "OOM allocating audio buffer", oom)
+            audioBuffer = null
+            audioSampleCount = 0
+            false
         }
-        val success = audioPipeline?.start() ?: false
+    }
+
+    private fun startRecording(gain: Int) {
+        lastGainMultiplier = gain
+        if (audioPipeline == null) {
+            audioPipeline = AudioRecordPipeline(this)
+        }
+        audioPipeline?.gainMultiplier = gain
+        val allocated = synchronized(bufferLock) { allocateAudioBufferLocked() }
+        if (!allocated) {
+            pauseEngineOnFailure("Low memory", releasePipeline = true, releaseModel = true)
+            return
+        }
+        startErrorDispatched = false
+        val success = try {
+            audioPipeline?.start() ?: false
+        } catch (t: Throwable) {
+            LogCatcher.e(TAG, "Throwable starting AudioRecordPipeline", t)
+            false
+        }
         if (success) {
             currentState = VoiceIpcProtocol.ServiceState.RECORDING
             notifyStateChanged(currentState)
             LogCatcher.markComponentActive(COMPONENT_NAME, "IPC Service", "Recording (Gain: ${gain}x)")
-        } else {
-            synchronized(bufferLock) {
-                audioBuffer = null
-                audioSampleCount = 0
-            }
-            currentState = VoiceIpcProtocol.ServiceState.ERROR
-            notifyStateChanged(currentState)
-            LogCatcher.markComponentActive(COMPONENT_NAME, "IPC Service", "Error Starting Recording")
+            prewarmModelAsync()
+        } else if (!startErrorDispatched && currentState != VoiceIpcProtocol.ServiceState.PAUSED) {
+            pauseEngineOnFailure("Mic unavailable", releasePipeline = true, releaseModel = false)
         }
     }
 
     private fun pauseRecording(triggerFinalInference: Boolean = true) {
-        audioPipeline?.pause()
         currentState = VoiceIpcProtocol.ServiceState.PAUSED
+        audioPipeline?.pause()
         notifyStateChanged(currentState)
         LogCatcher.markComponentActive(COMPONENT_NAME, "IPC Service", "Paused")
         if (triggerFinalInference) {
@@ -221,21 +263,28 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
     }
 
     private fun resumeRecording() {
-        synchronized(bufferLock) {
-            if (audioBuffer == null) {
-                audioBuffer = FloatArray(MAX_SPEECH_SAMPLES)
-                audioSampleCount = 0
-            }
+        val pipeline = audioPipeline
+        if (pipeline == null || !pipeline.isActive()) {
+            startRecording(lastGainMultiplier)
+            return
         }
-        audioPipeline?.resume()
+        val allocated = synchronized(bufferLock) {
+            if (audioBuffer == null) allocateAudioBufferLocked() else true
+        }
+        if (!allocated) {
+            pauseEngineOnFailure("Low memory", releasePipeline = true, releaseModel = true)
+            return
+        }
+        pipeline.resume()
         currentState = VoiceIpcProtocol.ServiceState.RECORDING
         notifyStateChanged(currentState)
         LogCatcher.markComponentActive(COMPONENT_NAME, "IPC Service", "Recording")
+        prewarmModelAsync()
     }
 
     private fun stopRecording() {
-        audioPipeline?.stop()
         currentState = VoiceIpcProtocol.ServiceState.IDLE
+        audioPipeline?.stop()
         notifyStateChanged(currentState)
         LogCatcher.markComponentActive(COMPONENT_NAME, "IPC Service", "Idle (Processing Final Audio)")
         triggerInference(releaseBufferAfter = true)
@@ -250,6 +299,65 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
         }
         currentState = VoiceIpcProtocol.ServiceState.IDLE
         notifyStateChanged(currentState)
+    }
+
+    /**
+     * Stops audio & releases Whisper engine cleanly on any non-fatal exception, memory pressure,
+     * or hardware error inside the single IME process, placing the Voice modal in PAUSED state
+     * so the rest of the keyboard stays alive and the user can tap to retry.
+     */
+    private fun pauseEngineOnFailure(
+        reason: String,
+        releasePipeline: Boolean = true,
+        releaseModel: Boolean = true
+    ) {
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            serviceHandler.post { pauseEngineOnFailure(reason, releasePipeline, releaseModel) }
+            return
+        }
+        if (currentState == VoiceIpcProtocol.ServiceState.IDLE && clientMessenger == null) {
+            // Already closed/unbound — clean up silently without resurrecting PAUSED state
+            if (releasePipeline) {
+                try {
+                    audioPipeline?.release()
+                } catch (_: Throwable) {
+                }
+                audioPipeline = null
+            }
+            synchronized(bufferLock) {
+                audioBuffer = null
+                audioSampleCount = 0
+            }
+            if (releaseModel) {
+                releaseWhisperAsync()
+            }
+            return
+        }
+        utteranceGeneration.incrementAndGet()
+        currentState = VoiceIpcProtocol.ServiceState.PAUSED
+        if (releasePipeline) {
+            try {
+                audioPipeline?.release()
+            } catch (_: Throwable) {
+            }
+            audioPipeline = null
+        } else {
+            try {
+                audioPipeline?.pause()
+            } catch (_: Throwable) {
+            }
+        }
+        synchronized(bufferLock) {
+            audioBuffer = null
+            audioSampleCount = 0
+        }
+        if (releaseModel) {
+            releaseWhisperAsync()
+        }
+        LogCatcher.w(TAG, "Voice engine paused cleanly after failure: $reason")
+        LogCatcher.markComponentActive(COMPONENT_NAME, "IPC Service", "Paused ($reason)")
+        notifyErrorMessage(reason)
+        notifyStateChanged(VoiceIpcProtocol.ServiceState.PAUSED)
     }
 
     private fun resetIdleTimeout() {
@@ -297,93 +405,175 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
         }
     }
 
+    private fun notifyErrorMessage(message: String) {
+        val messenger = clientMessenger ?: return
+        try {
+            val msg = Message.obtain(null, VoiceIpcProtocol.EVENT_ERROR)
+            val bundle = Bundle().apply {
+                putString(VoiceIpcProtocol.KEY_ERROR_MESSAGE, message)
+            }
+            msg.data = bundle
+            messenger.send(msg)
+        } catch (e: RemoteException) {
+            clientMessenger = null
+        }
+    }
+
+    private fun notifyFinalizationComplete() {
+        val messenger = clientMessenger ?: return
+        try {
+            messenger.send(Message.obtain(null, VoiceIpcProtocol.EVENT_FINALIZATION_COMPLETE))
+        } catch (e: RemoteException) {
+            clientMessenger = null
+        }
+    }
+
     private fun triggerInterimPreviewInference() {
+        if (currentState != VoiceIpcProtocol.ServiceState.RECORDING) return
         val now = System.currentTimeMillis()
         if (now - lastInterimInferenceTime < INTERIM_INFERENCE_INTERVAL_MS) return
-        if (isTranscribing.get()) return
+        if (isTranscribing.get() || pendingFinalCount.get() > 0) return
 
+        val gen = utteranceGeneration.get()
         val samples: FloatArray
-        synchronized(bufferLock) {
-            val buf = audioBuffer ?: return
-            if (audioSampleCount < MIN_SPEECH_SAMPLES) return
-            val startIdx = (audioSampleCount - MAX_INTERIM_SAMPLES).coerceAtLeast(0)
-            samples = buf.copyOfRange(startIdx, audioSampleCount)
+        try {
+            synchronized(bufferLock) {
+                val buf = audioBuffer ?: return
+                if (audioSampleCount < MIN_SPEECH_SAMPLES) return
+                val startIdx = (audioSampleCount - MAX_INTERIM_SAMPLES).coerceAtLeast(0)
+                samples = buf.copyOfRange(startIdx, audioSampleCount)
+            }
+        } catch (oom: OutOfMemoryError) {
+            LogCatcher.e(TAG, "OOM copying interim preview audio", oom)
+            pauseEngineOnFailure("Low memory", releasePipeline = true, releaseModel = true)
+            return
         }
 
         if (inferenceExecutor.isShutdown) return
         lastInterimInferenceTime = now
         inferenceExecutor.execute {
-            if (isTranscribing.compareAndSet(false, true)) {
-                try {
-                    if (!whisperEngine.isModelLoaded) {
-                        val modelFile = VoiceModelManager.getActiveModelFile(applicationContext)
-                        if (modelFile.exists() && modelFile.length() > 1024 * 1024) {
-                            whisperEngine.loadModel(modelFile)
-                        } else {
-                            return@execute
-                        }
+            if (pendingFinalCount.get() > 0 || utteranceGeneration.get() != gen || currentState != VoiceIpcProtocol.ServiceState.RECORDING) {
+                return@execute
+            }
+            isTranscribing.set(true)
+            try {
+                val modelFile = VoiceModelManager.getActiveModelFile(applicationContext)
+                if (!whisperEngine.isModelLoaded) {
+                    if (!modelFile.exists() || modelFile.length() <= 1024 * 1024) {
+                        return@execute
                     }
-
-                    val prefs = applicationContext.prefs()
-                    val suppressAnnotations = prefs.getBoolean(Settings.PREF_VOICE_SUPPRESS_ANNOTATIONS, true)
-
-                    // 2-thread preview inference with dynamic audio_ctx and fast greedy sampling
-                    val rawResult = whisperEngine.transcribe(
-                        audioSamples = samples,
-                        numThreads = 2,
-                        useBeamSearch = false,
-                        initialPrompt = null,
-                        suppressAnnotations = suppressAnnotations
-                    )
-                    if (!rawResult.isNullOrBlank()) {
-                        val processedText = VoiceActionProcessor.processText(applicationContext, rawResult)
-                        notifyTranscriptionPreview(processedText)
+                    val memIssue = WhisperEngine.checkMemoryHeadroom(applicationContext, modelFile, requireModelOverhead = true)
+                    if (memIssue != null) {
+                        pauseEngineOnFailure(memIssue, releasePipeline = true, releaseModel = true)
+                        return@execute
                     }
-                } catch (t: Throwable) {
-                    LogCatcher.e(TAG, "Exception during preview inference", t)
-                } finally {
-                    isTranscribing.set(false)
+                    if (!whisperEngine.loadModel(modelFile) && WhisperEngine.isNativeAvailable()) {
+                        pauseEngineOnFailure("Model init failed", releasePipeline = true, releaseModel = true)
+                        return@execute
+                    }
+                } else {
+                    val memIssue = WhisperEngine.checkMemoryHeadroom(applicationContext, modelFile, requireModelOverhead = false)
+                    if (memIssue != null) {
+                        pauseEngineOnFailure(memIssue, releasePipeline = true, releaseModel = true)
+                        return@execute
+                    }
                 }
+
+                if (pendingFinalCount.get() > 0 || utteranceGeneration.get() != gen || currentState != VoiceIpcProtocol.ServiceState.RECORDING) {
+                    return@execute
+                }
+
+                val prefs = applicationContext.prefs()
+                val suppressAnnotations = prefs.getBoolean(Settings.PREF_VOICE_SUPPRESS_ANNOTATIONS, true)
+
+                // Fast greedy rolling preview over <=3s window
+                val rawResult = whisperEngine.transcribe(
+                    audioSamples = samples,
+                    numThreads = minOf(2, WhisperEngine.recommendedThreads(applicationContext)),
+                    useBeamSearch = false,
+                    initialPrompt = null,
+                    suppressAnnotations = suppressAnnotations
+                )
+                if (rawResult == null && whisperEngine.isModelLoaded) {
+                    pauseEngineOnFailure("Engine stopped", releasePipeline = true, releaseModel = true)
+                    return@execute
+                }
+                if (!rawResult.isNullOrBlank() && utteranceGeneration.get() == gen && currentState == VoiceIpcProtocol.ServiceState.RECORDING) {
+                    val processedText = VoiceActionProcessor.processText(applicationContext, rawResult)
+                    notifyTranscriptionPreview(processedText)
+                }
+            } catch (t: Throwable) {
+                LogCatcher.e(TAG, "Exception during preview inference", t)
+                pauseEngineOnFailure("Engine stopped (${t.javaClass.simpleName})", releasePipeline = true, releaseModel = true)
+            } finally {
+                isTranscribing.set(false)
             }
         }
     }
 
     private fun triggerInference(releaseBufferAfter: Boolean = false) {
         lastInterimInferenceTime = 0L
+        utteranceGeneration.incrementAndGet()
         val samples: FloatArray
-        synchronized(bufferLock) {
-            val buf = audioBuffer
-            if (buf == null || audioSampleCount < MIN_SPEECH_SAMPLES) {
-                // Ignore audio clips shorter than 0.5s to avoid transcribing clicks
+        try {
+            synchronized(bufferLock) {
+                val buf = audioBuffer
+                if (buf == null || audioSampleCount < MIN_SPEECH_SAMPLES) {
+                    // Ignore audio clips shorter than 0.5s to avoid transcribing clicks
+                    audioSampleCount = 0
+                    if (releaseBufferAfter) {
+                        audioBuffer = null
+                    }
+                    notifyFinalizationComplete()
+                    return
+                }
+                samples = buf.copyOf(audioSampleCount)
                 audioSampleCount = 0
                 if (releaseBufferAfter) {
                     audioBuffer = null
                 }
-                return
             }
-            samples = buf.copyOf(audioSampleCount)
-            audioSampleCount = 0
-            if (releaseBufferAfter) {
-                audioBuffer = null
-            }
+        } catch (oom: OutOfMemoryError) {
+            LogCatcher.e(TAG, "OOM copying final inference audio", oom)
+            pauseEngineOnFailure("Low memory", releasePipeline = true, releaseModel = true)
+            return
         }
 
-        if (inferenceExecutor.isShutdown) return
-        inferenceExecutor.execute {
-            if (isTranscribing.compareAndSet(false, true)) {
+        if (inferenceExecutor.isShutdown) {
+            notifyFinalizationComplete()
+            return
+        }
+        pendingFinalCount.incrementAndGet()
+        try {
+            inferenceExecutor.execute {
+                isTranscribing.set(true)
                 try {
-                    // Check and load model if needed
+                    val modelFile = VoiceModelManager.getActiveModelFile(applicationContext)
                     if (!whisperEngine.isModelLoaded) {
-                        val modelFile = VoiceModelManager.getActiveModelFile(applicationContext)
                         if (modelFile.exists() && modelFile.length() > 1024 * 1024) {
+                            val memIssue = WhisperEngine.checkMemoryHeadroom(applicationContext, modelFile, requireModelOverhead = true)
+                            if (memIssue != null) {
+                                pauseEngineOnFailure(memIssue, releasePipeline = true, releaseModel = true)
+                                return@execute
+                            }
                             LogCatcher.i(TAG, "Loading Whisper model into native runtime: ${modelFile.name}")
                             val loaded = whisperEngine.loadModel(modelFile)
                             if (!loaded) {
-                                LogCatcher.w(TAG, "Whisper model not initialized (requires native lib); raw audio captured successfully")
+                                if (WhisperEngine.isNativeAvailable()) {
+                                    pauseEngineOnFailure("Model init failed", releasePipeline = true, releaseModel = true)
+                                } else {
+                                    LogCatcher.w(TAG, "Whisper model not initialized (requires native lib); raw audio captured successfully")
+                                }
                                 return@execute
                             }
                         } else {
                             LogCatcher.i(TAG, "Raw audio captured (${samples.size} samples); no Whisper model loaded")
+                            return@execute
+                        }
+                    } else {
+                        val memIssue = WhisperEngine.checkMemoryHeadroom(applicationContext, modelFile, requireModelOverhead = false)
+                        if (memIssue != null) {
+                            pauseEngineOnFailure(memIssue, releasePipeline = true, releaseModel = true)
                             return@execute
                         }
                     }
@@ -405,11 +595,15 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
 
                     val rawResult = whisperEngine.transcribe(
                         audioSamples = samples,
-                        numThreads = minOf(4, Runtime.getRuntime().availableProcessors()),
+                        numThreads = WhisperEngine.recommendedThreads(applicationContext),
                         useBeamSearch = useBeamSearch,
                         initialPrompt = initialPrompt,
                         suppressAnnotations = suppressAnnotations
                     )
+                    if (rawResult == null && whisperEngine.isModelLoaded) {
+                        pauseEngineOnFailure("Engine stopped", releasePipeline = true, releaseModel = true)
+                        return@execute
+                    }
                     if (!rawResult.isNullOrBlank()) {
                         val processedText = VoiceActionProcessor.processText(applicationContext, rawResult)
                         LogCatcher.i(TAG, "Transcription finalized: ${processedText.length} chars (sanitized)")
@@ -419,11 +613,17 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
                     }
                 } catch (t: Throwable) {
                     LogCatcher.e(TAG, "Exception during inference processing", t)
-                    onError("Inference error: ${t.javaClass.simpleName}")
+                    pauseEngineOnFailure("Engine stopped (${t.javaClass.simpleName})", releasePipeline = true, releaseModel = true)
                 } finally {
                     isTranscribing.set(false)
+                    pendingFinalCount.decrementAndGet()
+                    notifyFinalizationComplete()
                 }
             }
+        } catch (t: Throwable) {
+            pendingFinalCount.decrementAndGet()
+            LogCatcher.e(TAG, "Failed to enqueue final inference", t)
+            pauseEngineOnFailure("Engine stopped", releasePipeline = true, releaseModel = true)
         }
     }
 
@@ -453,7 +653,7 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
             clientMessenger = null
         }
 
-        if (!isSpeaking) {
+        if (!isSpeaking && currentState == VoiceIpcProtocol.ServiceState.RECORDING) {
             // Trailing pause detected by EnergyVad! Process speech chunk
             LogCatcher.i(TAG, "Speech pause detected by VAD, triggering final chunk inference")
             triggerInference()
@@ -476,31 +676,16 @@ class VoiceInputService : Service(), AudioRecordPipeline.AudioPipelineListener {
         }
 
         if (bufferFull) {
-            val prefs = applicationContext.prefs()
-            val continuous = prefs.getBoolean(Settings.PREF_VOICE_CONTINUOUS_STREAMING, Defaults.PREF_VOICE_CONTINUOUS_STREAMING)
-            if (continuous) {
-                LogCatcher.i(TAG, "Audio buffer reached 30s threshold, auto-chunking continuous speech segment")
-                triggerInference()
-            }
+            LogCatcher.i(TAG, "Audio buffer reached 15s cap, auto-chunking speech segment")
+            triggerInference()
         } else if (currentState == VoiceIpcProtocol.ServiceState.RECORDING) {
             triggerInterimPreviewInference()
         }
     }
 
     override fun onError(message: String) {
+        startErrorDispatched = true
         LogCatcher.e(TAG, "Audio error: $message")
-        currentState = VoiceIpcProtocol.ServiceState.ERROR
-        notifyStateChanged(currentState)
-        val messenger = clientMessenger ?: return
-        try {
-            val msg = Message.obtain(null, VoiceIpcProtocol.EVENT_ERROR)
-            val bundle = Bundle().apply {
-                putString(VoiceIpcProtocol.KEY_ERROR_MESSAGE, message)
-            }
-            msg.data = bundle
-            messenger.send(msg)
-        } catch (e: RemoteException) {
-            clientMessenger = null
-        }
+        pauseEngineOnFailure(message, releasePipeline = true, releaseModel = false)
     }
 }

@@ -1,0 +1,111 @@
+=== LOG KEEPER AUDIT EXPORT ===
+Export Timestamp: 2026-11-20 17:17:29
+Active Tab: All Logs
+Time Filter: All
+Privacy Filter: NO content, NO credentials, NO PII
+
+--- ACTIVE SUBSYSTEMS (2) ---
+- [Input Service] LatinIME: Active (lastSeen=434242454)
+- [Diagnostic] LogCatcher: Active (lastSeen=434242388)
+
+--- LOG ENTRIES (100) ---
+2026-11-20 16:31:54.054 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=true, isTypedWordValid=true
+2026-11-20 16:31:54.302 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=11, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-20 16:31:54.525 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-20 16:31:54.695 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=0, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-20 16:31:56.125 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=12, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-20 16:31:56.491 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-20 16:31:56.678 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=16, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-20 16:31:57.305 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-20 16:31:57.501 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=12, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-20 16:31:57.726 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=12, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-20 16:31:57.922 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=13, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-20 16:31:58.107 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-20 16:31:58.663 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=18, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-20 16:31:59.143 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-20 16:31:59.338 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-20 16:31:59.587 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-20 16:31:59.940 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-20 16:32:00.162 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=7, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-20 16:32:00.442 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-20 16:32:00.717 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-20 16:32:00.954 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-20 16:32:01.186 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=19, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-20 16:32:01.501 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=18, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-20 16:32:01.686 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-20 16:32:01.901 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-20 16:32:02.355 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-20 16:32:02.653 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-20 16:32:02.852 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=12, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-20 16:32:03.105 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=10, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-20 16:32:03.446 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=3, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-20 16:32:03.722 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=true, isTypedWordValid=true
+2026-11-20 16:32:03.935 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=13, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-20 16:32:04.205 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-20 16:32:04.429 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=16, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-20 16:32:04.687 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-20 16:32:04.854 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=13, hasAutoCorrection=true, isTypedWordValid=true
+2026-11-20 16:32:05.102 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=8, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-20 16:32:05.313 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=18, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-20 16:32:05.724 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-20 16:32:05.972 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-20 16:32:06.223 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=17, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-20 16:32:06.472 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=19, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-20 16:32:06.723 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=19, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-20 16:32:07.022 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=18, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-20 16:32:07.246 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=3, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-20 16:32:07.690 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-20 16:32:07.987 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=11, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-20 16:32:08.232 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=17, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-20 16:32:08.859 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-20 16:32:09.223 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=12, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-20 16:32:09.423 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=12, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-20 16:32:09.623 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=13, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-20 16:32:09.821 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=14, hasAutoCorrection=true, isTypedWordValid=false
+2026-11-20 16:32:10.074 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=9, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-20 16:32:10.296 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=17, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-20 16:32:10.741 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=15, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-20 16:32:10.921 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=16, hasAutoCorrection=false, isTypedWordValid=true
+2026-11-20 16:32:12.135 [I] LatinIME: hideWindow
+2026-11-20 16:32:12.135 [I] LatinIME: hideWindow invoked (liteMode=false)
+2026-11-20 16:32:12.136 [I] LatinIME: onFinishInputView
+2026-11-20 16:32:12.137 [I] LatinIME: onFinishInputViewInternal finishingInput=false
+2026-11-20 16:32:12.137 [I] LatinIME: onWindowHidden
+2026-11-20 16:32:12.137 [I] LatinIME: IME window hidden (showing=false)
+2026-11-20 16:32:12.543 [I] LatinIME: onFinishInput
+2026-11-20 16:32:13.589 [I] LatinIME: onFinishInput
+2026-11-20 16:32:13.594 [I] Settings: loadSettings
+2026-11-20 16:32:13.600 [I] LatinIME: Starting input. Cursor position = 63,63
+2026-11-20 16:32:19.604 [I] LatinIME: onConfigurationChanged
+2026-11-20 16:32:19.606 [I] Settings: loadSettings
+2026-11-20 16:32:19.791 [I] Settings: loadSettings
+2026-11-20 16:32:19.793 [I] LatinIME: Starting input. Cursor position = 63,63
+2026-11-20 16:45:05.478 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=0, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-20 16:45:06.293 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=0, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-20 16:45:07.762 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=0, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-20 16:45:08.562 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=0, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-20 17:17:18.400 [I] LatinIME: hideWindow
+2026-11-20 17:17:18.400 [I] LatinIME: hideWindow invoked (liteMode=false)
+2026-11-20 17:17:18.401 [I] LatinIME: onFinishInputView
+2026-11-20 17:17:18.401 [I] LatinIME: onFinishInputViewInternal finishingInput=false
+2026-11-20 17:17:18.401 [I] LatinIME: onWindowHidden
+2026-11-20 17:17:18.402 [I] LatinIME: IME window hidden (showing=false)
+2026-11-20 17:17:18.675 [I] Settings: loadSettings
+2026-11-20 17:17:18.678 [I] LatinIME: Starting input. Cursor position = 63,63
+2026-11-20 17:17:18.700 [W] RichInputConnection: Laggy editor connection: fell back to cursor position 63
+2026-11-20 17:17:18.701 [W] RichInputConnection: Laggy editor connection: fell back to cursor position 63
+2026-11-20 17:17:18.702 [W] RichInputConnection: Unable to connect to the editor. Setting caps mode without knowing text.
+2026-11-20 17:17:18.730 [I] LatinIME: hideWindow
+2026-11-20 17:17:18.730 [I] LatinIME: hideWindow invoked (liteMode=false)
+2026-11-20 17:17:18.731 [I] LatinIME: onFinishInputView
+2026-11-20 17:17:18.731 [I] LatinIME: onFinishInputViewInternal finishingInput=false
+2026-11-20 17:17:18.731 [I] LatinIME: onWindowHidden
+2026-11-20 17:17:18.731 [I] LatinIME: IME window hidden (showing=false)
+2026-11-20 17:17:18.967 [I] Suggest: getSuggestedWords: resultsArePredictions=true, candidates=0, hasAutoCorrection=false, isTypedWordValid=false
+2026-11-20 17:17:19.495 [I] LatinIME: onFinishInput
+2026-11-20 17:17:22.616 [I] LatinIME: onFinishInput
+2026-11-20 17:17:22.946 [I] LatinIME: onFinishInput
+2026-11-20 17:17:23.065 [I] LatinIME: onFinishInput
+2026-11-20 17:17:23.074 [I] Settings: loadSettings
+2026-11-20 17:17:23.076 [I] LatinIME: Starting input. Cursor position = 428,428
+2026-11-20 17:17:23.227 [I] Suggest: getSuggestedWords: resultsArePredictions=false, candidates=12, hasAutoCorrection=false, isTypedWordValid=true

@@ -33,10 +33,11 @@ import java.util.concurrent.RejectedExecutionException
  * 6. Component Lifecycle Tracker to observe active running subsystems ("what is running").
  */
 object LogCatcher {
-    private const val MAX_RING_BUFFER_SIZE = 100
+    private const val MAX_RING_BUFFER_SIZE = 250
     private const val CRASH_LOG_FILE = "last_crash.log"
     private const val ACTIVE_LOG_FILE = "vianboard_active.log"
     private const val ROTATION_SIZE_BYTES = 2L * 1024L * 1024L // 2 MB
+    private const val STARTUP_RELOAD_MAX_ENTRIES = 60
 
     @Volatile
     private var isEnabled = true
@@ -47,11 +48,26 @@ object LogCatcher {
     private val ringBuffer = ArrayList<LogEntry>(MAX_RING_BUFFER_SIZE)
     private val activeComponents = ConcurrentHashMap<String, ComponentInfo>()
     private val diskExecutor = Executors.newSingleThreadExecutor()
+    private val clearEpoch = java.util.concurrent.atomic.AtomicInteger(0)
 
-    private val pendingDiskEntries = ArrayList<LogEntry>()
+    private val timeFormatLocal = ThreadLocal.withInitial {
+        SimpleDateFormat("HH:mm:ss.SSS", Locale.US)
+    }
+    private val exportFormatLocal = ThreadLocal.withInitial {
+        SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)
+    }
 
     @Volatile
     var isSuggestionsLoggingEnabled: Boolean = false
+
+    private val VOICE_ENGINE_BREADCRUMB_TAGS = setOf(
+        "VoiceInputService",
+        "WhisperEngine",
+        "AudioRecordPipeline",
+        "VoiceInputView",
+        "VoiceInputConnection",
+        "VaultSessionManager"
+    )
 
     private val HIGH_FREQUENCY_TYPING_TAGS = arrayOf(
         "PointerTracker",
@@ -83,13 +99,15 @@ object LogCatcher {
             return true
         }
 
-        // Filter high-frequency suggestion bar and inline suggestion logs unless explicitly toggled on in LogKeeper
-        if (message.contains("updateSuggestionStrip", ignoreCase = true) ||
+        // Filter high-frequency suggestion/dictionary logs (including Suggest: getSuggestedWords) unless Suggestions logging is explicitly enabled
+        if (tag.equals("Suggest", ignoreCase = true) ||
+            message.contains("getSuggestedWords", ignoreCase = true) ||
+            message.contains("updateSuggestionStrip", ignoreCase = true) ||
             message.contains("setSuggestions", ignoreCase = true) ||
             message.contains("InlineSuggestions", ignoreCase = true) ||
             tag.contains("SuggestionStrip", ignoreCase = true)
         ) {
-            if (!isSuggestionsLoggingEnabled) return true
+            if (!isSuggestionsLoggingEnabled && level != 'E' && level != 'F' && level != 'W') return true
         }
 
         for (t in HIGH_FREQUENCY_TYPING_TAGS) {
@@ -125,12 +143,11 @@ object LogCatcher {
         val stackTrace: String? = null
     ) {
         fun formattedTime(): String {
-            val sdf = SimpleDateFormat("HH:mm:ss.SSS", Locale.US)
-            return sdf.format(Date(timestamp))
+            return timeFormatLocal.get()?.format(Date(timestamp)) ?: ""
         }
 
         fun toExportString(): String {
-            val dateStr = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(Date(timestamp))
+            val dateStr = exportFormatLocal.get()?.format(Date(timestamp)) ?: ""
             val base = "$dateStr [$level] $tag: $message"
             return if (stackTrace != null) "$base\n$stackTrace" else base
         }
@@ -138,15 +155,90 @@ object LogCatcher {
 
     @JvmStatic
     fun init(context: Context) {
-        appContext = context.applicationContext
+        val appCtx = context.applicationContext
+        appContext = appCtx
         val prefs = context.getSharedPreferences(
             "${context.packageName}_preferences",
             Context.MODE_PRIVATE
         )
         isEnabled = prefs.getBoolean("pref_log_keeper_enabled", true)
-        installCrashHandler(context.applicationContext)
+        installCrashHandler(appCtx)
         markComponentActive("System", "Core", "Initialized")
         markComponentActive("LogCatcher", "Diagnostic", "Active")
+        loadPersistedBreadcrumbsAsync(appCtx)
+    }
+
+    private fun loadPersistedBreadcrumbsAsync(ctx: Context) {
+        val epochAtStart = clearEpoch.get()
+        executeDiskTask {
+            try {
+                val file = File(ctx.filesDir, ACTIVE_LOG_FILE)
+                if (!file.exists() || file.length() == 0L) return@executeDiskTask
+                val lines = file.readLines()
+                if (lines.isEmpty()) return@executeDiskTask
+
+                val fmt = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)
+                val parsed = ArrayList<LogEntry>(STARTUP_RELOAD_MAX_ENTRIES)
+                var currentEntry: LogEntry? = null
+                val stackBuilder = StringBuilder()
+
+                fun flushCurrent() {
+                    val entry = currentEntry ?: return
+                    val finalEntry = if (stackBuilder.isNotEmpty()) {
+                        entry.copy(stackTrace = stackBuilder.toString().trim())
+                    } else {
+                        entry
+                    }
+                    parsed.add(finalEntry)
+                    currentEntry = null
+                    stackBuilder.setLength(0)
+                }
+
+                for (line in lines) {
+                    val parsedLine = parsePersistedLogLine(line, fmt)
+                    if (parsedLine != null) {
+                        flushCurrent()
+                        currentEntry = parsedLine
+                    } else if (currentEntry != null && line.isNotBlank()) {
+                        if (stackBuilder.isNotEmpty()) stackBuilder.append('\n')
+                        stackBuilder.append(line)
+                    }
+                }
+                flushCurrent()
+
+                if (parsed.isEmpty() || clearEpoch.get() != epochAtStart) return@executeDiskTask
+                val tail = parsed.takeLast(STARTUP_RELOAD_MAX_ENTRIES)
+                synchronized(ringBuffer) {
+                    if (clearEpoch.get() != epochAtStart) return@synchronized
+                    val existing = ArrayList(ringBuffer)
+                    ringBuffer.clear()
+                    val combined = (tail + existing).takeLast(MAX_RING_BUFFER_SIZE)
+                    ringBuffer.addAll(combined)
+                }
+            } catch (e: Exception) {
+                android.util.Log.w("LogCatcher", "Failed to load persisted log breadcrumbs", e)
+            }
+        }
+    }
+
+    private fun parsePersistedLogLine(line: String, fmt: SimpleDateFormat): LogEntry? {
+        // Expected format: yyyy-MM-dd HH:mm:ss.SSS [L] Tag: message
+        if (line.length < 29 || line[23] != ' ' || line[24] != '[' || line[26] != ']' || line[27] != ' ') {
+            return null
+        }
+        val tsStr = line.substring(0, 23)
+        val ts = try {
+            fmt.parse(tsStr)?.time ?: return null
+        } catch (_: Exception) {
+            return null
+        }
+        val level = line[25]
+        val rest = line.substring(28)
+        val colonIdx = rest.indexOf(": ")
+        if (colonIdx <= 0) return null
+        val tag = rest.substring(0, colonIdx)
+        val msg = rest.substring(colonIdx + 2)
+        return LogEntry(timestamp = ts, level = level, tag = tag, message = msg)
     }
 
     @JvmStatic
@@ -244,11 +336,15 @@ object LogCatcher {
         }
     }
 
+    private fun shouldPersistToDisk(entry: LogEntry): Boolean {
+        if (entry.level == 'E' || entry.level == 'F' || entry.level == 'W') return true
+        // Persist Voice Engine & Vault lifecycle milestones so pre-crash breadcrumbs survive native SIGSEGV / OOM kills
+        return entry.tag in VOICE_ENGINE_BREADCRUMB_TAGS
+    }
+
     private fun queueForDisk(entry: LogEntry) {
-        // Write to disk strictly on actual errors or fatal issues (E / F).
-        // Normal info and debug logs cycle through the lean 100-entry in-memory ring buffer,
-        // saving 100% of background disk I/O, flash storage wear, and battery.
-        if (entry.level == 'E' || entry.level == 'F') {
+        // Persist errors, fatals, warnings, and sparse Voice/Vault lifecycle milestones (zero typing disk I/O).
+        if (shouldPersistToDisk(entry)) {
             val ctx = appContext ?: return
             executeDiskTask {
                 writeBatchToDisk(ctx, listOf(entry))
@@ -361,21 +457,7 @@ object LogCatcher {
 
     @JvmStatic
     fun flushPendingLogs() {
-        val batch: List<LogEntry>?
-        synchronized(pendingDiskEntries) {
-            if (pendingDiskEntries.isNotEmpty()) {
-                batch = ArrayList(pendingDiskEntries)
-                pendingDiskEntries.clear()
-            } else {
-                batch = null
-            }
-        }
-        val ctx = appContext ?: return
-        if (batch != null) {
-            executeDiskTask {
-                writeBatchToDisk(ctx, batch)
-            }
-        }
+        // Error, warning, and Voice/Vault breadcrumbs dispatch immediately via diskExecutor.
     }
 
     @JvmStatic
@@ -387,6 +469,7 @@ object LogCatcher {
 
     @JvmStatic
     fun clearLogs() {
+        clearEpoch.incrementAndGet()
         synchronized(ringBuffer) {
             ringBuffer.clear()
         }
@@ -457,30 +540,13 @@ object LogCatcher {
     }
 
     /**
-     * Rotates internal active log by saving to device Download folder and resetting internal file.
-     */
-    private fun rotateActiveLogToDownloads(context: Context, logFile: File) {
-        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Calendar.getInstance().time)
-        val fileName = "VianBoard_Log_$timestamp.log"
-        val header = "=== VIANBOARD LOG ROTATION (2MB EXCEEDED) ===\nTimestamp: $timestamp\n\n"
-
-        val content = try {
-            header + logFile.readText()
-        } catch (_: Exception) {
-            header
-        }
-
-        saveToDownloads(context, fileName, content)
-        logFile.delete()
-    }
-
-    /**
      * Exports current logs or text to device Download folder immediately using MediaStore.
      */
     fun exportLogsToDownloads(context: Context): Boolean {
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Calendar.getInstance().time)
         val fileName = "VianBoard_Manual_Log_$timestamp.log"
-        val activeLogFile = File(context.filesDir, ACTIVE_LOG_FILE)
+        val crashReport = readLastCrashReport()
+        val entries = getLogs()
 
         val content = buildString {
             appendLine("=== VIANBOARD LOG EXPORT ===")
@@ -488,19 +554,18 @@ object LogCatcher {
             appendLine("Version: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
             appendLine("Device: ${Build.BRAND} ${Build.DEVICE}, Android ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT})")
             appendLine()
+            if (!crashReport.isNullOrBlank()) {
+                appendLine("--- PERSISTED CRASH REPORT ---")
+                appendLine(crashReport)
+                appendLine()
+            }
             appendLine("--- ACTIVE COMPONENTS (WHAT IS RUNNING) ---")
             getActiveComponents().forEach {
                 appendLine("- [${it.category}] ${it.name}: ${it.status} (lastSeen=${it.lastSeenAt})")
             }
             appendLine()
-            appendLine("--- LOG HISTORY ---")
-            if (activeLogFile.exists()) {
-                append(activeLogFile.readText())
-            } else {
-                synchronized(ringBuffer) {
-                    ringBuffer.forEach { appendLine(it.toExportString()) }
-                }
-            }
+            appendLine("--- LOG HISTORY (${entries.size}) ---")
+            entries.forEach { appendLine(it.toExportString()) }
         }
 
         return saveToDownloads(context, fileName, content)

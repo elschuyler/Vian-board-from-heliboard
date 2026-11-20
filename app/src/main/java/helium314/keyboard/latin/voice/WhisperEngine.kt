@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.latin.voice
 
+import android.app.ActivityManager
+import android.content.Context
 import helium314.keyboard.latin.utils.LogCatcher
 import java.io.File
 
@@ -15,6 +17,7 @@ class WhisperEngine {
         private const val TAG = "WhisperEngine"
         private const val COMPONENT_NAME = "WhisperEngine"
         const val SAMPLE_RATE_HZ = 16000
+        private const val MIN_HEADROOM_BYTES = 48L * 1024L * 1024L
 
         @Volatile
         private var isLibraryLoaded: Boolean = false
@@ -40,6 +43,41 @@ class WhisperEngine {
         }
 
         fun isNativeAvailable(): Boolean = isLibraryLoaded
+
+        /**
+         * Checks whether the OS currently has enough free RAM headroom to safely load or run
+         * the given Whisper model in the single IME process without triggering an OOM spike.
+         * Returns null when safe, or a short non-PII reason string when memory is constrained.
+         */
+        fun checkMemoryHeadroom(context: Context, modelFile: File, requireModelOverhead: Boolean): String? {
+            val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager ?: return null
+            val memInfo = ActivityManager.MemoryInfo()
+            am.getMemoryInfo(memInfo)
+            if (memInfo.lowMemory) {
+                return "Low system memory"
+            }
+            if (requireModelOverhead) {
+                val modelBytes = modelFile.length().coerceAtLeast(0L)
+                val multiplier = if (isArmV7) 2.5 else 1.25
+                val required = (modelBytes * multiplier).toLong() + MIN_HEADROOM_BYTES
+                if (memInfo.availMem > 0L && memInfo.availMem < required) {
+                    return "Low memory (${memInfo.availMem / (1024 * 1024)}MB free)"
+                }
+            }
+            return null
+        }
+
+        fun recommendedThreads(context: Context): Int {
+            val cpus = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
+            val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+            val memInfo = ActivityManager.MemoryInfo()
+            am?.getMemoryInfo(memInfo)
+            return if (isArmV7 || memInfo.lowMemory || (memInfo.availMem in 1L until 256L * 1024L * 1024L)) {
+                minOf(2, cpus)
+            } else {
+                minOf(3, cpus)
+            }
+        }
 
         /**
          * Strips common Whisper hallucination artifacts and control tokens.

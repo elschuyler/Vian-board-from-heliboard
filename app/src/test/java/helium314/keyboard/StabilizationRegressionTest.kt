@@ -222,4 +222,194 @@ class StabilizationRegressionTest {
         assertFalse(voiceView.isVoiceActive())
         assertEquals(View.GONE, voiceView.visibility)
     }
+
+    @Test
+    fun energyVad_detectsPauseWithinEightFrames() {
+        val vad = EnergyVad()
+        val speechFrame = ShortArray(1024) { 4000 }
+        repeat(4) { vad.processFrame(speechFrame, speechFrame.size, gainMultiplier = 1) }
+        assertTrue(vad.isSpeechDetected)
+
+        val quietFrame = ShortArray(1024) { 10 }
+        repeat(7) { vad.processFrame(quietFrame, quietFrame.size, gainMultiplier = 1) }
+        assertTrue(vad.isSpeechDetected, "7 quiet frames should still keep speech active")
+
+        vad.processFrame(quietFrame, quietFrame.size, gainMultiplier = 1)
+        assertFalse(vad.isSpeechDetected, "8th quiet frame (~512ms) must finalize utterance cleanly")
+    }
+
+    @Test
+    fun voiceInputService_onErrorTransitionsToPausedAndClearsBuffer() {
+        val service = Robolectric.setupService(helium314.keyboard.latin.voice.VoiceInputService::class.java)
+        val bufferField = helium314.keyboard.latin.voice.VoiceInputService::class.java.getDeclaredField("audioBuffer").apply {
+            isAccessible = true
+        }
+        val countField = helium314.keyboard.latin.voice.VoiceInputService::class.java.getDeclaredField("audioSampleCount").apply {
+            isAccessible = true
+        }
+        val stateField = helium314.keyboard.latin.voice.VoiceInputService::class.java.getDeclaredField("currentState").apply {
+            isAccessible = true
+        }
+
+        bufferField.set(service, FloatArray(16000))
+        countField.setInt(service, 9000)
+        stateField.set(service, helium314.keyboard.latin.voice.VoiceIpcProtocol.ServiceState.RECORDING)
+
+        service.onError("Mic busy")
+        org.robolectric.shadows.ShadowLooper.runUiThreadTasks()
+
+        assertEquals(
+            helium314.keyboard.latin.voice.VoiceIpcProtocol.ServiceState.PAUSED,
+            stateField.get(service)
+        )
+        assertNull(bufferField.get(service))
+        assertEquals(0, countField.getInt(service))
+    }
+
+    @Test
+    fun voiceInputView_errorMovesToPausedAndFinalTextCommitsImmediately() {
+        val ime = Robolectric.setupService(LatinIME::class.java)
+        val inputView = ime.onCreateInputView()
+        ime.setInputView(inputView)
+        val switcher = KeyboardSwitcher.getInstance()
+        switcher.loadKeyboard(android.view.inputmethod.EditorInfo(), Settings.getValues(), 0, null, null)
+
+        // Create a dummy >1MB model file so VoiceModelManager.hasActiveModel(ime) is true
+        val modelFile = helium314.keyboard.latin.voice.VoiceModelManager.getActiveModelFile(ime)
+        modelFile.parentFile?.mkdirs()
+        java.io.RandomAccessFile(modelFile, "rw").use { it.setLength(1024L * 1024L + 64L) }
+
+        try {
+            switcher.setVoiceInputKeyboard()
+            val voiceView = switcher.voiceInputView!!
+            val committed = mutableListOf<String>()
+            val baseListener = ime.mKeyboardActionListener
+            val listenerField = helium314.keyboard.latin.voice.VoiceInputView::class.java.getDeclaredField("keyboardActionListener").apply {
+                isAccessible = true
+            }
+            listenerField.set(voiceView, object : helium314.keyboard.keyboard.KeyboardActionListener by baseListener {
+                override fun onTextInput(rawText: String?) {
+                    if (rawText != null) committed.add(rawText)
+                }
+            })
+
+            val connListenerField = helium314.keyboard.latin.voice.VoiceInputView::class.java.getDeclaredField("connectionListener").apply {
+                isAccessible = true
+            }
+            val connListener = connListenerField.get(voiceView) as helium314.keyboard.latin.voice.VoiceInputConnection.VoiceConnectionListener
+
+            // 1. Final transcription commits immediately (0ms) and cannot be clobbered by a trailing preview
+            connListener.onFinalTranscription("hello world")
+            connListener.onTranscriptionPreview("next phrase")
+            org.robolectric.shadows.ShadowLooper.runUiThreadTasks()
+            assertEquals(listOf("hello world"), committed)
+
+            // 2. Engine error transitions Voice modal cleanly to PAUSED (matching bouncing-bar pause)
+            connListener.onError("Low memory")
+            connListener.onStateChanged(helium314.keyboard.latin.voice.VoiceIpcProtocol.ServiceState.ERROR)
+            org.robolectric.shadows.ShadowLooper.runUiThreadTasks()
+
+            val pausedField = helium314.keyboard.latin.voice.VoiceInputView::class.java.getDeclaredField("isVoicePaused").apply {
+                isAccessible = true
+            }
+            val pulseField = helium314.keyboard.latin.voice.VoiceInputView::class.java.getDeclaredField("pulseView").apply {
+                isAccessible = true
+            }
+            val streamField = helium314.keyboard.latin.voice.VoiceInputView::class.java.getDeclaredField("streamingText").apply {
+                isAccessible = true
+            }
+            val pulse = pulseField.get(voiceView) as VoicePulseView
+            val streamText = streamField.get(voiceView) as android.widget.TextView
+
+            assertTrue(pausedField.getBoolean(voiceView), "Voice modal must enter isVoicePaused=true on engine error")
+            assertEquals(VoicePulseView.PulseState.PAUSED, pulse.pulseState)
+            assertTrue(streamText.text.toString().contains("Paused: Low memory"))
+            switcher.closeVoiceInput()
+        } finally {
+            modelFile.delete()
+        }
+    }
+
+    @Test
+    fun voiceInputView_preservesPausedBannerOnLateFinalAndPausesWithoutModelOnError() {
+        val ime = Robolectric.setupService(LatinIME::class.java)
+        val inputView = ime.onCreateInputView()
+        ime.setInputView(inputView)
+        val switcher = KeyboardSwitcher.getInstance()
+        switcher.loadKeyboard(android.view.inputmethod.EditorInfo(), Settings.getValues(), 0, null, null)
+
+        val modelFile = helium314.keyboard.latin.voice.VoiceModelManager.getActiveModelFile(ime)
+        val hadModel = modelFile.exists()
+        if (hadModel) modelFile.delete()
+
+        switcher.setVoiceInputKeyboard()
+        // Settle Robolectric's async bindService callback before injecting synthetic engine events
+        org.robolectric.shadows.ShadowLooper.runUiThreadTasks()
+        val voiceView = switcher.voiceInputView!!
+        val committed = mutableListOf<String>()
+        val baseListener = ime.mKeyboardActionListener
+        val listenerField = helium314.keyboard.latin.voice.VoiceInputView::class.java.getDeclaredField("keyboardActionListener").apply {
+            isAccessible = true
+        }
+        listenerField.set(voiceView, object : helium314.keyboard.keyboard.KeyboardActionListener by baseListener {
+            override fun onTextInput(rawText: String?) {
+                if (rawText != null) committed.add(rawText)
+            }
+        })
+
+        val connListenerField = helium314.keyboard.latin.voice.VoiceInputView::class.java.getDeclaredField("connectionListener").apply {
+            isAccessible = true
+        }
+        val connListener = connListenerField.get(voiceView) as helium314.keyboard.latin.voice.VoiceInputConnection.VoiceConnectionListener
+
+        // Even without an imported model, a hardware mic error enters paused state cleanly with reason
+        connListener.onError("Mic unavailable")
+        connListener.onStateChanged(helium314.keyboard.latin.voice.VoiceIpcProtocol.ServiceState.PAUSED)
+        org.robolectric.shadows.ShadowLooper.runUiThreadTasks()
+
+        val streamField = helium314.keyboard.latin.voice.VoiceInputView::class.java.getDeclaredField("streamingText").apply {
+            isAccessible = true
+        }
+        val pausedField = helium314.keyboard.latin.voice.VoiceInputView::class.java.getDeclaredField("isVoicePaused").apply {
+            isAccessible = true
+        }
+        val streamText = streamField.get(voiceView) as android.widget.TextView
+        assertTrue(pausedField.getBoolean(voiceView))
+        assertTrue(
+            streamText.text.toString().contains("Paused: Mic unavailable"),
+            "Expected Paused: Mic unavailable, got: ${streamText.text}"
+        )
+
+        // A trailing finalized utterance commits cleanly without wiping the Paused status banner
+        connListener.onFinalTranscription("last spoken words")
+        org.robolectric.shadows.ShadowLooper.runUiThreadTasks()
+        assertEquals(listOf("last spoken words"), committed)
+        assertTrue(
+            streamText.text.toString().contains("Paused: Mic unavailable"),
+            "Expected Paused: Mic unavailable after late final, got: ${streamText.text}"
+        )
+
+        switcher.closeVoiceInput()
+    }
+
+    @Test
+    fun voiceInputService_doesNotResurrectPausedFromIdleWhenUnbound() {
+        val service = Robolectric.setupService(helium314.keyboard.latin.voice.VoiceInputService::class.java)
+        val stateField = helium314.keyboard.latin.voice.VoiceInputService::class.java.getDeclaredField("currentState").apply {
+            isAccessible = true
+        }
+        val pauseMethod = helium314.keyboard.latin.voice.VoiceInputService::class.java.getDeclaredMethod(
+            "pauseEngineOnFailure",
+            String::class.java,
+            Boolean::class.javaPrimitiveType,
+            Boolean::class.javaPrimitiveType
+        ).apply {
+            isAccessible = true
+        }
+
+        assertEquals(helium314.keyboard.latin.voice.VoiceIpcProtocol.ServiceState.IDLE, stateField.get(service))
+        pauseMethod.invoke(service, "Late error", true, false)
+        org.robolectric.shadows.ShadowLooper.runUiThreadTasksIncludingDelayedTasks()
+        assertEquals(helium314.keyboard.latin.voice.VoiceIpcProtocol.ServiceState.IDLE, stateField.get(service))
+    }
 }

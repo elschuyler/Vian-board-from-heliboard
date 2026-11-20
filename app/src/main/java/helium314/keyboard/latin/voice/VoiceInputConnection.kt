@@ -39,6 +39,7 @@ class VoiceInputConnection(
         fun onError(message: String)
         fun onTranscriptionPreview(text: String)
         fun onFinalTranscription(text: String)
+        fun onFinalizationComplete() {}
     }
 
     private val clientHandler = Handler(
@@ -67,10 +68,10 @@ class VoiceInputConnection(
             serviceMessenger = null
             isBound = false
             listener.onError(
-                "Voice service stopped"
+                "Engine stopped"
             )
             listener.onStateChanged(
-                VoiceIpcProtocol.ServiceState.ERROR
+                VoiceIpcProtocol.ServiceState.PAUSED
             )
         }
 
@@ -80,6 +81,19 @@ class VoiceInputConnection(
                 name: ComponentName?,
                 service: IBinder?
             ) {
+                if (service == null) {
+                    LogCatcher.e(
+                        TAG,
+                        "onServiceConnected received null IBinder"
+                    )
+                    serviceMessenger = null
+                    isBound = false
+                    pendingStartGain = null
+                    listener.onError(
+                        "Voice service unavailable"
+                    )
+                    return
+                }
                 LogCatcher.i(
                     TAG,
                     "Connected to VoiceInputService"
@@ -94,7 +108,7 @@ class VoiceInputConnection(
                 isBound = true
 
                 try {
-                    service?.linkToDeath(
+                    service.linkToDeath(
                         deathRecipient,
                         0
                     )
@@ -119,13 +133,15 @@ class VoiceInputConnection(
                         messenger.send(startMsg)
                         pendingStartGain = null
                     }
-                } catch (e: RemoteException) {
+                } catch (e: Exception) {
                     LogCatcher.e(
                         TAG,
-                        "RemoteException during " +
+                        "Exception during " +
                             "service handshake",
                         e
                     )
+                    serviceMessenger = null
+                    isBound = false
                     listener.onError(
                         "Voice service failure: " +
                             "${e.message}"
@@ -228,7 +244,7 @@ class VoiceInputConnection(
                 VoiceIpcProtocol.CMD_PAUSE_RECORDING
             )
             messenger.send(msg)
-        } catch (e: RemoteException) {
+        } catch (e: Exception) {
             LogCatcher.w(
                 TAG,
                 "Failed to send pause command: " +
@@ -237,8 +253,14 @@ class VoiceInputConnection(
         }
     }
 
+    fun isConnected(): Boolean = isBound && serviceMessenger != null
+
     fun resume() {
-        val messenger = serviceMessenger ?: return
+        val messenger = serviceMessenger
+        if (!isBound || messenger == null) {
+            connectAndStart(pendingStartGain ?: 1)
+            return
+        }
         try {
             val msg = Message.obtain(
                 null,
@@ -246,12 +268,15 @@ class VoiceInputConnection(
                     .CMD_RESUME_RECORDING
             )
             messenger.send(msg)
-        } catch (e: RemoteException) {
+        } catch (e: Exception) {
             LogCatcher.w(
                 TAG,
                 "Failed to send resume command: " +
                     "${e.message}"
             )
+            isBound = false
+            serviceMessenger = null
+            connectAndStart(pendingStartGain ?: 1)
         }
     }
 
@@ -264,12 +289,29 @@ class VoiceInputConnection(
             )
             msg.arg1 = gainMultiplier
             messenger.send(msg)
-        } catch (e: RemoteException) {
+        } catch (e: Exception) {
             LogCatcher.w(
                 TAG,
                 "Failed to send setGain command: " +
                     "${e.message}"
             )
+        }
+    }
+
+    fun requestFinalStop() {
+        val messenger = serviceMessenger ?: return
+        try {
+            val stopMsg = Message.obtain(
+                null,
+                VoiceIpcProtocol.CMD_STOP_RECORDING
+            )
+            messenger.send(stopMsg)
+        } catch (e: Exception) {
+            LogCatcher.w(
+                TAG,
+                "Failed to send stop command: ${e.message}"
+            )
+            stopAndDisconnect()
         }
     }
 
@@ -375,6 +417,10 @@ class VoiceInputConnection(
                     VoiceIpcProtocol.KEY_FINAL_TEXT
                 ) ?: ""
                 listener.onFinalTranscription(text)
+            }
+            VoiceIpcProtocol
+                .EVENT_FINALIZATION_COMPLETE -> {
+                listener.onFinalizationComplete()
             }
         }
         return true

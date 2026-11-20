@@ -244,7 +244,8 @@ object SecurityVaultContextSniffer {
                             {
                                 latinIME.mHandler.postUpdateSuggestionStrip(SuggestedWords.INPUT_STYLE_TYPING)
                             },
-                            { LogCatcher.log('I', TAG, "Autofill unlock challenge dismissed") }
+                            { LogCatcher.log('I', TAG, "Autofill unlock challenge dismissed") },
+                            true
                         )
                     }
                 }
@@ -397,7 +398,8 @@ object SecurityVaultContextSniffer {
             // Trigger Stealth Pattern Unlock disguised over QWERTY keyboard
             switcher.showStealthPatternUnlock(
                 { executeDirectInjection(latinIME, editorInfo, entry) },
-                { LogCatcher.log('I', TAG, "Stealth unlock challenge dismissed by user") }
+                { LogCatcher.log('I', TAG, "Stealth unlock challenge dismissed by user") },
+                true
             )
         }
     }

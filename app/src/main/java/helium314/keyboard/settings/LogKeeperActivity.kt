@@ -48,6 +48,7 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -102,7 +103,6 @@ class LogKeeperActivity : ComponentActivity() {
             }
             root.removeAllViews()
         }
-        System.gc()
     }
 }
 
@@ -132,6 +132,11 @@ fun LogKeeperScreen(onBack: () -> Unit) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     var selectedTimeFilter by remember { mutableStateOf(TimeFilter.ALL) }
     var selectedSubsystemFilter by remember { mutableStateOf(SubsystemFilter.ALL) }
+    DisposableEffect(Unit) {
+        onDispose {
+            LogCatcher.isSuggestionsLoggingEnabled = false
+        }
+    }
     var isEnabled by remember {
         mutableStateOf(prefs.getBoolean("pref_log_keeper_enabled", true))
     }
@@ -175,7 +180,9 @@ fun LogKeeperScreen(onBack: () -> Unit) {
                 entry.message.contains("whisper", ignoreCase = true)
             }
             SubsystemFilter.SUGGESTIONS -> byTime.filter { entry ->
+                entry.tag.equals("Suggest", ignoreCase = true) ||
                 entry.tag.contains("Suggestion", ignoreCase = true) ||
+                entry.message.contains("getSuggestedWords", ignoreCase = true) ||
                 entry.message.contains("updateSuggestionStrip", ignoreCase = true) ||
                 entry.message.contains("setSuggestions", ignoreCase = true) ||
                 entry.message.contains("suggestion", ignoreCase = true)
@@ -199,7 +206,7 @@ fun LogKeeperScreen(onBack: () -> Unit) {
                     writer.write("Time Filter: ${selectedTimeFilter.label}\n")
                     writer.write("Privacy Filter: NO content, NO credentials, NO PII\n\n")
 
-                    if (selectedTabIndex == 1 && !crashReportText.isNullOrBlank()) {
+                    if (!crashReportText.isNullOrBlank()) {
                         writer.write("--- PERSISTED CRASH REPORT ---\n")
                         writer.write(crashReportText)
                         writer.write("\n\n")
@@ -250,6 +257,11 @@ fun LogKeeperScreen(onBack: () -> Unit) {
                             if (selectedTabIndex == 0) {
                                 val fullLog = buildString {
                                     appendLine("=== VIANBOARD ALL SYSTEM LOGS (${timeFilteredLogs.size}) [Filter: ${selectedTimeFilter.label}] ===")
+                                    if (!crashReportText.isNullOrBlank()) {
+                                        appendLine("--- PERSISTED CRASH REPORT ---")
+                                        appendLine(crashReportText!!.trim())
+                                        appendLine()
+                                    }
                                     if (activeComponents.isNotEmpty()) {
                                         appendLine("--- ACTIVE SUBSYSTEMS ---")
                                         activeComponents.forEach {
@@ -297,7 +309,7 @@ fun LogKeeperScreen(onBack: () -> Unit) {
                                 appendLine("Time Filter: ${selectedTimeFilter.label}")
                                 appendLine("Privacy Filter: NO content, NO credentials, NO PII\n")
 
-                                if (selectedTabIndex == 1 && !crashReportText.isNullOrBlank()) {
+                                if (!crashReportText.isNullOrBlank()) {
                                     appendLine("--- PERSISTED CRASH REPORT ---")
                                     appendLine(crashReportText)
                                     appendLine()

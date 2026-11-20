@@ -213,6 +213,9 @@ public class LatinIME extends InputMethodService implements
 
     private final ClipboardHistoryManager mClipboardHistoryManager = new ClipboardHistoryManager(this);
 
+    @Nullable
+    private String mSuppressedVaultPhrase = null;
+
     public static final class UIHandler extends LeakGuardHandlerWrapper<LatinIME> {
         private static final int MSG_UPDATE_SHIFT_STATE = 0;
         private static final int MSG_PENDING_IMS_CALLBACK = 1;
@@ -901,6 +904,7 @@ public class LatinIME extends InputMethodService implements
 
     void onStartInputViewInternal(final EditorInfo editorInfo, final boolean restarting) {
         super.onStartInputView(editorInfo, restarting);
+        mSuppressedVaultPhrase = null;
 
         setGestureDataGatheringMode(editorInfo, restarting);
 
@@ -1132,6 +1136,7 @@ public class LatinIME extends InputMethodService implements
     void onFinishInputInternal() {
         super.onFinishInput();
         Log.i(TAG, "onFinishInput");
+        mSuppressedVaultPhrase = null;
 
         mDictionaryFacilitator.onFinishInput();
         final MainKeyboardView mainKeyboardView = mKeyboardSwitcher.getMainKeyboardView();
@@ -1582,6 +1587,7 @@ public class LatinIME extends InputMethodService implements
     // This method is public for testability of LatinIME, but also in the future it should
     // completely replace #onCodeInput.
     public void onEvent(@NonNull final Event event) {
+        mSuppressedVaultPhrase = null;
         if (KeyCode.VOICE_INPUT == event.getKeyCode()) {
             onVoiceInputTriggered();
             return;
@@ -1624,6 +1630,7 @@ public class LatinIME extends InputMethodService implements
 
     public void onTextInput(@Nullable String rawText) {
         if (rawText == null) return;
+        mSuppressedVaultPhrase = null;
         // TODO: have the keyboard pass the correct key code when we need it.
         Event event = Event.createSoftwareTextEvent(rawText, KeyCode.MULTIPLE_CODE_POINTS, null);
         InputTransaction completeInputTransaction = mInputLogic.onTextInput(mSettings.getCurrent(),
@@ -1634,6 +1641,7 @@ public class LatinIME extends InputMethodService implements
     }
 
     public void onStartBatchInput() {
+        mSuppressedVaultPhrase = null;
         mInputLogic.onStartBatchInput(mSettings.getCurrent(), mKeyboardSwitcher, mHandler);
         mGestureConsumer.onGestureStarted(mRichImm.getCurrentSubtypeLocale(), mKeyboardSwitcher.getKeyboard());
     }
@@ -1697,57 +1705,67 @@ public class LatinIME extends InputMethodService implements
                 typedWord = mInputLogic.getTypedWord();
             }
 
-            // Interconnected Awakening: Use dictionary / prediction engine output to awaken Privacy Vault
-            // Check if 3-4 letters typed match in-memory triggers in O(1) time
-            boolean isAwakened = false;
-            if (typedWord != null && typedWord.length() >= 3 && vaultDao.hasTriggerMatch(typedWord)) {
-                isAwakened = true;
-            }
-
-            // Also check prediction engine completions for 3-4 letter trigger awakening
-            if (!isAwakened && suggestedWords != null) {
-                final int maxCheck = Math.min(suggestedWords.size(), 3);
-                for (int i = 0; i < maxCheck; i++) {
-                    final String word = suggestedWords.getWord(i);
-                    if (word != null && word.length() >= 3 && vaultDao.hasTriggerMatch(word)) {
-                        isAwakened = true;
-                        break;
-                    }
-                }
-            }
-
             CharSequence textBefore = null;
-            // Also check trailing text before cursor (for space-separated shortcuts or direct phrase prefixes)
-            if (!isAwakened) {
+            boolean isSuppressed = false;
+            if (mSuppressedVaultPhrase != null) {
                 textBefore = mInputLogic.mConnection.getTextBeforeCursor(40, 0);
-                if (textBefore != null && textBefore.length() >= 3 && vaultDao.hasTriggerMatch(textBefore)) {
-                    isAwakened = true;
-                }
+                isSuppressed = isSuppressedAfterVaultCommit(textBefore, typedWord);
             }
 
             kotlin.Pair<VaultEntry, Integer> privacyMatch = null;
-            if (isAwakened) {
-                if (textBefore == null) {
-                    textBefore = mInputLogic.mConnection.getTextBeforeCursor(40, 0);
+            if (!isSuppressed) {
+                // Interconnected Awakening: Use dictionary / prediction engine output to awaken Privacy Vault
+                // Check if 3-4 letters typed match in-memory triggers in O(1) time
+                boolean isAwakened = false;
+                if (typedWord != null && typedWord.length() >= 3 && vaultDao.hasTriggerMatch(typedWord)) {
+                    isAwakened = true;
                 }
-                privacyMatch = vaultDao.findMatchForTextBeforeCursor(textBefore);
 
-                // Cross-check: If suggestedWords contains a suggestion that matches Privacy Vault,
-                // or if typedWord matches a vault entry, Privacy Vault strictly takes precedence over Personal Dictionary
-                if (privacyMatch == null && typedWord != null) {
-                    final VaultEntry matchingEntry = vaultDao.findMatchingEntryForWord(typedWord);
-                    if (matchingEntry != null) {
-                        privacyMatch = new kotlin.Pair<>(matchingEntry, typedWord.length());
+                // Also check prediction engine completions for 3-4 letter trigger awakening
+                if (!isAwakened && suggestedWords != null) {
+                    final int maxCheck = Math.min(suggestedWords.size(), 3);
+                    for (int i = 0; i < maxCheck; i++) {
+                        final String word = suggestedWords.getWord(i);
+                        if (word != null && word.length() >= 3 && vaultDao.hasTriggerMatch(word)) {
+                            isAwakened = true;
+                            break;
+                        }
                     }
                 }
-                if (privacyMatch == null && suggestedWords != null) {
-                    for (int i = 0; i < suggestedWords.size(); i++) {
-                        final String word = suggestedWords.getWord(i);
-                        final VaultEntry matchingEntry = vaultDao.findMatchingEntryForWord(word);
+
+                // Also check trailing text before cursor (for space-separated shortcuts or direct phrase prefixes)
+                if (!isAwakened) {
+                    if (textBefore == null) {
+                        textBefore = mInputLogic.mConnection.getTextBeforeCursor(40, 0);
+                    }
+                    if (textBefore != null && textBefore.length() >= 3 && vaultDao.hasTriggerMatch(textBefore)) {
+                        isAwakened = true;
+                    }
+                }
+
+                if (isAwakened) {
+                    if (textBefore == null) {
+                        textBefore = mInputLogic.mConnection.getTextBeforeCursor(40, 0);
+                    }
+                    privacyMatch = vaultDao.findMatchForTextBeforeCursor(textBefore);
+
+                    // Cross-check: If suggestedWords contains a suggestion that matches Privacy Vault,
+                    // or if typedWord matches a vault entry, Privacy Vault strictly takes precedence over Personal Dictionary
+                    if (privacyMatch == null && typedWord != null) {
+                        final VaultEntry matchingEntry = vaultDao.findMatchingEntryForWord(typedWord);
                         if (matchingEntry != null) {
-                            final int replaceLen = typedWord != null ? typedWord.length() : word.length();
-                            privacyMatch = new kotlin.Pair<>(matchingEntry, replaceLen);
-                            break;
+                            privacyMatch = new kotlin.Pair<>(matchingEntry, typedWord.length());
+                        }
+                    }
+                    if (privacyMatch == null && suggestedWords != null) {
+                        for (int i = 0; i < suggestedWords.size(); i++) {
+                            final String word = suggestedWords.getWord(i);
+                            final VaultEntry matchingEntry = vaultDao.findMatchingEntryForWord(word);
+                            if (matchingEntry != null) {
+                                final int replaceLen = typedWord != null ? typedWord.length() : word.length();
+                                privacyMatch = new kotlin.Pair<>(matchingEntry, replaceLen);
+                                break;
+                            }
                         }
                     }
                 }
@@ -1922,12 +1940,18 @@ public class LatinIME extends InputMethodService implements
 
         pill.setOnClickListener(v -> {
             final Runnable commitAction = () -> {
-                mInputLogic.mConnection.finishComposingText();
-                if (replaceLength > 0) {
-                    mInputLogic.mConnection.deleteTextBeforeCursor(replaceLength);
-                }
-                mInputLogic.mConnection.commitText(entry.getPhrase(), 1);
-                removeExternalSuggestions();
+                final String phrase = entry.getPhrase();
+                mSuppressedVaultPhrase = phrase;
+                final InputTransaction completeInputTransaction = mInputLogic.commitPrivacyVaultEntry(
+                        mSettings.getCurrent(),
+                        phrase,
+                        replaceLength,
+                        mKeyboardSwitcher.getKeyboardCapsMode()
+                );
+                updateStateAfterInputTransaction(completeInputTransaction);
+                mHandler.cancelUpdateSuggestionStrip();
+                mHandler.cancelResumeSuggestions();
+                setNeutralSuggestionStrip();
             };
             if (!VaultSessionManager.INSTANCE.isPatternSet(this) || VaultSessionManager.INSTANCE.isPrivacySessionValid()) {
                 commitAction.run();
@@ -1941,6 +1965,32 @@ public class LatinIME extends InputMethodService implements
 
         root.addView(pill);
         return root;
+    }
+
+    private boolean isSuppressedAfterVaultCommit(@Nullable final CharSequence textBefore, @Nullable final String typedWord) {
+        return matchesSuppressedVaultPhrase(mSuppressedVaultPhrase, textBefore, typedWord);
+    }
+
+    public static boolean matchesSuppressedVaultPhrase(
+            @Nullable final String suppressed,
+            @Nullable final CharSequence textBefore,
+            @Nullable final String typedWord) {
+        if (suppressed == null || suppressed.isEmpty()) {
+            return false;
+        }
+        final int len = suppressed.length();
+        final String tail = len > 40 ? suppressed.substring(len - 40) : suppressed;
+        if (textBefore != null) {
+            final String beforeStr = textBefore.toString();
+            if (beforeStr.length() >= tail.length()
+                    && beforeStr.regionMatches(true, beforeStr.length() - tail.length(), tail, 0, tail.length())) {
+                return true;
+            }
+        }
+        return typedWord != null
+                && !typedWord.isEmpty()
+                && typedWord.length() == tail.length()
+                && tail.regionMatches(true, 0, typedWord, 0, tail.length());
     }
 
     /**
@@ -1967,13 +2017,15 @@ public class LatinIME extends InputMethodService implements
         if (!vaultDao.isSuspended() && vaultDao.getCount() > 0) {
             String typedWord = mInputLogic.getTypedWord();
             final CharSequence textBefore = mInputLogic.mConnection.getTextBeforeCursor(40, 0);
-            if (textBefore != null && textBefore.length() >= 3 && vaultDao.hasTriggerMatch(textBefore)) {
-                privacyMatch = vaultDao.findMatchForTextBeforeCursor(textBefore);
-            }
-            if (privacyMatch == null && typedWord != null && typedWord.length() >= 3 && vaultDao.hasTriggerMatch(typedWord)) {
-                final VaultEntry matchingEntry = vaultDao.findMatchingEntryForWord(typedWord);
-                if (matchingEntry != null) {
-                    privacyMatch = new kotlin.Pair<>(matchingEntry, typedWord.length());
+            if (!isSuppressedAfterVaultCommit(textBefore, typedWord)) {
+                if (textBefore != null && textBefore.length() >= 3 && vaultDao.hasTriggerMatch(textBefore)) {
+                    privacyMatch = vaultDao.findMatchForTextBeforeCursor(textBefore);
+                }
+                if (privacyMatch == null && typedWord != null && typedWord.length() >= 3 && vaultDao.hasTriggerMatch(typedWord)) {
+                    final VaultEntry matchingEntry = vaultDao.findMatchingEntryForWord(typedWord);
+                    if (matchingEntry != null) {
+                        privacyMatch = new kotlin.Pair<>(matchingEntry, typedWord.length());
+                    }
                 }
             }
         }

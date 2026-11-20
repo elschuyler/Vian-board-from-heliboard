@@ -79,6 +79,9 @@ Java_helium314_keyboard_latin_voice_WhisperEngine_fullTranscribe(
     if (n_samples <= 0) {
         return env->NewStringUTF("");
     }
+    if (n_samples > 480000) {
+        n_samples = 480000;
+    }
 
     jfloat *samples = env->GetFloatArrayElements(audioData, nullptr);
     if (!samples) {
@@ -92,7 +95,7 @@ Java_helium314_keyboard_latin_voice_WhisperEngine_fullTranscribe(
     if (useBeamSearch) {
         wparams.beam_search.beam_size = 5;
     }
-    wparams.n_threads = (numThreads > 0) ? numThreads : 2;
+    wparams.n_threads = (numThreads > 0) ? (numThreads > 4 ? 4 : numThreads) : 2;
     wparams.print_progress = false;
     wparams.print_special = false;
     wparams.print_realtime = false;

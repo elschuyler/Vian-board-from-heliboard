@@ -11,7 +11,7 @@ import kotlin.math.sqrt
 class EnergyVad(
     private val speechThresholdMultiplier: Float = 2.5f,
     private val minSpeechFrames: Int = 3,
-    private val minSilenceFrames: Int = 15
+    private val minSilenceFrames: Int = 8
 ) {
     private var noiseFloor: Float = 100f
     private var consecutiveSpeechFrames: Int = 0

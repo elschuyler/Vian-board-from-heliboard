@@ -23,6 +23,7 @@ object VoiceIpcProtocol {
     const val EVENT_ERROR = 104
     const val EVENT_TRANSCRIPTION_PREVIEW = 105
     const val EVENT_FINAL_TRANSCRIPTION = 106
+    const val EVENT_FINALIZATION_COMPLETE = 107
 
     // Bundle Data Keys
     const val KEY_RMS = "key_rms"

@@ -398,6 +398,35 @@ public final class InputLogic {
         return inputTransaction;
     }
 
+    public InputTransaction commitPrivacyVaultEntry(
+            final SettingsValues settingsValues,
+            @NonNull final String phrase,
+            final int replaceLength,
+            final CapsMode keyboardCapsMode) {
+        final Event event = Event.createSoftwareTextEvent(phrase, KeyCode.MULTIPLE_CODE_POINTS, null);
+        final InputTransaction inputTransaction = new InputTransaction(settingsValues, event,
+                SystemClock.uptimeMillis(), mSpaceState, keyboardCapsMode);
+        inputTransaction.setDidAffectContents();
+        inputTransaction.requireShiftUpdate(InputTransaction.SHIFT_UPDATE_NOW);
+
+        mConnection.beginBatchEdit();
+        mSuggestedWords = SuggestedWords.getEmptyInstance();
+        mConnection.finishComposingText();
+        if (replaceLength > 0) {
+            mConnection.deleteTextBeforeCursor(replaceLength);
+        }
+        resetComposingState(true /* alsoResetLastComposedWord */);
+        mConnection.commitText(phrase, 1);
+        mConnection.endBatchEdit();
+
+        mLastComposedWord.deactivate();
+        mSpaceState = SpaceState.NONE;
+        mWordBeingCorrectedByCursor = null;
+        mEnteredText = phrase;
+        setInlineEmojiSearchAction(false);
+        return inputTransaction;
+    }
+
     /** indicates that the next selection update is expected to be a cursor move (though not needed for arrow keys) */
     public void setExpectCursorMove() {
         mCursorMoveExpectedUntil = SystemClock.elapsedRealtime() + 500;

@@ -161,4 +161,48 @@ class StabilizationHardeningTest {
         LogCatcher.markComponentInactive("HardeningProbe")
         assertFalse(LogCatcher.getActiveComponents().any { it.name == "HardeningProbe" })
     }
+
+    @Test
+    fun logCatcher_filtersSuggestTypingSpamByDefault_andCapturesWhenEnabled() {
+        LogCatcher.init(context)
+        LogCatcher.setEnabled(true)
+        LogCatcher.isSuggestionsLoggingEnabled = false
+        LogCatcher.clearLogs()
+
+        LogCatcher.i("Suggest", "getSuggestedWords: candidates=14")
+        LogCatcher.i("VoiceInputService", "Voice session started")
+
+        val defaultLogs = LogCatcher.getLogs()
+        assertFalse(defaultLogs.any { it.tag == "Suggest" })
+        assertTrue(defaultLogs.any { it.tag == "VoiceInputService" })
+
+        LogCatcher.isSuggestionsLoggingEnabled = true
+        LogCatcher.i("Suggest", "getSuggestedWords: candidates=12")
+        assertTrue(LogCatcher.getLogs().any { it.tag == "Suggest" })
+        LogCatcher.isSuggestionsLoggingEnabled = false
+    }
+
+    @Test
+    fun logCatcher_persistsAndReloadsVoiceBreadcrumbsAcrossRestart() {
+        LogCatcher.init(context)
+        LogCatcher.setEnabled(true)
+        LogCatcher.clearLogs()
+        Thread.sleep(100)
+
+        LogCatcher.i("VoiceInputService", "Model warmup breadcrumb test")
+        LogCatcher.w("WhisperEngine", "Memory headroom warning test")
+        Thread.sleep(150)
+
+        // Simulate fresh process restart clearing in-memory ringBuffer without deleting disk active log
+        val ringField = LogCatcher::class.java.getDeclaredField("ringBuffer").apply { isAccessible = true }
+        val ring = ringField.get(LogCatcher) as MutableList<*>
+        synchronized(ring) { ring.clear() }
+        assertTrue(LogCatcher.getLogs().isEmpty())
+
+        LogCatcher.init(context)
+        Thread.sleep(200)
+        val reloaded = LogCatcher.getLogs()
+        assertTrue(reloaded.any { it.tag == "VoiceInputService" && it.message == "Model warmup breadcrumb test" })
+        assertTrue(reloaded.any { it.tag == "WhisperEngine" && it.message == "Memory headroom warning test" })
+    }
 }

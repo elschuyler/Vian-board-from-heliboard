@@ -195,10 +195,12 @@ class AudioRecordPipeline(
     }
 
     @Synchronized
+    fun isActive(): Boolean = isRunning
+
+    @Synchronized
     fun pause() {
         isPaused = true
         listener.onRmsChanged(0f)
-        listener.onSpeechActivityChanged(false)
         LogCatcher.markComponentActive(COMPONENT_NAME, "AudioCapture", "Paused")
     }
 

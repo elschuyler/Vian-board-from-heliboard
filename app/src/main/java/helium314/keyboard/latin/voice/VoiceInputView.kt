@@ -63,7 +63,12 @@ class VoiceInputView @JvmOverloads constructor(
     private var currentGainMultiplier: Int = 1
     private var voiceConnection: VoiceInputConnection? = null
 
+    private var pauseReasonBanner: String? = null
     private var pendingCommitText: String? = null
+    private var hasLiveSpeechInUtterance: Boolean = false
+    private var suppressFlushOnStop: Boolean = false
+    private var deferredKeyAction: (() -> Unit)? = null
+    private var deferredFlushListener: KeyboardActionListener? = null
     private val commitHandler = Handler(Looper.getMainLooper())
     private val commitRunnable = Runnable {
         val textToCommit = pendingCommitText
@@ -74,6 +79,8 @@ class VoiceInputView @JvmOverloads constructor(
             updatePreviewStripText("")
         }
     }
+    private val deferredKeyFailSafeRunnable = Runnable { runDeferredKeyNow() }
+    private val flushDisconnectRunnable = Runnable { completeFlushDisconnect() }
 
     private var keyBackgroundId: Int = 0
     private var navBarBottomInset: Int = 0
@@ -129,7 +136,7 @@ class VoiceInputView @JvmOverloads constructor(
 
     private val connectionListener = object : VoiceInputConnection.VoiceConnectionListener {
         override fun onRmsChanged(rms: Float) {
-            post {
+            commitHandler.post {
                 if (isVoiceActive && !isVoicePaused) {
                     pulseView.setRms(rms)
                 }
@@ -137,28 +144,60 @@ class VoiceInputView @JvmOverloads constructor(
         }
 
         override fun onStateChanged(state: VoiceIpcProtocol.ServiceState) {
-            post {
+            commitHandler.post {
                 when (state) {
                     VoiceIpcProtocol.ServiceState.RECORDING -> {
+                        pauseReasonBanner = null
                         isVoicePaused = false
                         updateMicButtonState()
                         pulseView.pulseState = VoicePulseView.PulseState.LISTENING
-                        if (streamingText.text == context.getString(R.string.voice_status_paused)) {
+                        val currentText = streamingText.text?.toString().orEmpty()
+                        if (currentText == context.getString(R.string.voice_status_paused) ||
+                            currentText.startsWith("Paused:")
+                        ) {
                             streamingText.setText(R.string.voice_status_listening)
                         }
                     }
                     VoiceIpcProtocol.ServiceState.PAUSED -> {
                         isVoicePaused = true
+                        hasLiveSpeechInUtterance = false
                         updateMicButtonState()
                         pulseView.pulseState = VoicePulseView.PulseState.PAUSED
-                        streamingText.setText(R.string.voice_status_paused)
+                        val reason = pauseReasonBanner
+                        if (!reason.isNullOrBlank()) {
+                            streamingText.text = "Paused: $reason (tap to retry)"
+                        } else {
+                            streamingText.setText(R.string.voice_status_paused)
+                        }
+                        if (deferredFlushListener != null) {
+                            completeFlushDisconnect()
+                        }
                     }
                     VoiceIpcProtocol.ServiceState.ERROR -> {
-                        pulseView.pulseState = VoicePulseView.PulseState.ERROR
+                        // Treat engine errors identically to tapping bouncing bars: pause modal cleanly without crashing
+                        isVoicePaused = true
+                        hasLiveSpeechInUtterance = false
+                        updateMicButtonState()
+                        pulseView.pulseState = VoicePulseView.PulseState.PAUSED
+                        val reason = pauseReasonBanner
+                        streamingText.text = if (!reason.isNullOrBlank()) {
+                            "Paused: $reason (tap to retry)"
+                        } else {
+                            "Paused: Engine stopped (tap to retry)"
+                        }
+                        runDeferredKeyNow()
+                        if (deferredFlushListener != null) {
+                            completeFlushDisconnect()
+                        }
                     }
                     VoiceIpcProtocol.ServiceState.IDLE -> {
+                        hasLiveSpeechInUtterance = false
                         if (!isVoiceActive) {
                             pulseView.pulseState = VoicePulseView.PulseState.IDLE
+                            runDeferredKeyNow()
+                            if (deferredFlushListener != null) {
+                                completeFlushDisconnect()
+                            }
                         }
                     }
                 }
@@ -166,37 +205,72 @@ class VoiceInputView @JvmOverloads constructor(
         }
 
         override fun onSpeechActivity(isSpeaking: Boolean) {
-            // Speech presence indicator
+            commitHandler.post {
+                if (isSpeaking && isVoiceActive && !isVoicePaused) {
+                    hasLiveSpeechInUtterance = true
+                }
+            }
         }
 
         override fun onError(message: String) {
-            post {
-                LogCatcher.w(TAG, "Voice input connection error: $message")
-                if (!VoiceModelManager.hasActiveModel(context)) {
-                    streamingText.text = "Recording raw audio (Tap Import .bin model)"
-                } else {
-                    pulseView.pulseState = VoicePulseView.PulseState.ERROR
-                    streamingText.text = message
+            commitHandler.post {
+                LogCatcher.w(TAG, "Voice input engine paused/error: $message")
+                pauseReasonBanner = message
+                isVoicePaused = true
+                hasLiveSpeechInUtterance = false
+                updateMicButtonState()
+                pulseView.pulseState = VoicePulseView.PulseState.PAUSED
+                streamingText.text = "Paused: $message (tap to retry)"
+                runDeferredKeyNow()
+                if (deferredFlushListener != null) {
+                    completeFlushDisconnect()
                 }
             }
         }
 
         override fun onTranscriptionPreview(text: String) {
-            post {
-                updateStreamingText(text)
-                if (pendingCommitText != null) {
-                    commitHandler.removeCallbacks(commitRunnable)
-                    pendingCommitText = null
+            commitHandler.post {
+                if (!isVoiceActive) return@post
+                if (text.isNotBlank() && !isVoicePaused) {
+                    hasLiveSpeechInUtterance = true
                 }
+                // Never clobber any pending finalized text when a live preview update arrives
+                if (pendingCommitText != null) {
+                    commitPendingImmediately()
+                }
+                updateStreamingText(text)
                 updatePreviewStripText(text)
             }
         }
 
         override fun onFinalTranscription(text: String) {
-            post {
-                if (text.isNotEmpty()) {
-                    updateStreamingText(text)
-                    scheduleCommit(text)
+            commitHandler.post {
+                hasLiveSpeechInUtterance = false
+                val flushListener = deferredFlushListener
+                if (flushListener != null && !isVoiceActive) {
+                    if (text.isNotEmpty()) {
+                        LogCatcher.i(TAG, "Committing flushed voice transcription on close: length=${text.length}")
+                        flushListener.onTextInput(text)
+                    }
+                    completeFlushDisconnect()
+                    return@post
+                }
+                if (text.isNotEmpty() && isVoiceActive) {
+                    if (!isVoicePaused) {
+                        streamingText.text = text.replace("\n", " ↵ ")
+                    }
+                    commitTextImmediately(text)
+                }
+                runDeferredKeyNow()
+            }
+        }
+
+        override fun onFinalizationComplete() {
+            commitHandler.post {
+                hasLiveSpeechInUtterance = false
+                runDeferredKeyNow()
+                if (deferredFlushListener != null) {
+                    completeFlushDisconnect()
                 }
             }
         }
@@ -281,6 +355,14 @@ class VoiceInputView @JvmOverloads constructor(
     }
 
     fun startVoiceInput(editorInfo: EditorInfo?, actionListener: KeyboardActionListener) {
+        if (deferredFlushListener != null) {
+            completeFlushDisconnect()
+        }
+        commitHandler.removeCallbacks(deferredKeyFailSafeRunnable)
+        deferredKeyAction = null
+        suppressFlushOnStop = false
+        hasLiveSpeechInUtterance = false
+        pauseReasonBanner = null
         this.keyboardActionListener = actionListener
         val colors = Settings.getValues().mColors
         colors.setBackground(this, ColorType.MAIN_BACKGROUND)
@@ -381,15 +463,22 @@ class VoiceInputView @JvmOverloads constructor(
         }
     }
 
-    private fun scheduleCommit(text: String) {
-        pendingCommitText = text
-        updatePreviewStripText(text)
+    private fun commitTextImmediately(text: String) {
         commitHandler.removeCallbacks(commitRunnable)
-        commitHandler.postDelayed(commitRunnable, 1000L)
+        pendingCommitText = null
+        if (text.isNotEmpty() && isVoiceActive) {
+            LogCatcher.i(TAG, "Committing voice transcription immediately: length=${text.length}")
+            keyboardActionListener?.onTextInput(text)
+            updatePreviewStripText("")
+        }
     }
 
     fun clearPreview() {
         LogCatcher.i(TAG, "Voice preview cleared by user")
+        suppressFlushOnStop = true
+        hasLiveSpeechInUtterance = false
+        commitHandler.removeCallbacks(deferredKeyFailSafeRunnable)
+        deferredKeyAction = null
         commitHandler.removeCallbacks(commitRunnable)
         pendingCommitText = null
         updatePreviewStripText("")
@@ -399,10 +488,10 @@ class VoiceInputView @JvmOverloads constructor(
     fun commitPendingImmediately() {
         commitHandler.removeCallbacks(commitRunnable)
         val textToCommit = pendingCommitText
+        pendingCommitText = null
         if (!textToCommit.isNullOrEmpty() && isVoiceActive) {
             LogCatcher.i(TAG, "Committing pending voice transcription immediately: length=${textToCommit.length}")
             keyboardActionListener?.onTextInput(textToCommit)
-            pendingCommitText = null
             updatePreviewStripText("")
         }
     }
@@ -487,10 +576,10 @@ class VoiceInputView @JvmOverloads constructor(
                 if (code == KeyCode.ALPHA) {
                     KeyboardSwitcher.getInstance().closeVoiceInput()
                     return
-                } else {
-                    pauseVoiceInput()
                 }
-                listener.onCodeInput(code, x, y, isKeyRepeat)
+                flushAndRunKeyAction {
+                    listener.onCodeInput(code, x, y, isKeyRepeat)
+                }
             }
         }
         keyboardView.setKeyboardActionListener(wrappedListener)
@@ -507,14 +596,45 @@ class VoiceInputView @JvmOverloads constructor(
         }
     }
 
+    private fun flushAndRunKeyAction(action: () -> Unit) {
+        commitPendingImmediately()
+        val shouldDeferForSpeech = isVoiceActive && !isVoicePaused && hasLiveSpeechInUtterance &&
+            voiceConnection?.isConnected() == true
+        if (!shouldDeferForSpeech) {
+            pauseVoiceInput()
+            action()
+            return
+        }
+        runDeferredKeyNow()
+        deferredKeyAction = action
+        commitHandler.removeCallbacks(deferredKeyFailSafeRunnable)
+        commitHandler.postDelayed(deferredKeyFailSafeRunnable, 1200L)
+        pauseVoiceInput()
+    }
+
+    private fun runDeferredKeyNow() {
+        commitHandler.removeCallbacks(deferredKeyFailSafeRunnable)
+        val pendingAction = deferredKeyAction ?: return
+        deferredKeyAction = null
+        pendingAction.invoke()
+    }
+
+    private fun completeFlushDisconnect() {
+        commitHandler.removeCallbacks(flushDisconnectRunnable)
+        deferredFlushListener = null
+        voiceConnection?.stopAndDisconnect()
+        voiceConnection = null
+    }
+
     fun pauseVoiceInput() {
-        commitHandler.removeCallbacks(commitRunnable)
-        pendingCommitText = null
+        commitPendingImmediately()
         updatePreviewStripText("")
         if (!isVoiceActive || isVoicePaused) return
         isVoicePaused = true
         pulseView.pulseState = VoicePulseView.PulseState.PAUSED
-        streamingText.setText(R.string.voice_status_paused)
+        if (pauseReasonBanner.isNullOrBlank()) {
+            streamingText.setText(R.string.voice_status_paused)
+        }
         updateMicButtonState()
         LogCatcher.i(TAG, "Voice input paused")
         voiceConnection?.pause()
@@ -522,12 +642,18 @@ class VoiceInputView @JvmOverloads constructor(
 
     fun resumeVoiceInput() {
         if (!isVoiceActive || !isVoicePaused) return
+        pauseReasonBanner = null
         isVoicePaused = false
         pulseView.pulseState = VoicePulseView.PulseState.LISTENING
         streamingText.setText(R.string.voice_status_listening)
         updateMicButtonState()
         LogCatcher.i(TAG, "Voice input resumed")
-        voiceConnection?.resume()
+        if (voiceConnection == null) {
+            voiceConnection = VoiceInputConnection(context.applicationContext, connectionListener)
+            voiceConnection?.connectAndStart(currentGainMultiplier)
+        } else {
+            voiceConnection?.resume()
+        }
     }
 
     fun updateStreamingText(text: String) {
@@ -543,25 +669,45 @@ class VoiceInputView @JvmOverloads constructor(
     fun isVoiceActive(): Boolean = isVoiceActive
 
     fun stopVoiceInput() {
-        if (!isVoiceActive && visibility == GONE && voiceConnection == null) return
+        if (!isVoiceActive && visibility == GONE && voiceConnection == null && deferredFlushListener == null) return
         val wasActive = isVoiceActive || visibility != GONE || voiceConnection != null
+        runDeferredKeyNow()
+        commitPendingImmediately()
+        val shouldFlush = isVoiceActive && !isVoicePaused && !suppressFlushOnStop &&
+            hasLiveSpeechInUtterance && voiceConnection?.isConnected() == true
+        val retainedListener = if (shouldFlush) keyboardActionListener else null
+
+        pauseReasonBanner = null
         isVoiceActive = false
         isVoicePaused = false
-        commitHandler.removeCallbacks(commitRunnable)
-        pendingCommitText = null
+        hasLiveSpeechInUtterance = false
+        suppressFlushOnStop = false
         updatePreviewStripText("")
         previewStrip = null
         previewText = null
         previewClear = null
-        voiceConnection?.stopAndDisconnect()
-        voiceConnection = null
         pulseView.release()
         keyboardActionListener = null
         visibility = GONE
+        if (shouldFlush && retainedListener != null) {
+            deferredFlushListener = retainedListener
+            commitHandler.removeCallbacks(flushDisconnectRunnable)
+            commitHandler.postDelayed(flushDisconnectRunnable, 1500L)
+            voiceConnection?.requestFinalStop()
+        } else {
+            completeFlushDisconnect()
+        }
         if (wasActive) {
             LogCatcher.i(TAG, "Voice input modal dismissed")
             LogCatcher.markComponentActive("VoiceInputModal", "UI", "Dismissed")
         }
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        commitHandler.removeCallbacks(commitRunnable)
+        commitHandler.removeCallbacks(deferredKeyFailSafeRunnable)
+        // Keep deferredFlushListener + flushDisconnectRunnable alive so Lite Mode view detach on ABC still commits flushed speech
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
